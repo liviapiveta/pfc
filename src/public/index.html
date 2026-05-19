@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SUAP Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --verde: #00c27a;
+      --verde-claro: #e6fff5;
+      --verde-escuro: #00956a;
+      --azul: #003566;
+      --azul-claro: #e8f0fb;
+      --bg: #f0f3f8;
+      --card: #ffffff;
+      --texto: #0d1b2a;
+      --texto-2: #445566;
+      --cinza: #8a97a8;
+      --borda: #e2e8f0;
+      --amarelo: #f5a623;
+      --vermelho: #e53e3e;
+      --sidebar-w: 240px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--texto);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--azul);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0;
+      z-index: 100;
+    }
+
+    .sidebar-logo {
+      padding: 1.5rem 1.5rem 1.2rem;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .sidebar-logo h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: white;
+      letter-spacing: -0.5px;
+    }
+
+    .sidebar-logo h1 span { color: var(--verde); }
+
+    .sidebar-logo p {
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.45);
+      margin-top: 0.2rem;
+    }
+
+    .sidebar-user {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .user-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--verde);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: white;
+      margin-bottom: 0.5rem;
+    }
+
+    .user-name {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: white;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .user-mat {
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.45);
+    }
+
+    nav { flex: 1; padding: 0.8rem 0; }
+
+    .nav-section {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      padding: 0.8rem 1.5rem 0.3rem;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.65rem 1.5rem;
+      color: rgba(255,255,255,0.65);
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 400;
+      transition: all 0.15s;
+      border-left: 3px solid transparent;
+    }
+
+    .nav-item:hover { background: rgba(255,255,255,0.06); color: white; }
+
+    .nav-item.active {
+      color: white;
+      background: rgba(0,194,122,0.12);
+      border-left-color: var(--verde);
+      font-weight: 500;
+    }
+
+    .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+
+    .sidebar-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .btn-logout {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: rgba(255,255,255,0.5);
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: color 0.15s;
+      background: none;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn-logout:hover { color: var(--vermelho); }
+
+    /* ── MAIN ── */
+    .main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      background: var(--card);
+      border-bottom: 1px solid var(--borda);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .topbar-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--texto);
+    }
+
+    .topbar-actions { display: flex; gap: 0.75rem; align-items: center; }
+
+    .periodo-select {
+      border: 1.5px solid var(--borda);
+      border-radius: 8px;
+      padding: 0.4rem 0.75rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      color: var(--texto);
+      background: white;
+      cursor: pointer;
+    }
+
+    .content { padding: 2rem; }
+
+    /* ── SEÇÕES ── */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      border: 1px solid var(--borda);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--borda);
+    }
+
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--texto);
+    }
+
+    /* ── DADOS PESSOAIS ── */
+    .dados-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .dado-item label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--cinza);
+      margin-bottom: 0.3rem;
+    }
+
+    .dado-item p {
+      font-size: 0.9rem;
+      color: var(--texto);
+      font-weight: 500;
+    }
+
+    /* ── PERFIL CARD ── */
+    .perfil-hero {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .perfil-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--azul), var(--verde));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1.8rem;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .perfil-info h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .perfil-info p { color: var(--cinza); font-size: 0.88rem; margin-top: 0.2rem; }
+
+    .status-badge {
+      display: inline-block;
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      margin-top: 0.4rem;
+    }
+
+    /* ── BOLETIM ── */
+    .boletim-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    .boletim-table th {
+      background: var(--bg);
+      padding: 0.7rem 1rem;
+      text-align: left;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--cinza);
+      border-bottom: 1px solid var(--borda);
+    }
+
+    .boletim-table td {
+      padding: 0.8rem 1rem;
+      border-bottom: 1px solid var(--borda);
+      color: var(--texto-2);
+    }
+
+    .boletim-table tr:last-child td { border-bottom: none; }
+    .boletim-table tr:hover td { background: var(--bg); }
+
+    .nota {
+      display: inline-block;
+      font-weight: 600;
+      font-size: 0.88rem;
+      min-width: 38px;
+      text-align: center;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+    }
+
+    .nota.aprovado { background: var(--verde-claro); color: var(--verde-escuro); }
+    .nota.reprovado { background: #fff5f5; color: var(--vermelho); }
+    .nota.neutro { background: var(--bg); color: var(--texto-2); }
+
+    .freq-bar-wrap { display: flex; align-items: center; gap: 0.6rem; }
+
+    .freq-bar {
+      flex: 1;
+      height: 6px;
+      background: var(--borda);
+      border-radius: 99px;
+      overflow: hidden;
+      min-width: 60px;
+    }
+
+    .freq-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.4s ease;
+    }
+
+    /* ── PROJETOS ── */
+    .projeto-card {
+      border: 1.5px solid var(--borda);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      transition: border-color 0.15s;
+    }
+
+    .projeto-card:hover { border-color: var(--verde); }
+
+    .projeto-tipo {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      padding: 0.2rem 0.65rem;
+      border-radius: 99px;
+      margin-bottom: 0.6rem;
+    }
+
+    .tipo-pesquisa { background: #eff6ff; color: #1d4ed8; }
+    .tipo-extensao { background: #f0fdf4; color: #15803d; }
+
+    .projeto-titulo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.97rem;
+      color: var(--texto);
+      margin-bottom: 0.4rem;
+    }
+
+    .projeto-detalhe {
+      font-size: 0.82rem;
+      color: var(--cinza);
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* ── CALENDÁRIO ── */
+    .eventos-lista { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .evento-item {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--card);
+      border: 1px solid var(--borda);
+      border-radius: 10px;
+      align-items: flex-start;
+    }
+
+    .evento-data {
+      text-align: center;
+      min-width: 52px;
+      background: var(--azul-claro);
+      border-radius: 8px;
+      padding: 0.4rem;
+      flex-shrink: 0;
+    }
+
+    .evento-data .mes {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--azul);
+      letter-spacing: 0.5px;
+    }
+
+    .evento-data .dia {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.3rem;
+      color: var(--azul);
+    }
+
+    .evento-info h4 { font-size: 0.9rem; font-weight: 500; color: var(--texto); }
+    .evento-info p { font-size: 0.8rem; color: var(--cinza); margin-top: 0.2rem; }
+
+    /* ── LOADING / ESTADOS ── */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem;
+      color: var(--cinza);
+      font-size: 0.9rem;
+      gap: 0.75rem;
+    }
+
+    .spinner {
+      width: 22px;
+      height: 22px;
+      border: 2.5px solid var(--borda);
+      border-top-color: var(--verde);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--cinza);
+    }
+
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .empty-state p { font-size: 0.9rem; }
+
+    /* ── STATS CARDS ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--borda);
+      border-radius: 12px;
+      padding: 1.2rem;
+    }
+
+    .stat-label { font-size: 0.75rem; color: var(--cinza); font-weight: 500; }
+
+    .stat-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--texto);
+      line-height: 1.2;
+    }
+
+    .stat-sub { font-size: 0.75rem; color: var(--cinza); margin-top: 0.2rem; }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; }
+      .content { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <h1>SUAP<span>.</span>Portal</h1>
+    <p>IFPR — Portal do Aluno</p>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="user-avatar" id="userAvatar">?</div>
+    <div class="user-name" id="userName">Carregando…</div>
+    <div class="user-mat" id="userMat"></div>
+  </div>
+
+  <nav>
+    <div class="nav-section">Acadêmico</div>
+    <div class="nav-item active" data-section="dados">
+      <span class="nav-icon">👤</span> Dados Pessoais
+    </div>
+    <div class="nav-item" data-section="boletim">
+      <span class="nav-icon">📊</span> Boletim
+    </div>
+    <div class="nav-section">Atividades</div>
+    <div class="nav-item" data-section="pesquisa">
+      <span class="nav-icon">🔬</span> Projetos de Pesquisa
+    </div>
+    <div class="nav-item" data-section="extensao">
+      <span class="nav-icon">🌱</span> Projetos de Extensão
+    </div>
+    <div class="nav-section">Institucional</div>
+    <div class="nav-item" data-section="calendario">
+      <span class="nav-icon">📅</span> Calendário
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <button class="btn-logout" onclick="logout()">
+      <span>↩</span> Sair
+    </button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <span class="topbar-title" id="topbarTitle">Dados Pessoais</span>
+    <div class="topbar-actions" id="topbarActions"></div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── DADOS PESSOAIS ── -->
+    <section class="section active" id="section-dados">
+      <div id="dadosContent"><div class="loading"><div class="spinner"></div> Buscando dados…</div></div>
+    </section>
+
+    <!-- ── BOLETIM ── -->
+    <section class="section" id="section-boletim">
+      <div class="stats-row" id="boletimStats"></div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Disciplinas</span>
+        </div>
+        <div id="boletimContent"><div class="loading"><div class="spinner"></div> Carregando boletim…</div></div>
+      </div>
+    </section>
+
+    <!-- ── PESQUISA ── -->
+    <section class="section" id="section-pesquisa">
+      <div id="pesquisaContent"><div class="loading"><div class="spinner"></div> Buscando projetos…</div></div>
+    </section>
+
+    <!-- ── EXTENSÃO ── -->
+    <section class="section" id="section-extensao">
+      <div id="extensaoContent"><div class="loading"><div class="spinner"></div> Buscando projetos…</div></div>
+    </section>
+
+    <!-- ── CALENDÁRIO ── -->
+    <section class="section" id="section-calendario">
+      <div id="calendarioContent"><div class="loading"><div class="spinner"></div> Carregando calendário…</div></div>
+    </section>
+
+  </div>
+</main>
+
+<script>
+// ── Estado global ──────────────────────────────────────────────
+const state = {
+  usuario: null,
+  periodos: [],
+  anoAtual: null,
+  periodoAtual: null,
+  loaded: {},
+};
+
+const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+// ── Utilidades ─────────────────────────────────────────────────
+const api = async (url) => {
+  const res = await fetch(url, { credentials: 'include' });
+  if (res.status === 401) { window.location.href = '/login'; return null; }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+};
+
+const html = (strings, ...vals) => strings.reduce((acc, s, i) =>
+  acc + s + (vals[i] != null ? String(vals[i]).replace(/</g,'&lt;') : ''), '');
+
+const esc = (s) => String(s ?? '—').replace(/</g,'&lt;');
+
+// ── Inicialização ──────────────────────────────────────────────
+(async () => {
+  try {
+    const me = await api('/api/auth/me');
+    if (!me) return;
+    state.usuario = me;
+    document.getElementById('userName').textContent = me.nome;
+    document.getElementById('userMat').textContent = me.matricula;
+    document.getElementById('userAvatar').textContent = (me.nome || 'A')[0].toUpperCase();
+
+    // Carrega períodos para o seletor do boletim
+    const periodos = await api('/api/periodos');
+    if (periodos) {
+      state.periodos = periodos;
+      if (periodos.length > 0) {
+        const ultimo = periodos[periodos.length - 1];
+        state.anoAtual = ultimo.ano_letivo;
+        state.periodoAtual = ultimo.periodo_letivo;
+      }
+    }
+
+    // Carrega seção inicial
+    carregarSecao('dados');
+  } catch(e) {
+    console.error(e);
+  }
+})();
+
+// ── Navegação ──────────────────────────────────────────────────
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const sec = item.dataset.section;
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById(`section-${sec}`).classList.add('active');
+    const titles = { dados:'Dados Pessoais', boletim:'Boletim Acadêmico',
+      pesquisa:'Projetos de Pesquisa', extensao:'Projetos de Extensão', calendario:'Calendário Acadêmico' };
+    document.getElementById('topbarTitle').textContent = titles[sec] || '';
+    carregarSecao(sec);
+  });
+});
+
+const carregarSecao = (sec) => {
+  if (state.loaded[sec]) return;
+  switch(sec) {
+    case 'dados': carregarDados(); break;
+    case 'boletim': carregarBoletim(); break;
+    case 'pesquisa': carregarPesquisa(); break;
+    case 'extensao': carregarExtensao(); break;
+    case 'calendario': carregarCalendario(); break;
+  }
+};
+
+// ── Seletor de período (boletim) ───────────────────────────────
+const renderPeriodoSelect = () => {
+  const actions = document.getElementById('topbarActions');
+  if (!state.periodos.length) return;
+
+  const selectId = 'periodoSelectTop';
+  if (document.getElementById(selectId)) return;
+
+  const sel = document.createElement('select');
+  sel.className = 'periodo-select';
+  sel.id = selectId;
+
+  state.periodos.slice().reverse().forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = `${p.ano_letivo}/${p.periodo_letivo}`;
+    opt.textContent = `${p.ano_letivo}.${p.periodo_letivo}`;
+    if (p.ano_letivo === state.anoAtual && p.periodo_letivo === state.periodoAtual) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  sel.addEventListener('change', () => {
+    const [ano, periodo] = sel.value.split('/');
+    state.anoAtual = parseInt(ano);
+    state.periodoAtual = parseInt(periodo);
+    delete state.loaded['boletim'];
+    document.getElementById('boletimContent').innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+    document.getElementById('boletimStats').innerHTML = '';
+    carregarBoletim();
+  });
+
+  actions.innerHTML = '';
+  actions.appendChild(sel);
+};
+
+// ── DADOS PESSOAIS ─────────────────────────────────────────────
+const carregarDados = async () => {
+  state.loaded['dados'] = true;
+  try {
+    const d = await api('/api/dados-pessoais');
+    if (!d) return;
+
+    const vinculo = d.vinculo || {};
+    const inicial = (d.nome_usual || d.nome || 'A')[0].toUpperCase();
+
+    document.getElementById('dadosContent').innerHTML = `
+      <div class="card">
+        <div class="perfil-hero">
+          <div class="perfil-avatar">${inicial}</div>
+          <div class="perfil-info">
+            <h2>${esc(d.nome_usual || d.nome)}</h2>
+            <p>${esc(vinculo.curso || '')}</p>
+            <span class="status-badge">${esc(vinculo.situacao || 'Ativo')}</span>
+          </div>
+        </div>
+        <div class="dados-grid">
+          ${dadoItem('Matrícula', vinculo.matricula || d.matricula)}
+          ${dadoItem('E-mail', d.email)}
+          ${dadoItem('Campus', vinculo.campus)}
+          ${dadoItem('Tipo de Vínculo', d.tipo_vinculo)}
+          ${dadoItem('CPF', d.cpf)}
+          ${dadoItem('Data de Nascimento', formatarData(d.data_nascimento))}
+          ${dadoItem('Telefone', d.telefone)}
+          ${dadoItem('Cota SISTEC', vinculo.cota_sistec || 'Não informado')}
+        </div>
+      </div>`;
+  } catch(e) {
+    document.getElementById('dadosContent').innerHTML =
+      '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar dados pessoais.</p></div>';
+  }
+};
+
+const dadoItem = (label, valor) => `
+  <div class="dado-item">
+    <label>${label}</label>
+    <p>${esc(valor)}</p>
+  </div>`;
+
+// ── BOLETIM ────────────────────────────────────────────────────
+const carregarBoletim = async () => {
+  state.loaded['boletim'] = true;
+
+  // Mostra seletor de período
+  const currentSection = document.querySelector('.nav-item.active')?.dataset.section;
+  if (currentSection === 'boletim') renderPeriodoSelect();
+
+  if (!state.anoAtual) {
+    document.getElementById('boletimContent').innerHTML =
+      '<div class="empty-state"><div class="icon">📭</div><p>Nenhum período letivo encontrado.</p></div>';
+    return;
+  }
+
+  try {
+    const boletim = await api(`/api/boletim/${state.anoAtual}/${state.periodoAtual}`);
+    if (!boletim) return;
+
+    const disciplinas = Array.isArray(boletim) ? boletim : [];
+
+    // Estatísticas
+    const aprovadas = disciplinas.filter(d => parseFloat(d.media_final) >= 6).length;
+    const mediaGeral = disciplinas.length
+      ? (disciplinas.reduce((s, d) => s + (parseFloat(d.media_final) || 0), 0) / disciplinas.length).toFixed(1)
+      : '—';
+
+    document.getElementById('boletimStats').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-label">Período</div>
+        <div class="stat-value">${state.anoAtual}.${state.periodoAtual}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Disciplinas</div>
+        <div class="stat-value">${disciplinas.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Média Geral</div>
+        <div class="stat-value">${mediaGeral}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Aprovadas</div>
+        <div class="stat-value">${aprovadas}</div>
+        <div class="stat-sub">de ${disciplinas.length}</div>
+      </div>`;
+
+    if (!disciplinas.length) {
+      document.getElementById('boletimContent').innerHTML =
+        '<div class="empty-state"><div class="icon">📭</div><p>Nenhuma disciplina encontrada para este período.</p></div>';
+      return;
+    }
+
+    const rows = disciplinas.map(d => {
+      const media = parseFloat(d.media_final);
+      const classeNota = isNaN(media) ? 'neutro' : media >= 6 ? 'aprovado' : 'reprovado';
+      const freq = parseFloat(d.percentual_carga_horaria_frequentada) || 0;
+      const corFreq = freq >= 75 ? '#00c27a' : freq >= 60 ? '#f5a623' : '#e53e3e';
+
+      return `<tr>
+        <td>${esc(d.componente_curricular)}</td>
+        <td><span class="nota ${classeNota}">${isNaN(media) ? '—' : media.toFixed(1)}</span></td>
+        <td>${esc(d.nota_etapa_1?.nota ?? '—')}</td>
+        <td>${esc(d.nota_etapa_2?.nota ?? '—')}</td>
+        <td>
+          <div class="freq-bar-wrap">
+            <div class="freq-bar">
+              <div class="freq-bar-fill" style="width:${freq}%;background:${corFreq}"></div>
+            </div>
+            <span style="font-size:0.8rem;color:${corFreq};font-weight:600">${freq.toFixed(0)}%</span>
+          </div>
+        </td>
+        <td>${esc(d.situacao || '—')}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('boletimContent').innerHTML = `
+      <div style="overflow-x:auto">
+        <table class="boletim-table">
+          <thead><tr>
+            <th>Componente</th><th>Média</th><th>Etapa 1</th><th>Etapa 2</th><th>Frequência</th><th>Situação</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    document.getElementById('boletimContent').innerHTML =
+      '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar boletim.</p></div>';
+  }
+};
+
+// ── PROJETOS ───────────────────────────────────────────────────
+const carregarPesquisa = async () => {
+  state.loaded['pesquisa'] = true;
+  await carregarProjetos('pesquisa', '/api/projetos/pesquisa', 'tipo-pesquisa', 'Pesquisa');
+};
+
+const carregarExtensao = async () => {
+  state.loaded['extensao'] = true;
+  await carregarProjetos('extensao', '/api/projetos/extensao', 'tipo-extensao', 'Extensão');
+};
+
+const carregarProjetos = async (id, endpoint, tipoClass, tipoLabel) => {
+  try {
+    const projetos = await api(endpoint);
+    if (!projetos) return;
+
+    const el = document.getElementById(`${id}Content`);
+
+    if (!projetos.length) {
+      el.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>Nenhum projeto de ${tipoLabel.toLowerCase()} encontrado.</p></div>`;
+      return;
+    }
+
+    el.innerHTML = projetos.map(p => `
+      <div class="projeto-card">
+        <span class="projeto-tipo ${tipoClass}">${tipoLabel}</span>
+        <div class="projeto-titulo">${esc(p.titulo || p.title || p.nome || 'Sem título')}</div>
+        <div class="projeto-detalhe">
+          ${p.ano ? `<span>📅 ${esc(p.ano)}</span>` : ''}
+          ${p.status || p.situacao ? `<span>🔹 ${esc(p.status || p.situacao)}</span>` : ''}
+          ${p.coordenador || p.orientador ? `<span>👤 ${esc(p.coordenador || p.orientador)}</span>` : ''}
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById(`${id}Content`).innerHTML =
+      '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar projetos.</p></div>';
+  }
+};
+
+// ── CALENDÁRIO ─────────────────────────────────────────────────
+const carregarCalendario = async () => {
+  state.loaded['calendario'] = true;
+  try {
+    const anoAtual = new Date().getFullYear();
+    const eventos = await api(`/api/calendario?ano=${anoAtual}`);
+    if (!eventos) return;
+
+    const el = document.getElementById('calendarioContent');
+
+    if (!eventos.length) {
+      el.innerHTML = '<div class="empty-state"><div class="icon">📅</div><p>Nenhum evento encontrado para este ano.</p></div>';
+      return;
+    }
+
+    const sorted = eventos.slice().sort((a, b) =>
+      new Date(a.data || a.inicio || a.data_inicio) - new Date(b.data || b.inicio || b.data_inicio)
+    );
+
+    const items = sorted.map(ev => {
+      const dataStr = ev.data || ev.inicio || ev.data_inicio || '';
+      const data = dataStr ? new Date(dataStr + 'T12:00:00') : null;
+      const dia = data ? data.getDate() : '—';
+      const mes = data ? MESES[data.getMonth()] : '';
+
+      return `<div class="evento-item">
+        <div class="evento-data">
+          <div class="mes">${mes}</div>
+          <div class="dia">${dia}</div>
+        </div>
+        <div class="evento-info">
+          <h4>${esc(ev.titulo || ev.descricao || ev.nome || 'Evento')}</h4>
+          <p>${esc(ev.tipo || ev.categoria || '')}</p>
+        </div>
+      </div>`;
+    }).join('');
+
+    el.innerHTML = `<div class="eventos-lista">${items}</div>`;
+  } catch(e) {
+    document.getElementById('calendarioContent').innerHTML =
+      '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar calendário.</p></div>';
+  }
+};
+
+// ── Formatações ────────────────────────────────────────────────
+const formatarData = (d) => {
+  if (!d) return '—';
+  const dt = new Date(d + 'T12:00:00');
+  return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
+};
+
+// ── Logout ─────────────────────────────────────────────────────
+const logout = async () => {
+  await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+  window.location.href = '/login';
+};
+
+// Observa troca de seção para mostrar seletor de período
+const observer = new MutationObserver(() => {
+  const boletimSection = document.getElementById('section-boletim');
+  if (boletimSection.classList.contains('active')) {
+    renderPeriodoSelect();
+  } else {
+    const actions = document.getElementById('topbarActions');
+    if (actions) actions.innerHTML = '';
+  }
+});
+
+observer.observe(document.querySelector('.content'), { subtree: false, childList: false, attributes: false });
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const actions = document.getElementById('topbarActions');
+    if (item.dataset.section !== 'boletim') {
+      actions.innerHTML = '';
+    } else {
+      renderPeriodoSelect();
+    }
+  });
+});
+</script>
+</body>
+</html>
