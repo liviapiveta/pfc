@@ -67,16 +67,11 @@ const getProjetosExtensao = async (req, res) => {
 };
 
 /**
- * GET /api/calendario?ano=2025
+ * GET /api/calendario
+ * Endpoint não disponível na API SUAP
  */
 const getCalendario = async (req, res) => {
-  try {
-    const { ano } = req.query;
-    const eventos = await suapService.getCalendario(req.user.suapToken, ano);
-    return res.json(eventos);
-  } catch (err) {
-    return handleError(res, err, 'calendário');
-  }
+  return res.status(404).json({ erro: 'Endpoint de calendário não disponível na API SUAP' });
 };
 
 /**

@@ -15,7 +15,7 @@ const suapClient = (token) =>
   axios.create({
     baseURL: SUAP_BASE,
     headers: {
-      Authorization: `JWT ${token}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
     timeout: 15000,
@@ -147,17 +147,20 @@ const getMeusPeriodosLetivos = async (token) => {
 
 /**
  * Boletim
- * GET /api/ensino/meu-boletim/{ano}/{periodo}/
+ * GET /api/ensino/meu-boletim/{ano_letivo}/{periodo_letivo}/
  */
 const getBoletim = async (
   token,
   anoLetivo,
   periodoLetivo
 ) => {
+  const ano = parseInt(anoLetivo, 10);
+  const periodo = parseInt(periodoLetivo, 10);
+
   const cacheKey = buildCacheKey(
     'boletim',
     token,
-    `${anoLetivo}_${periodoLetivo}`
+    `${ano}_${periodo}`
   );
 
   const cached = getCache(cacheKey);
@@ -166,7 +169,7 @@ const getBoletim = async (
   const client = suapClient(token);
 
   const { data } = await client.get(
-    `/ensino/meu-boletim/${anoLetivo}/${periodoLetivo}/`
+    `/ensino/meu-boletim/${ano}/${periodo}/`
   );
 
   return setCache(cacheKey, data.results || data);
@@ -300,6 +303,40 @@ const getMateriaisDiario = async (
 };
 
 /**
+ * Projetos de pesquisa
+ * GET /api/pesquisa/projetos/
+ */
+const getProjetosPesquisa = async (token) => {
+  const cacheKey = buildCacheKey('projetos_pesquisa', token);
+
+  const cached = getCache(cacheKey);
+  if (cached) return cached;
+
+  const client = suapClient(token);
+
+  const { data } = await client.get('/pesquisa/projetos/');
+
+  return setCache(cacheKey, data.results || data);
+};
+
+/**
+ * Projetos de extensão
+ * GET /api/extensao/projetos/
+ */
+const getProjetosExtensao = async (token) => {
+  const cacheKey = buildCacheKey('projetos_extensao', token);
+
+  const cached = getCache(cacheKey);
+  if (cached) return cached;
+
+  const client = suapClient(token);
+
+  const { data } = await client.get('/extensao/projetos/');
+
+  return setCache(cacheKey, data.results || data);
+};
+
+/**
  * Mensagens
  * status:
  * - nao-lidas
@@ -361,6 +398,9 @@ module.exports = {
   getDiarios,
   getMateriaisDiario,
   getMensagens,
+
+  getProjetosPesquisa,
+  getProjetosExtensao,
 
   limparCache,
 };
