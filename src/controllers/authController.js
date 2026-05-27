@@ -10,117 +10,55 @@ const login = async (req, res) => {
     const { matricula, senha } = req.body;
 
     if (!matricula || !senha) {
-      return res.status(400).json({
-        erro: 'Matrícula e senha são obrigatórios',
-      });
+      return res.status(400).json({ erro: 'Matrícula e senha são obrigatórios' });
     }
 
-    /**
-     * =========================
-     * AUTENTICAÇÃO SUAP
-     * =========================
-     */
-
+    // ── 1. Autentica no SUAP ─────────────────────────────────────
     let authData;
-
     try {
-      authData = await suapService.autenticar(
-        matricula,
-        senha
-      );
+      authData = await suapService.autenticar(matricula, senha);
     } catch (err) {
       const status = err.response?.status;
+      console.error('Erro autenticação SUAP:', status, err.response?.data || err.message);
 
       if (status === 400 || status === 401) {
-        return res.status(401).json({
-          erro: 'Matrícula ou senha inválidos',
-        });
+        return res.status(401).json({ erro: 'Matrícula ou senha inválidos' });
       }
-
-      console.error(err.response?.data || err.message);
-
-      return res.status(500).json({
-        erro: 'Erro ao autenticar no SUAP',
-      });
+      return res.status(500).json({ erro: 'Erro ao autenticar no SUAP' });
     }
 
-    const accessToken = authData.access;
-    const refreshToken = authData.refresh;
+    const { access: accessToken, refresh: refreshToken } = authData;
 
-    /**
-     * =========================
-     * DADOS DO USUÁRIO
-     * =========================
-     */
-
+    // ── 2. Busca dados do usuário ────────────────────────────────
     let dadosSuap;
-
     try {
-      dadosSuap = await suapService.getMeusDados(
-        accessToken
-      );
+      dadosSuap = await suapService.getMeusDados(accessToken);
     } catch (err) {
-      console.error(
-        'Erro ao buscar dados SUAP:',
-        err.response?.data || err.message
-      );
-
-      return res.status(500).json({
-        erro: 'Erro ao buscar dados do usuário',
-      });
+      console.error('Erro ao buscar dados SUAP:', err.response?.data || err.message);
+      return res.status(500).json({ erro: 'Erro ao buscar dados do usuário' });
     }
 
-    const nomeUsuario =
-      dadosSuap.nome_usual ||
-      dadosSuap.nome ||
-      matricula;
+    const nomeUsuario = dadosSuap.nome_usual || dadosSuap.nome || matricula;
 
-    /**
-     * =========================
-     * SALVA/ATUALIZA USUÁRIO
-     * =========================
-     */
-
+    // ── 3. Salva/atualiza usuário ────────────────────────────────
     const user = await User.findOneAndUpdate(
       { matricula },
       {
         matricula,
-
-        // TOKENS SUAP
         suapToken: accessToken,
         suapRefreshToken: refreshToken,
-
         nomeUsuario,
         ultimoAcesso: new Date(),
       },
-      {
-        upsert: true,
-        new: true,
-        setDefaultsOnInsert: true,
-      }
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    /**
-     * =========================
-     * JWT INTERNO
-     * =========================
-     */
-
+    // ── 4. JWT interno (24h) ─────────────────────────────────────
     const internalToken = jwt.sign(
-      {
-        userId: user._id,
-      },
+      { userId: user._id },
       process.env.JWT_SECRET,
-      {
-        expiresIn: '24h',
-      }
+      { expiresIn: '24h' }
     );
-
-    /**
-     * =========================
-     * COOKIE
-     * =========================
-     */
 
     res.cookie('authToken', internalToken, {
       httpOnly: true,
@@ -129,30 +67,13 @@ const login = async (req, res) => {
       maxAge: 24 * 60 * 60 * 1000,
     });
 
-    /**
-     * =========================
-     * RESPONSE
-     * =========================
-     */
-
     return res.json({
       sucesso: true,
-
-      usuario: {
-        id: user._id,
-        matricula,
-        nome: nomeUsuario,
-      },
+      usuario: { id: user._id, matricula, nome: nomeUsuario },
     });
   } catch (err) {
-    console.error(
-      'Erro no login:',
-      err.response?.data || err.message
-    );
-
-    return res.status(500).json({
-      erro: 'Erro interno. Tente novamente.',
-    });
+    console.error('Erro no login:', err.response?.data || err.message);
+    return res.status(500).json({ erro: 'Erro interno. Tente novamente.' });
   }
 };
 
@@ -162,19 +83,14 @@ const login = async (req, res) => {
 const logout = async (req, res) => {
   try {
     if (req.user?.suapToken) {
-      suapService.limparCache(
-        req.user.suapToken
-      );
+      suapService.limparCache(req.user.suapToken);
     }
   } catch (err) {
     console.error(err.message);
   }
 
   res.clearCookie('authToken');
-
-  return res.json({
-    sucesso: true,
-  });
+  return res.json({ sucesso: true });
 };
 
 /**
@@ -189,15 +105,8 @@ const me = async (req, res) => {
     });
   } catch (err) {
     console.error(err.message);
-
-    return res.status(500).json({
-      erro: 'Erro ao buscar usuário',
-    });
+    return res.status(500).json({ erro: 'Erro ao buscar usuário' });
   }
 };
 
-module.exports = {
-  login,
-  logout,
-  me,
-};
+module.exports = { login, logout, me };
