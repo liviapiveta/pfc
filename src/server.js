@@ -39,6 +39,7 @@ app.use((err, req, res, next) => {
 // ── Inicialização ─────────────────────────────────────────────
 const start = async () => {
   await connectDB();
+  console.log("teste")
   app.listen(PORT, () => {
     console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
     console.log(`📡 API SUAP: ${process.env.SUAP_BASE_URL}`);
