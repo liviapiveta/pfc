@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SUAP Portal — Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --verde: #00c27a;
+      --verde-escuro: #00956a;
+      --azul: #003566;
+      --bg: #f5f7fa;
+      --texto: #0d1b2a;
+      --cinza: #6b7a8d;
+      --erro: #e53e3e;
+      --amarelo: #f5a623;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+    }
+
+    .login-wrap {
+      width: 100%;
+      max-width: 440px;
+      padding: 2rem;
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.6rem;
+      color: var(--azul);
+      letter-spacing: -0.5px;
+      margin-bottom: 0.25rem;
+    }
+
+    .logo span { color: var(--verde); }
+
+    .admin-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      color: #856404;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.25rem 0.7rem;
+      border-radius: 99px;
+      margin-bottom: 2rem;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .login-box {
+      background: white;
+      border-radius: 18px;
+      border: 1px solid #e2e8f0;
+      padding: 2rem;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+
+    .login-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1.4rem;
+      color: var(--texto);
+      margin-bottom: 0.3rem;
+    }
+
+    .login-sub {
+      color: var(--cinza);
+      font-size: 0.85rem;
+      margin-bottom: 1.8rem;
+    }
+
+    .field {
+      margin-bottom: 1.1rem;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--texto);
+      margin-bottom: 0.35rem;
+      letter-spacing: 0.3px;
+    }
+
+    .field input {
+      width: 100%;
+      border: 1.5px solid #dde2e9;
+      border-radius: 10px;
+      padding: 0.72rem 1rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.93rem;
+      color: var(--texto);
+      background: white;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .field input:focus { border-color: var(--amarelo); }
+
+    .btn-login {
+      width: 100%;
+      background: var(--azul);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 0.82rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 0.97rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 0.4rem;
+      letter-spacing: 0.2px;
+    }
+
+    .btn-login:hover { background: #002a52; }
+    .btn-login:active { transform: scale(0.98); }
+    .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .erro-msg {
+      background: #fff5f5;
+      border: 1px solid #fed7d7;
+      color: var(--erro);
+      border-radius: 8px;
+      padding: 0.65rem 1rem;
+      font-size: 0.83rem;
+      margin-top: 0.9rem;
+      display: none;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 1.4rem;
+      color: var(--cinza);
+      font-size: 0.8rem;
+      text-decoration: none;
+    }
+
+    .back-link:hover { color: var(--azul); }
+
+    @media (max-width: 480px) {
+      .login-wrap { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="logo">SUAP<span>.</span>Portal</div>
+  <div class="admin-badge">🔒 Área Administrativa</div>
+
+  <div class="login-box">
+    <h1 class="login-title">Acesso restrito</h1>
+    <p class="login-sub">Entre com as credenciais de administrador</p>
+
+    <div class="field">
+      <label for="usuario">Usuário</label>
+      <input type="text" id="usuario" placeholder="admin" autocomplete="username" />
+    </div>
+
+    <div class="field">
+      <label for="senha">Senha</label>
+      <input type="password" id="senha" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+
+    <button class="btn-login" id="btnLogin">Entrar no painel</button>
+    <div class="erro-msg" id="erroMsg"></div>
+  </div>
+
+  <a class="back-link" href="/">← Voltar ao portal do aluno</a>
+</div>
+
+<script>
+  const btn = document.getElementById('btnLogin');
+  const erroMsg = document.getElementById('erroMsg');
+
+  async function fazerLogin() {
+    const usuario = document.getElementById('usuario').value.trim();
+    const senha   = document.getElementById('senha').value;
+
+    if (!usuario || !senha) { mostrarErro('Preencha usuário e senha.'); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Autenticando…';
+    erroMsg.style.display = 'none';
+
+    try {
+      const res  = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ usuario, senha }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.sucesso) {
+        window.location.href = '/admin';
+      } else {
+        mostrarErro(data.erro || 'Credenciais inválidas.');
+      }
+    } catch(e) {
+      mostrarErro('Erro de conexão. Verifique sua internet.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Entrar no painel';
+    }
+  }
+
+  function mostrarErro(msg) {
+    erroMsg.textContent = msg;
+    erroMsg.style.display = 'block';
+  }
+
+  btn.addEventListener('click', fazerLogin);
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') fazerLogin(); });
+</script>
+</body>
+</html>

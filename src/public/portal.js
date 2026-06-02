@@ -530,12 +530,20 @@ const carregarCalendario = async () => {
 
     const el = document.getElementById('calendarioContent');
 
-    if (!eventos.length) {
-      el.innerHTML = '<div class="empty-state"><div class="icon">📅</div><p>Nenhum evento encontrado.</p></div>';
+    // Mantém só os eventos do ano presente (início OU fim no ano atual,
+    // para incluir eventos que atravessam a virada de ano).
+    const doAno = eventos.filter(ev => {
+      const ini = parseInt(String(ev.data_inicio || ev.data || '').slice(0, 4), 10);
+      const fim = parseInt(String(ev.data_fim || '').slice(0, 4), 10);
+      return ini === anoAtual || fim === anoAtual;
+    });
+
+    if (!doAno.length) {
+      el.innerHTML = `<div class="empty-state"><div class="icon">📅</div><p>Nenhum evento encontrado para ${anoAtual}.</p></div>`;
       return;
     }
 
-    const sorted = [...eventos].sort((a,b) =>
+    const sorted = [...doAno].sort((a,b) =>
       new Date(a.data_inicio || a.data || '') - new Date(b.data_inicio || b.data || '')
     );
 
@@ -548,8 +556,13 @@ const carregarCalendario = async () => {
           <div class="dia">${dt ? dt.getDate() : '—'}</div>
         </div>
         <div class="evento-info">
-          <h4>${esc(ev.nome || ev.titulo || 'Evento')}</h4>
-          <p>${esc(ev.tipo || ev.local || '')}</p>
+          <h4>${ev.link_suap
+            ? `<a href="${esc(ev.link_suap)}" target="_blank" rel="noopener" style="color:inherit">${esc(ev.nome || ev.titulo || 'Evento')}</a>`
+            : esc(ev.nome || ev.titulo || 'Evento')}</h4>
+          <p>${esc(
+            [ev.periodo_formatado, ev.local || ev.localizacao, ev.campus]
+              .filter(Boolean).join(' · ') || ev.tipo || ''
+          )}</p>
         </div>
       </div>`;
     }).join('')}</div>`;

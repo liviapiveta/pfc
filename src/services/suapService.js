@@ -329,20 +329,253 @@ const getMateriaisDiario = async (token, idDiario) => {
   return setCache(key, data.results ?? data);
 };
 
-const getProjetosPesquisa = async (token) => {
-  const key = buildCacheKey('projetos_pesquisa', token);
-  const cached = getCache(key);
-  if (cached) return cached;
-  const { data } = await suapClient(token).get('pesquisa/projetos/');
-  return setCache(key, data.results ?? data);
+// ── PROJETOS DO ALUNO ─────────────────────────────────────────
+//
+// IMPORTANTE: os endpoints 'pesquisa/projetos/' e 'extensao/projetos/'
+// do SUAP retornam TODOS os projetos da instituição (não só os do aluno).
+// O schema documentado (ProjetoSchema) não traz lista de participantes —
+// só o coordenador. Portanto, para filtrar "os projetos em que o aluno
+// está", dependemos de a resposta REAL trazer algum dado de participantes
+// (matrícula/CPF do aluno), que pode não estar documentado.
+//
+// A estratégia abaixo é robusta: procura os identificadores do aluno
+// (matrícula e CPF) em QUALQUER lugar dentro do objeto do projeto, sem
+// depender do nome exato do campo. Se a resposta não contiver nenhum
+// dado de participante, o filtro retorna lista vazia e registra um aviso
+// no log — sinal de que a API não expõe essa informação.
+
+// Extrai identificadores únicos do aluno a partir de /rh/meus-dados/.
+// Inclui matrícula, CPF, nome e e-mails — porque não sabemos por qual
+// desses campos a API lista os participantes de um projeto.
+const _identificadoresAluno = (dados) => {
+  const ids = { textos: new Set(), digitos: new Set() };
+
+  const addTexto = (v) => {
+    const s = String(v ?? '').trim().toLowerCase();
+    if (s.length >= 5) ids.textos.add(s); // evita casar pedaços curtos
+  };
+  const addDigitos = (v) => {
+    const s = String(v ?? '').replace(/\D/g, '');
+    if (s.length >= 6) ids.digitos.add(s); // matrícula/CPF têm muitos dígitos
+  };
+
+  // Matrícula (pode vir em campos diferentes dependendo do endpoint)
+  addTexto(dados?.matricula);
+  addTexto(dados?.identificacao);
+  addTexto(dados?.vinculo?.matricula);
+  addDigitos(dados?.matricula);
+  addDigitos(dados?.identificacao);
+  addDigitos(dados?.vinculo?.matricula);
+  addDigitos(dados?.cpf);
+
+  // Nome (caso os participantes sejam listados por nome)
+  addTexto(dados?.nome);
+  addTexto(dados?.nome_usual);
+  addTexto(dados?.nome_registro);
+
+  // E-mails — identificadores únicos e muito prováveis de aparecer
+  addTexto(dados?.email);
+  addTexto(dados?.email_academico);
+  addTexto(dados?.email_google_classroom);
+  addTexto(dados?.email_secundario);
+  addTexto(dados?.email_preferencial);
+
+  return ids;
 };
 
-const getProjetosExtensao = async (token) => {
-  const key = buildCacheKey('projetos_extensao', token);
+// Verifica se os identificadores do aluno aparecem dentro do projeto.
+// Faz uma busca no objeto inteiro serializado, então funciona mesmo que
+// os participantes estejam aninhados em campos não documentados.
+const _projetoPertenceAoAluno = (projeto, ids) => {
+  let blob;
+  try {
+    blob = JSON.stringify(projeto).toLowerCase();
+  } catch {
+    return false;
+  }
+
+  // Casa matrícula como texto literal (ex.: "matricula":"2023001234")
+  for (const t of ids.textos) {
+    if (blob.includes(t)) return true;
+  }
+
+  // Casa matrícula/CPF comparando apenas os dígitos (ignora formatação)
+  if (ids.digitos.size) {
+    const blobDigitos = blob.replace(/\D/g, '');
+    for (const d of ids.digitos) {
+      if (blobDigitos.includes(d)) return true;
+    }
+  }
+
+  return false;
+};
+
+// ── CAMPUS DO ALUNO ───────────────────────────────────────────
+// Extrai o(s) identificador(es) de campus do aluno (sigla e/ou nome),
+// normalizados, a partir de /rh/meus-dados/.
+const _campusDoAluno = (dados) => {
+  const tokens = new Set();
+  const add = (v) => {
+    const s = _normalizarTexto(v).trim();
+    if (s) tokens.add(s);
+  };
+  add(dados?.campus);
+  add(dados?.vinculo?.campus);
+  add(dados?.campus_sigla);
+  return tokens;
+};
+
+// Verifica se um item (projeto/evento) pertence ao campus do aluno.
+// camposItem: lista de strings de campus do item (sigla, nome, etc.).
+// - Siglas curtas (< 5 chars) só casam por igualdade exata (evita falso
+//   positivo do tipo "ast" dentro de "castanhal").
+// - Nomes longos casam por conter um ao outro.
+// - Se o aluno não tem campus identificado, ou o item não tem campus,
+//   não exclui (retorna true) para não esconder itens indevidamente.
+const _itemNoCampusDoAluno = (camposItem, tokensAluno) => {
+  if (!tokensAluno.size) return true;
+  const itens = (camposItem || [])
+    .map(_normalizarTexto)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!itens.length) return true;
+
+  const casa = (a, b) => {
+    if (!a || !b) return false;
+    if (a === b) return true;
+    if (a.length >= 5 && b.includes(a)) return true;
+    if (b.length >= 5 && a.includes(b)) return true;
+    return false;
+  };
+
+  for (const al of tokensAluno)
+    for (const it of itens)
+      if (casa(al, it)) return true;
+  return false;
+};
+
+// Busca todos os projetos de um caminho e filtra só os do aluno logado.
+const _getMeusProjetos = async (token, path, cachePrefix) => {
+  const key = buildCacheKey(cachePrefix, token);
   const cached = getCache(key);
   if (cached) return cached;
-  const { data } = await suapClient(token).get('extensao/projetos/');
-  return setCache(key, data.results ?? data);
+
+  const { data } = await suapClient(token).get(path);
+  const todos = data.results ?? data ?? [];
+
+  if (!Array.isArray(todos) || !todos.length) {
+    return setCache(key, []);
+  }
+
+  // Identidade do aluno (cacheada internamente por getMeusDados)
+  let dadosAluno;
+  try {
+    dadosAluno = await getMeusDados(token);
+  } catch (err) {
+    console.warn(`[${cachePrefix}] Não foi possível obter dados do aluno para filtrar:`, err.message);
+    return setCache(key, todos); // sem identidade, melhor mostrar tudo do que quebrar
+  }
+
+  // 1) Restringe ao campus do aluno
+  const tokensCampus = _campusDoAluno(dadosAluno);
+  const noCampus = tokensCampus.size
+    ? todos.filter((p) =>
+        _itemNoCampusDoAluno(
+          [p.campus_sigla, p.campus_nome, p.campus_nome_formatado],
+          tokensCampus
+        )
+      )
+    : todos;
+
+  // 2) Dentro do campus, tenta restringir aos projetos em que o aluno participa
+  const ids = _identificadoresAluno(dadosAluno);
+  const meus = noCampus.filter((p) => _projetoPertenceAoAluno(p, ids));
+
+  if (meus.length) {
+    // Achou os projetos do aluno → mostra só os dele.
+    return setCache(key, meus);
+  }
+
+  // Nenhum projeto casou por participante. Quase sempre significa que a
+  // resposta da API NÃO traz dados de participantes (só coordenador).
+  // Mostra então os projetos do CAMPUS do aluno (não de todos os campi).
+  console.warn(
+    `\n[${cachePrefix}] ===== DIAGNÓSTICO =====\n` +
+    `Filtro por participante retornou 0 de ${todos.length} projetos.\n` +
+    `Mostrando ${noCampus.length} projeto(s) do campus do aluno.\n` +
+    `Campus do aluno: ${JSON.stringify([...tokensCampus])}\n` +
+    `Procure abaixo um campo de equipe/participantes. Se NÃO existir, a API\n` +
+    `não permite filtrar por aluno nesses endpoints (limitação do SUAP).\n` +
+    `JSON COMPLETO do 1º projeto retornado pela API:\n` +
+    `${JSON.stringify(todos[0], null, 2)}\n` +
+    `=========================================\n`
+  );
+
+  return setCache(key, noCampus);
+};
+
+const getProjetosPesquisa = (token) =>
+  _getMeusProjetos(token, 'pesquisa/projetos/', 'meus_projetos_pesquisa');
+
+const getProjetosExtensao = (token) =>
+  _getMeusProjetos(token, 'extensao/projetos/', 'meus_projetos_extensao');
+
+// ── EVENTOS / CALENDÁRIO ──────────────────────────────────────
+// Não existe endpoint de "calendário acadêmico" (datas de semestre/feriados)
+// na API SUAP. O que existe é a lista de eventos institucionais ativos e
+// deferidos, em 'midia/eventos/ativos-deferidos/'. Buscamos todas as páginas.
+const getEventos = async (token) => {
+  const key = buildCacheKey('eventos', token);
+  const cached = getCache(key);
+  if (cached) return cached;
+
+  const eventos = [];
+  let page = 1;
+  let hasNext = true;
+
+  while (hasNext && page <= 20) {
+    const resp = await suapClient(token).get(
+      `midia/eventos/ativos-deferidos/?page=${page}`,
+      { validateStatus: () => true }
+    );
+
+    if (resp.status >= 400) {
+      // 401/403 sobem como erro para o handleError do controller tratar
+      if (resp.status === 401 || resp.status === 403) {
+        const err = new Error(`HTTP ${resp.status}`);
+        err.response = { status: resp.status, data: resp.data };
+        throw err;
+      }
+      break;
+    }
+
+    const lote = resp.data?.results ?? resp.data ?? [];
+    if (Array.isArray(lote)) eventos.push(...lote);
+
+    hasNext = Boolean(resp.data?.next);
+    page += 1;
+  }
+
+  return setCache(key, eventos);
+};
+
+// Eventos filtrados pelo campus do aluno (não exibe eventos de outros campi).
+// Eventos sem campus definido são mantidos (podem ser institucionais/gerais).
+const getEventosDoCampus = async (token) => {
+  const eventos = await getEventos(token);
+  if (!Array.isArray(eventos) || !eventos.length) return eventos ?? [];
+
+  let dados;
+  try {
+    dados = await getMeusDados(token);
+  } catch {
+    return eventos; // sem identidade, não filtra
+  }
+
+  const tokensCampus = _campusDoAluno(dados);
+  if (!tokensCampus.size) return eventos;
+
+  return eventos.filter((ev) => _itemNoCampusDoAluno([ev.campus], tokensCampus));
 };
 
 const getMensagens = async (token, status = 'nao-lidas') => {
@@ -366,5 +599,6 @@ module.exports = {
   getMeusPeriodosLetivos, getBoletim, getBoletimComFallback, getProximasAvaliacoes,
   getTurmasVirtuais, getDisciplinas, getDiarios, getMateriaisDiario,
   getMensagens, getProjetosPesquisa, getProjetosExtensao,
+  getEventos, getEventosDoCampus,
   limparCache,
 };
