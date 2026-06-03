@@ -513,7 +513,7 @@ const carregarProjetos = async (id, endpoint, tipoClass, tipoLabel) => {
             ${p.nome_coordenador      ? `<span>👤 ${esc(p.nome_coordenador)}</span>`                        : ''}
             ${p.campus_nome_formatado ? `<span>🏫 ${esc(p.campus_nome_formatado)}</span>`                   : ''}
           </div>
-          ${p.id != null ? `<div class="projeto-acoes">${botaoParticipar(p.meuStatus, `solicitarParticipacaoSuap('${p.id}','${id}')`)}</div>` : ''}
+          ${p.id != null ? `<div class="projeto-acoes">${botaoParticipar(p.meuStatus, `solicitarParticipacaoSuap('${p.id}','${id}')`, `resetarSolicitacaoSuap('${p.id}','${id}')`)}</div>` : ''}
         </div>`).join('');
     }
 
@@ -536,18 +536,18 @@ const carregarProjetos = async (id, endpoint, tipoClass, tipoLabel) => {
 };
 
 // Botão de participação conforme o status do aluno
-const botaoParticipar = (meuStatus, onclick) => {
+const botaoParticipar = (meuStatus, onclickSolicitar, onclickResetar) => {
   switch (meuStatus) {
     case 'pendente': return `<button class="btn-participar pendente" disabled>⏳ Solicitação enviada</button>`;
     case 'aceito':   return `<button class="btn-participar aceito" disabled>✓ Você faz parte</button>`;
-    case 'recusado': return `<button class="btn-participar recusado" disabled>✕ Solicitação recusada</button>`;
-    default:         return `<button class="btn-participar" onclick="${onclick}">+ Fazer parte</button>`;
+    case 'recusado': return `<button class="btn-participar recusado" onclick="${onclickResetar}" title="Solicitação recusada — clique para solicitar de novo">✕ Recusada · tentar de novo</button>`;
+    default:         return `<button class="btn-participar" onclick="${onclickSolicitar}">+ Fazer parte</button>`;
   }
 };
 
 // Card de projeto criado pela administração, com botão de participação
 const renderProjetoInterno = (p, tipo, tipoClass, tipoLabel) => {
-  const botao = botaoParticipar(p.meuStatus, `solicitarParticipacao('${p._id}','${tipo}')`);
+  const botao = botaoParticipar(p.meuStatus, `solicitarParticipacao('${p._id}','${tipo}')`, `resetarSolicitacao('${p._id}','${tipo}')`);
 
   return `
     <div class="projeto-card projeto-admin">
@@ -614,7 +614,42 @@ const solicitarParticipacaoSuap = async (suapId, tipo) => {
   }
 };
 
-// ── CALENDÁRIO ─────────────────────────────────────────────────
+// Recarrega a seção de projetos (pesquisa/extensão) após uma ação
+const recarregarSecaoProjetos = (tipo) => {
+  delete state.loaded[tipo];
+  document.getElementById(`${tipo}Content`).innerHTML =
+    '<div class="loading"><div class="spinner"></div> Atualizando…</div>';
+  if (tipo === 'pesquisa') carregarPesquisa();
+  else carregarExtensao();
+};
+
+// Cancela uma solicitação RECUSADA (projeto da administração) → volta para "Fazer parte"
+const resetarSolicitacao = async (projetoId, tipo) => {
+  try {
+    const res = await fetch(`/api/projetos-internos/${projetoId}/solicitacao`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    if (res.status === 401) { window.location.href = '/login'; return; }
+    recarregarSecaoProjetos(tipo);
+  } catch (e) {
+    alert('Erro de conexão.');
+  }
+};
+
+// Cancela uma solicitação RECUSADA (projeto do SUAP) → volta para "Fazer parte"
+const resetarSolicitacaoSuap = async (suapId, tipo) => {
+  try {
+    const res = await fetch(`/api/projetos-suap/${suapId}/solicitacao`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    if (res.status === 401) { window.location.href = '/login'; return; }
+    recarregarSecaoProjetos(tipo);
+  } catch (e) {
+    alert('Erro de conexão.');
+  }
+};
 const carregarCalendario = async () => {
   state.loaded['calendario'] = true;
   try {

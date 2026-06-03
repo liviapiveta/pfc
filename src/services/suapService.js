@@ -499,18 +499,6 @@ const _getMeusProjetos = async (token, path, cachePrefix) => {
   // Nenhum projeto casou por participante. Quase sempre significa que a
   // resposta da API NÃO traz dados de participantes (só coordenador).
   // Mostra então os projetos do CAMPUS do aluno (não de todos os campi).
-  console.warn(
-    `\n[${cachePrefix}] ===== DIAGNÓSTICO =====\n` +
-    `Filtro por participante retornou 0 de ${todos.length} projetos.\n` +
-    `Mostrando ${noCampus.length} projeto(s) do campus do aluno.\n` +
-    `Campus do aluno: ${JSON.stringify([...tokensCampus])}\n` +
-    `Procure abaixo um campo de equipe/participantes. Se NÃO existir, a API\n` +
-    `não permite filtrar por aluno nesses endpoints (limitação do SUAP).\n` +
-    `JSON COMPLETO do 1º projeto retornado pela API:\n` +
-    `${JSON.stringify(todos[0], null, 2)}\n` +
-    `=========================================\n`
-  );
-
   return setCache(key, noCampus);
 };
 

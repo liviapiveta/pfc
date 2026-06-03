@@ -149,6 +149,8 @@ nav { flex: 1; padding: 0.8rem 0; }
   margin-left: var(--sidebar-w);
   flex: 1;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .topbar {
@@ -183,7 +185,7 @@ nav { flex: 1; padding: 0.8rem 0; }
   cursor: pointer;
 }
 
-.content { padding: 2rem; }
+.content { padding: 2rem; flex: 1 0 auto; }
 
 /* ── SEÇÕES ── */
 .section { display: none; }
@@ -632,7 +634,7 @@ nav { flex: 1; padding: 0.8rem 0; }
 .site-footer {
   background: var(--azul);
   color: rgba(255, 255, 255, 0.72);
-  margin-top: 2.5rem;
+  margin-top: 0;
   padding: 2.5rem 2rem 1.4rem;
 }
 
@@ -768,3 +770,7 @@ nav { flex: 1; padding: 0.8rem 0; }
 .btn-participar.pendente { background: var(--amarelo); }
 .btn-participar.aceito   { background: var(--verde-escuro); }
 .btn-participar.recusado { background: var(--cinza); }
+
+/* Botão de solicitação recusada agora é clicável (tentar de novo) */
+.btn-participar.recusado { cursor: pointer; }
+.btn-participar.recusado:hover { background: #64748b; }

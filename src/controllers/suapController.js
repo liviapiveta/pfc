@@ -224,6 +224,42 @@ const solicitarParticipacaoSuap = async (req, res) => {
 };
 
 /**
+ * DELETE /api/projetos-internos/:id/solicitacao
+ * Remove a solicitação RECUSADA do aluno, permitindo solicitar de novo.
+ * (Só apaga se o status for "recusado" — não desfaz pendentes/aceitas.)
+ */
+const cancelarSolicitacao = async (req, res) => {
+  try {
+    await Solicitacao.findOneAndDelete({
+      origem: 'local',
+      projeto: req.params.id,
+      matricula: req.user.matricula,
+      status: 'recusado',
+    });
+    return res.json({ sucesso: true });
+  } catch (err) {
+    console.error('Erro ao cancelar solicitação:', err.message);
+    return res.status(500).json({ erro: 'Erro ao cancelar solicitação' });
+  }
+};
+
+/** DELETE /api/projetos-suap/:suapId/solicitacao */
+const cancelarSolicitacaoSuap = async (req, res) => {
+  try {
+    await Solicitacao.findOneAndDelete({
+      origem: 'suap',
+      projetoSuapId: Number(req.params.suapId),
+      matricula: req.user.matricula,
+      status: 'recusado',
+    });
+    return res.json({ sucesso: true });
+  } catch (err) {
+    console.error('Erro ao cancelar solicitação (SUAP):', err.message);
+    return res.status(500).json({ erro: 'Erro ao cancelar solicitação' });
+  }
+};
+
+/**
  * handleError — loga o erro real do SUAP e repassa status correto.
  *
  * Mapeamento de status HTTP do SUAP:
@@ -273,4 +309,5 @@ module.exports = {
   getCalendario, updatePreferencias,
   getProjetosInternos, solicitarParticipacao,
   solicitarParticipacaoSuap,
+  cancelarSolicitacao, cancelarSolicitacaoSuap,
 };

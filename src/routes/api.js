@@ -23,6 +23,8 @@ router.get('/calendario', auth, suapController.getCalendario);
 router.get('/projetos-internos/:tipo', auth, suapController.getProjetosInternos);
 router.post('/projetos-internos/:id/solicitar', auth, suapController.solicitarParticipacao);
 router.post('/projetos-suap/:suapId/solicitar', auth, suapController.solicitarParticipacaoSuap);
+router.delete('/projetos-internos/:id/solicitacao', auth, suapController.cancelarSolicitacao);
+router.delete('/projetos-suap/:suapId/solicitacao', auth, suapController.cancelarSolicitacaoSuap);
 
 // ── Preferências (persistidas no MongoDB) ─────────────────────
 router.put('/preferencias', auth, suapController.updatePreferencias);
