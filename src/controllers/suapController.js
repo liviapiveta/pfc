@@ -1,4 +1,7 @@
 const suapService = require('../services/suapService');
+const Projeto = require('../models/Projeto');
+const Solicitacao = require('../models/Solicitacao');
+const ProjetoSuapCache = require('../models/ProjetoSuapCache');
 
 const getDadosPessoais = async (req, res) => {
   try {
@@ -21,17 +24,11 @@ const getBoletim = async (req, res) => {
   } catch (err) { return handleError(res, err, 'boletim'); }
 };
 
-const getProjetosPesquisa = async (req, res) => {
-  try {
-    return res.json(await suapService.getProjetosPesquisa(req.user.suapToken));
-  } catch (err) { return handleError(res, err, 'projetos de pesquisa'); }
-};
+const getProjetosPesquisa = (req, res) =>
+  _listarProjetosSuap(req, res, 'pesquisa', suapService.getProjetosPesquisa);
 
-const getProjetosExtensao = async (req, res) => {
-  try {
-    return res.json(await suapService.getProjetosExtensao(req.user.suapToken));
-  } catch (err) { return handleError(res, err, 'projetos de extensão'); }
-};
+const getProjetosExtensao = (req, res) =>
+  _listarProjetosSuap(req, res, 'extensao', suapService.getProjetosExtensao);
 
 const getCalendario = async (req, res) => {
   try {
@@ -51,6 +48,178 @@ const updatePreferencias = async (req, res) => {
     return res.json({ sucesso: true, preferencias: pref });
   } catch (err) {
     return res.status(500).json({ erro: 'Erro ao salvar preferências' });
+  }
+};
+
+// ── Projetos internos (criados pela administração) ─────────────
+
+/**
+ * GET /api/projetos-internos/:tipo   (tipo = pesquisa | extensao)
+ * Lista os projetos locais daquele tipo, anotando o status da
+ * solicitação do aluno logado em cada um (meuStatus).
+ */
+const getProjetosInternos = async (req, res) => {
+  try {
+    const { tipo } = req.params;
+    if (tipo !== 'pesquisa' && tipo !== 'extensao') {
+      return res.status(400).json({ erro: 'Tipo inválido' });
+    }
+
+    const projetos = await Projeto.find({ tipo }).sort({ createdAt: -1 }).lean();
+
+    const matricula = req.user.matricula;
+    const minhas = await Solicitacao.find({
+      matricula,
+      projeto: { $in: projetos.map(p => p._id) },
+    }).lean();
+
+    const statusPorProjeto = {};
+    minhas.forEach(s => { statusPorProjeto[String(s.projeto)] = s.status; });
+
+    const resultado = projetos.map(p => ({
+      ...p,
+      meuStatus: statusPorProjeto[String(p._id)] || null,
+    }));
+
+    return res.json(resultado);
+  } catch (err) {
+    console.error('Erro ao listar projetos internos:', err.message);
+    return res.status(500).json({ erro: 'Erro ao listar projetos' });
+  }
+};
+
+/**
+ * POST /api/projetos-internos/:id/solicitar
+ * Cria (ou retorna) a solicitação de participação do aluno logado.
+ */
+const solicitarParticipacao = async (req, res) => {
+  try {
+    const projeto = await Projeto.findById(req.params.id);
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' });
+
+    const matricula = req.user.matricula;
+
+    const jaExiste = await Solicitacao.findOne({ projeto: projeto._id, matricula });
+    if (jaExiste) {
+      return res.status(200).json({ sucesso: true, status: jaExiste.status, jaSolicitado: true });
+    }
+
+    const solicitacao = await Solicitacao.create({
+      origem: 'local',
+      projeto: projeto._id,
+      projetoTitulo: projeto.titulo || '',
+      tipo: projeto.tipo,
+      matricula,
+      nomeAluno: req.user.nomeUsuario || '',
+      status: 'pendente',
+    });
+
+    return res.status(201).json({ sucesso: true, status: solicitacao.status });
+  } catch (err) {
+    // Violação do índice único (corrida de requisições) → trata como já solicitado
+    if (err.code === 11000) {
+      return res.status(200).json({ sucesso: true, status: 'pendente', jaSolicitado: true });
+    }
+    console.error('Erro ao solicitar participação:', err.message);
+    return res.status(500).json({ erro: 'Erro ao enviar solicitação' });
+  }
+};
+
+// ── Projetos do SUAP: cache + status de participação ──────────
+
+/**
+ * Lista os projetos do SUAP do tipo informado, atualiza o espelho local
+ * (para o admin) e anota o status da solicitação do aluno em cada projeto.
+ */
+const _listarProjetosSuap = async (req, res, tipo, fetchFn) => {
+  try {
+    const projetos = (await fetchFn(req.user.suapToken)) || [];
+
+    // Atualiza o espelho local — em segundo plano, sem travar a resposta.
+    Promise.all(
+      projetos
+        .filter(p => p && p.id != null)
+        .map(p => ProjetoSuapCache.updateOne(
+          { suapId: p.id, tipo },
+          {
+            suapId: p.id,
+            tipo,
+            titulo: p.titulo || '',
+            resumo: p.resumo || '',
+            situacao: p.situacao || '',
+            dt_inicio: p.dt_inicio || null,
+            dt_final: p.dt_final || null,
+            coordenador: p.nome_coordenador || '',
+            email_coordenador: p.email_coordenador || '',
+            campus_nome: p.campus_nome_formatado || p.campus_nome || '',
+          },
+          { upsert: true }
+        ))
+    ).catch(err => console.warn('Falha ao atualizar cache SUAP:', err.message));
+
+    // Anota o status da solicitação do aluno logado em cada projeto
+    const ids = projetos.map(p => p?.id).filter(v => v != null);
+    const minhas = await Solicitacao.find({
+      origem: 'suap',
+      matricula: req.user.matricula,
+      projetoSuapId: { $in: ids },
+    }).lean();
+
+    const statusPorId = {};
+    minhas.forEach(s => { statusPorId[s.projetoSuapId] = s.status; });
+
+    const resultado = projetos.map(p => ({
+      ...p,
+      meuStatus: (p && p.id != null) ? (statusPorId[p.id] || null) : null,
+    }));
+
+    return res.json(resultado);
+  } catch (err) {
+    return handleError(res, err, `projetos de ${tipo}`);
+  }
+};
+
+/**
+ * POST /api/projetos-suap/:suapId/solicitar   body: { tipo }
+ * Cria a solicitação de participação em um projeto do SUAP.
+ */
+const solicitarParticipacaoSuap = async (req, res) => {
+  try {
+    const suapId = Number(req.params.suapId);
+    const { tipo } = req.body;
+
+    if (!Number.isFinite(suapId)) {
+      return res.status(400).json({ erro: 'Projeto inválido' });
+    }
+    if (tipo !== 'pesquisa' && tipo !== 'extensao') {
+      return res.status(400).json({ erro: 'Tipo inválido' });
+    }
+
+    const matricula = req.user.matricula;
+
+    const jaExiste = await Solicitacao.findOne({ origem: 'suap', projetoSuapId: suapId, matricula });
+    if (jaExiste) {
+      return res.status(200).json({ sucesso: true, status: jaExiste.status, jaSolicitado: true });
+    }
+
+    // Título vindo do espelho local (se algum aluno já carregou o projeto)
+    const cache = await ProjetoSuapCache.findOne({ suapId, tipo }).lean();
+    const titulo = cache?.titulo || req.body.titulo || '(projeto do SUAP)';
+
+    const solicitacao = await Solicitacao.create({
+      origem: 'suap',
+      projetoSuapId: suapId,
+      projetoTitulo: titulo,
+      tipo,
+      matricula,
+      nomeAluno: req.user.nomeUsuario || '',
+      status: 'pendente',
+    });
+
+    return res.status(201).json({ sucesso: true, status: solicitacao.status });
+  } catch (err) {
+    console.error('Erro ao solicitar participação (SUAP):', err.message);
+    return res.status(500).json({ erro: 'Erro ao enviar solicitação' });
   }
 };
 
@@ -102,4 +271,6 @@ module.exports = {
   getDadosPessoais, getPeriodos, getBoletim,
   getProjetosPesquisa, getProjetosExtensao,
   getCalendario, updatePreferencias,
+  getProjetosInternos, solicitarParticipacao,
+  solicitarParticipacaoSuap,
 };

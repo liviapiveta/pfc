@@ -546,6 +546,13 @@
     <div class="nav-item" data-section="eventos">
       <span class="nav-icon">📅</span> Eventos do Calendário
     </div>
+    <div class="nav-section">Participação</div>
+    <div class="nav-item" data-section="solicitacoes">
+      <span class="nav-icon">📨</span> Solicitações
+    </div>
+    <div class="nav-item" data-section="suap">
+      <span class="nav-icon">🔗</span> Projetos do SUAP
+    </div>
   </nav>
   <div class="sidebar-footer">
     <button class="btn-logout" onclick="fazerLogout()">↩ Sair do painel</button>
@@ -619,6 +626,41 @@
       </div>
     </section>
 
+    <!-- SOLICITAÇÕES -->
+    <section class="section" id="section-solicitacoes">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Solicitações de Participação</span>
+        </div>
+        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
+          Alunos que pediram para fazer parte dos projetos. Aceite para
+          confirmar a participação ou recuse a solicitação.
+        </p>
+        <div id="solicitacoesList">
+          <div class="loading"><div class="spinner"></div> Carregando…</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROJETOS DO SUAP (somente leitura) -->
+    <section class="section" id="section-suap">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Projetos do SUAP</span>
+        </div>
+        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
+          Espelho dos projetos que vêm do SUAP (somente leitura). A lista é
+          preenchida conforme os alunos abrem as abas de Pesquisa/Extensão no
+          portal — o painel não acessa o SUAP diretamente. Os alunos podem
+          solicitar participação nestes projetos, e os pedidos aparecem em
+          <strong>Solicitações</strong>.
+        </p>
+        <div id="suapList">
+          <div class="loading"><div class="spinner"></div> Carregando…</div>
+        </div>
+      </div>
+    </section>
+
   </div>
 </main>
 
@@ -686,6 +728,8 @@ document.querySelectorAll('.nav-item').forEach(item => {
       pesquisa: 'Projetos de Pesquisa',
       extensao: 'Projetos de Extensão',
       eventos:  'Eventos do Calendário',
+      solicitacoes: 'Solicitações de Participação',
+      suap: 'Projetos do SUAP',
     };
     document.getElementById('topbarTitle').textContent = titles[sec] || '';
     state.secaoAtiva = sec;
@@ -712,6 +756,10 @@ document.querySelectorAll('.nav-item').forEach(item => {
       <div class="stat-card">
         <div class="stat-label">Eventos</div>
         <div class="stat-value">${stats.eventos ?? 0}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Solicitações pendentes</div>
+        <div class="stat-value">${stats.solicitacoes ?? 0}</div>
       </div>`;
   } catch(e) {
     document.getElementById('statsRow').innerHTML = '';
@@ -722,22 +770,50 @@ document.querySelectorAll('.nav-item').forEach(item => {
 // Carregar listas
 // ─────────────────────────────────────────────────────
 const carregarLista = async (tipo) => {
-  const elMap = { pesquisa: 'pesquisaList', extensao: 'extensaoList', eventos: 'eventosList' };
+  const elMap = { pesquisa: 'pesquisaList', extensao: 'extensaoList', eventos: 'eventosList', solicitacoes: 'solicitacoesList', suap: 'suapList' };
   const el = document.getElementById(elMap[tipo]);
   if (!el) return;
   el.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
 
+  // Catálogo do SUAP: junta pesquisa + extensão (somente leitura)
+  if (tipo === 'suap') {
+    try {
+      const [pesquisa, extensao] = await Promise.all([
+        apiJSON('/api/admin/projetos-suap/pesquisa'),
+        apiJSON('/api/admin/projetos-suap/extensao'),
+      ]);
+      const dados = [
+        ...(pesquisa || []).map(p => ({ ...p, tipo: 'pesquisa' })),
+        ...(extensao || []).map(p => ({ ...p, tipo: 'extensao' })),
+      ];
+      if (!dados.length) {
+        el.innerHTML = `<div class="empty-table"><div class="icon">📭</div><p>Nenhum projeto do SUAP em cache ainda. Peça para um aluno abrir as abas de Pesquisa/Extensão no portal.</p></div>`;
+        return;
+      }
+      el.innerHTML = renderTabelaProjetosSuap(dados);
+    } catch(e) {
+      el.innerHTML = `<div class="empty-table"><div class="icon">⚠️</div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+    }
+    return;
+  }
+
   try {
-    const endpoint = tipo === 'eventos' ? '/api/admin/eventos' : `/api/admin/projetos/${tipo}`;
+    const endpoint =
+      tipo === 'solicitacoes' ? '/api/admin/solicitacoes'
+      : tipo === 'eventos'    ? '/api/admin/eventos'
+      : `/api/admin/projetos/${tipo}`;
     const dados = await apiJSON(endpoint);
     if (!dados) return;
 
     if (!dados.length) {
-      el.innerHTML = `<div class="empty-table"><div class="icon">📭</div><p>Nenhum item cadastrado ainda.</p></div>`;
+      const msg = tipo === 'solicitacoes' ? 'Nenhuma solicitação recebida ainda.' : 'Nenhum item cadastrado ainda.';
+      el.innerHTML = `<div class="empty-table"><div class="icon">📭</div><p>${msg}</p></div>`;
       return;
     }
 
-    if (tipo === 'eventos') {
+    if (tipo === 'solicitacoes') {
+      el.innerHTML = renderTabelaSolicitacoes(dados);
+    } else if (tipo === 'eventos') {
       el.innerHTML = renderTabelaEventos(dados);
     } else {
       el.innerHTML = renderTabelaProjetos(dados, tipo);
@@ -745,6 +821,30 @@ const carregarLista = async (tipo) => {
   } catch(e) {
     el.innerHTML = `<div class="empty-table"><div class="icon">⚠️</div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
   }
+};
+
+const renderTabelaProjetosSuap = (dados) => {
+  const tipoBadge = (t) => t === 'pesquisa'
+    ? '<span class="badge-tipo badge-pesquisa">Pesquisa</span>'
+    : '<span class="badge-tipo badge-extensao">Extensão</span>';
+
+  const rows = dados.map(p => `
+    <tr>
+      <td>${esc(p.titulo || '—')}</td>
+      <td>${tipoBadge(p.tipo)}</td>
+      <td style="font-size:0.8rem;color:var(--cinza)">${esc(p.coordenador || '—')}</td>
+      <td style="font-size:0.8rem">${esc(p.dt_inicio || '—')} – ${esc(p.dt_final || '—')}</td>
+      <td style="font-size:0.8rem">${esc(p.situacao || '—')}</td>
+    </tr>`).join('');
+
+  return `<div style="overflow-x:auto">
+    <table class="items-table">
+      <thead>
+        <tr><th>Título</th><th>Tipo</th><th>Coordenador</th><th>Período</th><th>Situação</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
 };
 
 const renderTabelaProjetos = (dados, tipo) => {
@@ -800,6 +900,63 @@ const renderTabelaEventos = (dados) => {
       <tbody>${rows}</tbody>
     </table>
   </div>`;
+};
+
+// ─────────────────────────────────────────────────────
+// Solicitações de participação
+// ─────────────────────────────────────────────────────
+const renderTabelaSolicitacoes = (dados) => {
+  const badge = (s) => {
+    const map = {
+      pendente: ['#fffbeb', '#92400e', 'Pendente'],
+      aceito:   ['#f0fdf4', '#15803d', 'Aceito'],
+      recusado: ['#fff5f5', '#b91c1c', 'Recusado'],
+    };
+    const [bg, cor, txt] = map[s] || map.pendente;
+    return `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:${bg};color:${cor}">${txt}</span>`;
+  };
+  const tipoTxt = (t) => t === 'pesquisa' ? 'Pesquisa' : t === 'extensao' ? 'Extensão' : '—';
+  const origemBadge = (o) => o === 'suap'
+    ? `<span style="display:inline-block;padding:0.15rem 0.55rem;border-radius:99px;font-size:0.68rem;font-weight:600;background:#eff6ff;color:#1d4ed8">SUAP</span>`
+    : `<span style="display:inline-block;padding:0.15rem 0.55rem;border-radius:99px;font-size:0.68rem;font-weight:600;background:#f0fdf4;color:#15803d">Local</span>`;
+
+  const rows = dados.map(s => `
+    <tr>
+      <td>${esc(s.nomeAluno || '—')}<br><span style="font-size:0.78rem;color:var(--cinza)">${esc(s.matricula)}</span></td>
+      <td>${esc(s.projetoTitulo)}</td>
+      <td>${origemBadge(s.origem)}</td>
+      <td style="font-size:0.8rem;color:var(--cinza)">${tipoTxt(s.projetoTipo)}</td>
+      <td>${badge(s.status)}</td>
+      <td>
+        ${s.status !== 'aceito'   ? `<button class="btn-edit" onclick="decidirSolicitacao('${s._id}','aceito')">✓ Aceitar</button>` : ''}
+        ${s.status !== 'recusado' ? `<button class="btn-del" onclick="decidirSolicitacao('${s._id}','recusado')">✕ Recusar</button>` : ''}
+      </td>
+    </tr>`).join('');
+
+  return `<div style="overflow-x:auto">
+    <table class="items-table">
+      <thead>
+        <tr><th>Aluno</th><th>Projeto</th><th>Origem</th><th>Tipo</th><th>Status</th><th>Ações</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+};
+
+const decidirSolicitacao = async (id, status) => {
+  try {
+    await apiJSON(`/api/admin/solicitacoes/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    mostrarToast(status === 'aceito' ? 'Solicitação aceita!' : 'Solicitação recusada.', 'sucesso');
+    await carregarLista('solicitacoes');
+    const stats = await apiJSON('/api/admin/stats');
+    if (stats) atualizarStats(stats);
+  } catch(e) {
+    mostrarToast(`Erro: ${e.message}`, 'erro');
+  }
 };
 
 // ─────────────────────────────────────────────────────
@@ -1043,6 +1200,10 @@ const atualizarStats = (stats) => {
     <div class="stat-card">
       <div class="stat-label">Eventos</div>
       <div class="stat-value">${stats.eventos ?? 0}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Solicitações pendentes</div>
+      <div class="stat-value">${stats.solicitacoes ?? 0}</div>
     </div>`;
 };
 

@@ -492,31 +492,125 @@ const carregarExtensao = async () => {
 };
 
 const carregarProjetos = async (id, endpoint, tipoClass, tipoLabel) => {
+  const el = document.getElementById(`${id}Content`);
   try {
+    // 1) Projetos vindos do SUAP
     const projetos = await api(endpoint);
-    if (!projetos) return;
-    const el = document.getElementById(`${id}Content`);
+    if (projetos === null) return; // 401 já redirecionou
 
+    let suapHtml;
     if (!projetos.length) {
-      el.innerHTML = `<div class="empty-state"><div class="icon">📭</div>
-        <p>Nenhum projeto de ${tipoLabel.toLowerCase()} encontrado.</p></div>`;
-      return;
+      suapHtml = `<div class="empty-state"><div class="icon">📭</div>
+        <p>Nenhum projeto de ${tipoLabel.toLowerCase()} encontrado no SUAP.</p></div>`;
+    } else {
+      suapHtml = projetos.map(p => `
+        <div class="projeto-card">
+          <span class="projeto-tipo ${tipoClass}">${tipoLabel}</span>
+          <div class="projeto-titulo">${esc(p.titulo || p.nome || 'Sem título')}</div>
+          <div class="projeto-detalhe">
+            ${p.dt_inicio             ? `<span>📅 ${esc(p.dt_inicio)} – ${esc(p.dt_final ?? '?')}</span>`  : ''}
+            ${p.situacao              ? `<span>🔹 ${esc(p.situacao)}</span>`                                : ''}
+            ${p.nome_coordenador      ? `<span>👤 ${esc(p.nome_coordenador)}</span>`                        : ''}
+            ${p.campus_nome_formatado ? `<span>🏫 ${esc(p.campus_nome_formatado)}</span>`                   : ''}
+          </div>
+          ${p.id != null ? `<div class="projeto-acoes">${botaoParticipar(p.meuStatus, `solicitarParticipacaoSuap('${p.id}','${id}')`)}</div>` : ''}
+        </div>`).join('');
     }
 
-    el.innerHTML = projetos.map(p => `
-      <div class="projeto-card">
-        <span class="projeto-tipo ${tipoClass}">${tipoLabel}</span>
-        <div class="projeto-titulo">${esc(p.titulo || p.nome || 'Sem título')}</div>
-        <div class="projeto-detalhe">
-          ${p.dt_inicio             ? `<span>📅 ${esc(p.dt_inicio)} – ${esc(p.dt_final ?? '?')}</span>`  : ''}
-          ${p.situacao              ? `<span>🔹 ${esc(p.situacao)}</span>`                                : ''}
-          ${p.nome_coordenador      ? `<span>👤 ${esc(p.nome_coordenador)}</span>`                        : ''}
-          ${p.campus_nome_formatado ? `<span>🏫 ${esc(p.campus_nome_formatado)}</span>`                   : ''}
-        </div>
-      </div>`).join('');
+    // 2) Projetos criados pela administração (locais), com botão "Fazer parte"
+    let internosHtml = '';
+    try {
+      const internos = await api(`/api/projetos-internos/${id}`);
+      if (internos && internos.length) {
+        internosHtml = `
+          <div class="projetos-admin-sep">Projetos criados pela administração</div>
+          ${internos.map(p => renderProjetoInterno(p, id, tipoClass, tipoLabel)).join('')}`;
+      }
+    } catch (e) { /* se falhar, mostra apenas os do SUAP */ }
+
+    el.innerHTML = suapHtml + internosHtml;
   } catch(e) {
-    document.getElementById(`${id}Content`).innerHTML =
+    el.innerHTML =
       '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar projetos.</p></div>';
+  }
+};
+
+// Botão de participação conforme o status do aluno
+const botaoParticipar = (meuStatus, onclick) => {
+  switch (meuStatus) {
+    case 'pendente': return `<button class="btn-participar pendente" disabled>⏳ Solicitação enviada</button>`;
+    case 'aceito':   return `<button class="btn-participar aceito" disabled>✓ Você faz parte</button>`;
+    case 'recusado': return `<button class="btn-participar recusado" disabled>✕ Solicitação recusada</button>`;
+    default:         return `<button class="btn-participar" onclick="${onclick}">+ Fazer parte</button>`;
+  }
+};
+
+// Card de projeto criado pela administração, com botão de participação
+const renderProjetoInterno = (p, tipo, tipoClass, tipoLabel) => {
+  const botao = botaoParticipar(p.meuStatus, `solicitarParticipacao('${p._id}','${tipo}')`);
+
+  return `
+    <div class="projeto-card projeto-admin">
+      <span class="projeto-tipo ${tipoClass}">${tipoLabel} · Administração</span>
+      <div class="projeto-titulo">${esc(p.titulo || 'Sem título')}</div>
+      ${p.resumo ? `<p class="projeto-resumo">${esc(p.resumo)}</p>` : ''}
+      <div class="projeto-detalhe">
+        ${p.dt_inicio   ? `<span>📅 ${esc(p.dt_inicio)} – ${esc(p.dt_final ?? '?')}</span>` : ''}
+        ${p.situacao    ? `<span>🔹 ${esc(p.situacao)}</span>`                              : ''}
+        ${p.coordenador ? `<span>👤 ${esc(p.coordenador)}</span>`                           : ''}
+        ${p.campus_nome ? `<span>🏫 ${esc(p.campus_nome)}</span>`                           : ''}
+      </div>
+      <div class="projeto-acoes">${botao}</div>
+    </div>`;
+};
+
+// Envia a solicitação de participação e recarrega a seção
+const solicitarParticipacao = async (projetoId, tipo) => {
+  try {
+    const res = await fetch(`/api/projetos-internos/${projetoId}/solicitar`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    if (res.status === 401) { window.location.href = '/login'; return; }
+    const data = await res.json();
+
+    if (res.ok && data.sucesso) {
+      delete state.loaded[tipo];
+      document.getElementById(`${tipo}Content`).innerHTML =
+        '<div class="loading"><div class="spinner"></div> Atualizando…</div>';
+      if (tipo === 'pesquisa') carregarPesquisa();
+      else carregarExtensao();
+    } else {
+      alert(data.erro || 'Não foi possível enviar a solicitação.');
+    }
+  } catch (e) {
+    alert('Erro de conexão ao enviar a solicitação.');
+  }
+};
+
+// Envia a solicitação de participação em um projeto do SUAP
+const solicitarParticipacaoSuap = async (suapId, tipo) => {
+  try {
+    const res = await fetch(`/api/projetos-suap/${suapId}/solicitar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ tipo }),
+    });
+    if (res.status === 401) { window.location.href = '/login'; return; }
+    const data = await res.json();
+
+    if (res.ok && data.sucesso) {
+      delete state.loaded[tipo];
+      document.getElementById(`${tipo}Content`).innerHTML =
+        '<div class="loading"><div class="spinner"></div> Atualizando…</div>';
+      if (tipo === 'pesquisa') carregarPesquisa();
+      else carregarExtensao();
+    } else {
+      alert(data.erro || 'Não foi possível enviar a solicitação.');
+    }
+  } catch (e) {
+    alert('Erro de conexão ao enviar a solicitação.');
   }
 };
 

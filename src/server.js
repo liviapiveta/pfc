@@ -5,6 +5,7 @@ const cors = require('cors');
 const path = require('path');
 const connectDB = require('../config/database');
 const apiRoutes = require('./routes/api');
+const adminAuth = require('./middleware/adminAuth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,6 +25,15 @@ app.use('/api', apiRoutes);
 // ── Rotas de páginas (SPA-style: tudo vai para o index.html) ──
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// ── Painel administrativo ─────────────────────────────────────
+app.get('/admin/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin-login.html'));
+});
+
+app.get('/admin', adminAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
 app.get('*', (req, res) => {

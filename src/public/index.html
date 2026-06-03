@@ -91,8 +91,63 @@
     </section>
 
   </div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="footer-cols">
+      <div class="footer-col footer-about">
+        <h3 class="footer-logo">SUAP<span>.</span>Portal</h3>
+        <p>
+          Portal do Aluno do IFPR. Acesso rápido aos seus dados acadêmicos,
+          boletim, projetos de pesquisa e extensão e calendário, integrado
+          diretamente à API do SUAP.
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Acadêmico</h4>
+        <ul>
+          <li><a href="#" data-section="dados">Dados Pessoais</a></li>
+          <li><a href="#" data-section="boletim">Boletim</a></li>
+          <li><a href="#" data-section="pesquisa">Projetos de Pesquisa</a></li>
+          <li><a href="#" data-section="extensao">Projetos de Extensão</a></li>
+          <li><a href="#" data-section="calendario">Calendário</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Institucional</h4>
+        <ul>
+          <li><a href="https://www.ifpr.edu.br" target="_blank" rel="noopener">Site do IFPR</a></li>
+          <li><a href="https://suap.ifpr.edu.br" target="_blank" rel="noopener">SUAP IFPR</a></li>
+          <li><a href="https://www.gov.br" target="_blank" rel="noopener">Portal Gov.br</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© <span id="footerYear"></span> SUAP.Portal · IFPR — Instituto Federal do Paraná</span>
+      <a class="footer-admin-link" href="/admin/login">🔒 Acesso administrativo</a>
+    </div>
+  </footer>
 </main>
 
 <script src="/portal.js"></script>
+<script>
+  // Ano atual no rodapé
+  document.getElementById('footerYear').textContent = new Date().getFullYear();
+
+  // Links do rodapé que apontam para seções acionam a navegação da sidebar
+  document.querySelectorAll('.site-footer [data-section]').forEach(a => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const alvo = document.querySelector(`.nav-item[data-section="${a.dataset.section}"]`);
+      if (alvo) {
+        alvo.click();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  });
+</script>
 </body>
 </html>
