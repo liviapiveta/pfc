@@ -22,6 +22,7 @@ const projetoSuapCacheSchema = new mongoose.Schema(
     coordenador: { type: String, default: '' },
     email_coordenador: { type: String, default: '' },
     campus_nome: { type: String, default: '' },
+    link_suap: { type: String, default: null },
   },
   { timestamps: true }
 );

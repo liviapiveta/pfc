@@ -1,7 +1,11 @@
 const suapService = require('../services/suapService');
 const Projeto = require('../models/Projeto');
+const Evento = require('../models/Evento');
 const Solicitacao = require('../models/Solicitacao');
 const ProjetoSuapCache = require('../models/ProjetoSuapCache');
+
+const linkProjetoSuap = (p = {}) =>
+  p.link_suap || p.url_publica || p.pagina || p.link_projeto || p.link || p.url || null;
 
 const getDadosPessoais = async (req, res) => {
   try {
@@ -32,7 +36,15 @@ const getProjetosExtensao = (req, res) =>
 
 const getCalendario = async (req, res) => {
   try {
-    return res.json(await suapService.getEventosDoCampus(req.user.suapToken));
+    const [eventosSuap, eventosLocais] = await Promise.all([
+      suapService.getEventosDoCampus(req.user.suapToken),
+      Evento.find().sort({ data_inicio: 1 }).lean(),
+    ]);
+
+    return res.json([
+      ...(Array.isArray(eventosSuap) ? eventosSuap : []),
+      ...eventosLocais.map(ev => ({ ...ev, origem: 'admin' })),
+    ]);
   } catch (err) { return handleError(res, err, 'eventos'); }
 };
 
@@ -152,6 +164,7 @@ const _listarProjetosSuap = async (req, res, tipo, fetchFn) => {
             coordenador: p.nome_coordenador || '',
             email_coordenador: p.email_coordenador || '',
             campus_nome: p.campus_nome_formatado || p.campus_nome || '',
+            link_suap: linkProjetoSuap(p),
           },
           { upsert: true }
         ))
@@ -170,6 +183,7 @@ const _listarProjetosSuap = async (req, res, tipo, fetchFn) => {
 
     const resultado = projetos.map(p => ({
       ...p,
+      link_suap: linkProjetoSuap(p),
       meuStatus: (p && p.id != null) ? (statusPorId[p.id] || null) : null,
     }));
 

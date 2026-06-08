@@ -13,8 +13,8 @@
       --verde: #44d883;
       --verde-claro: rgba(68,216,131,0.14);
       --verde-escuro: #36c172;
-      --azul: #5a93d6;
-      --azul-claro: rgba(96,165,250,0.16);
+      --azul: #44d883;
+      --azul-claro: rgba(68,216,131,0.12);
       --bg: #1b1b1f;
       --bg-2: #242428;
       --card: #26262b;
@@ -39,7 +39,7 @@
     /* ── SIDEBAR ── */
     .sidebar {
       width: var(--sidebar-w);
-      background: #1a1a2e;
+      background: #121f19;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -346,6 +346,8 @@
     .items-table tr:last-child td { border-bottom: none; }
     .items-table tr:hover td { background: var(--bg-2); }
     .items-table td:first-child { color: var(--texto); font-weight: 500; max-width: 260px; }
+    .items-table a { color: var(--verde); font-weight: 600; text-decoration: none; }
+    .items-table a:hover { color: var(--verde-escuro); text-decoration: underline; }
 
     .empty-table {
       text-align: center;
@@ -368,7 +370,7 @@
       white-space: nowrap;
     }
 
-    .badge-pesquisa { background: var(--azul-claro); color: #93c5fd; }
+    .badge-pesquisa { background: var(--azul-claro); color: #75e4a6; }
     .badge-extensao { background: var(--verde-claro); color: #5fe39a; }
     .badge-evento   { background: var(--azul-claro); color: var(--azul); }
 
@@ -694,7 +696,11 @@ const state = {
   editandoId: null,
 };
 
-const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const esc = s => String(s ?? '')
+  .replace(/&/g,'&amp;')
+  .replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;')
+  .replace(/"/g,'&quot;');
 
 // ─────────────────────────────────────────────────────
 // API helpers
@@ -830,19 +836,29 @@ const renderTabelaProjetosSuap = (dados) => {
     ? '<span class="badge-tipo badge-pesquisa">Pesquisa</span>'
     : '<span class="badge-tipo badge-extensao">Extensão</span>';
 
-  const rows = dados.map(p => `
+  const rows = dados.map(p => {
+    const titulo = p.link_suap
+      ? `<a href="${esc(p.link_suap)}" target="_blank" rel="noopener">${esc(p.titulo || '—')}</a>`
+      : esc(p.titulo || '—');
+    const link = p.link_suap
+      ? `<a href="${esc(p.link_suap)}" target="_blank" rel="noopener">Abrir</a>`
+      : '—';
+
+    return `
     <tr>
-      <td>${esc(p.titulo || '—')}</td>
+      <td>${titulo}</td>
       <td>${tipoBadge(p.tipo)}</td>
       <td style="font-size:0.8rem;color:var(--cinza)">${esc(p.coordenador || '—')}</td>
       <td style="font-size:0.8rem">${esc(p.dt_inicio || '—')} – ${esc(p.dt_final || '—')}</td>
       <td style="font-size:0.8rem">${esc(p.situacao || '—')}</td>
-    </tr>`).join('');
+      <td style="font-size:0.8rem">${link}</td>
+    </tr>`;
+  }).join('');
 
   return `<div style="overflow-x:auto">
     <table class="items-table">
       <thead>
-        <tr><th>Título</th><th>Tipo</th><th>Coordenador</th><th>Período</th><th>Situação</th></tr>
+        <tr><th>Título</th><th>Tipo</th><th>Coordenador</th><th>Período</th><th>Situação</th><th>Link</th></tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
@@ -854,24 +870,34 @@ const renderTabelaProjetos = (dados, tipo) => {
     ? '<span class="badge-tipo badge-pesquisa">Pesquisa</span>'
     : '<span class="badge-tipo badge-extensao">Extensão</span>';
 
-  const rows = dados.map(p => `
+  const rows = dados.map(p => {
+    const titulo = p.link_suap
+      ? `<a href="${esc(p.link_suap)}" target="_blank" rel="noopener">${esc(p.titulo)}</a>`
+      : esc(p.titulo);
+    const link = p.link_suap
+      ? `<a href="${esc(p.link_suap)}" target="_blank" rel="noopener">Abrir</a>`
+      : '—';
+
+    return `
     <tr>
-      <td>${esc(p.titulo)}</td>
+      <td>${titulo}</td>
       <td>${badge}</td>
       <td style="font-size:0.8rem;color:var(--cinza)">${esc(p.coordenador || '—')}</td>
       <td style="font-size:0.8rem">${esc(p.dt_inicio || '—')} – ${esc(p.dt_final || '—')}</td>
       <td style="font-size:0.8rem">${esc(p.situacao || '—')}</td>
+      <td style="font-size:0.8rem">${link}</td>
       <td>
         <button class="btn-edit" onclick="editarProjeto('${tipo}', '${p._id}')">✏ Editar</button>
         <button class="btn-del" onclick="deletarItem('${tipo}', '${p._id}')">🗑 Excluir</button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
   return `<div style="overflow-x:auto">
     <table class="items-table">
       <thead>
         <tr>
-          <th>Título</th><th>Tipo</th><th>Coordenador</th><th>Período</th><th>Situação</th><th>Ações</th>
+          <th>Título</th><th>Tipo</th><th>Coordenador</th><th>Período</th><th>Situação</th><th>Link</th><th>Ações</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -973,6 +999,10 @@ const formsProjeto = (dados = {}) => `
     <div class="field full">
       <label>Resumo</label>
       <textarea id="f_resumo" placeholder="Breve descrição do projeto…">${esc(dados.resumo || '')}</textarea>
+    </div>
+    <div class="field full">
+      <label>Link do projeto no SUAP</label>
+      <input type="url" id="f_link_projeto" value="${esc(dados.link_suap || '')}" placeholder="https://…" />
     </div>
     <div class="field">
       <label>Coordenador</label>
@@ -1098,6 +1128,7 @@ const salvarItem = async () => {
       body = {
         titulo:             document.getElementById('f_titulo').value.trim(),
         resumo:             document.getElementById('f_resumo').value.trim(),
+        link_suap:          document.getElementById('f_link_projeto').value.trim() || null,
         coordenador:        document.getElementById('f_coordenador').value.trim(),
         email_coordenador:  document.getElementById('f_email_coordenador').value.trim(),
         dt_inicio:          document.getElementById('f_dt_inicio').value || null,

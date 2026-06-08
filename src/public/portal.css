@@ -14,8 +14,8 @@
   --verde-escuro: #36c172;
   --verde-glow:   rgba(68,216,131,0.35);
 
-  --azul:        #2b6fb3;
-  --azul-claro:  rgba(96,165,250,0.16);
+  --azul:        #40c77c;
+  --azul-claro:  rgba(68,216,131,0.12);
 
   --bg:        #1b1b1f;   /* fundo da área principal */
   --bg-2:      #242428;   /* fundo de tabelas / sub-blocos */
@@ -35,7 +35,7 @@
   /* tokens semânticos (badges, notas, avisos) */
   --ok-bg:    rgba(68,216,131,0.16);  --ok-text:   #5fe39a;
   --err-bg:   rgba(255,107,107,0.16); --err-text:  #ff8585;
-  --info-bg:  rgba(96,165,250,0.16);  --info-text: #93c5fd;
+  --info-bg:  rgba(68,216,131,0.13);  --info-text: #75e4a6;
   --warn-bg:  rgba(245,185,66,0.14);  --warn-text: #f5c469;
   --neutro-bg: rgba(255,255,255,0.06);
 
@@ -53,41 +53,41 @@
 
 /* ── TEMA CLARO ────────────────────────────────────────────── */
 :root[data-theme="light"] {
-  --verde:        #00a86b;
-  --verde-claro:  #e6fff5;
-  --verde-escuro: #00855a;
-  --verde-glow:   rgba(0,168,107,0.25);
+  --verde:        #198754;
+  --verde-claro:  #e4f7ee;
+  --verde-escuro: #11643d;
+  --verde-glow:   rgba(25,135,84,0.22);
 
-  --azul:        #003566;
-  --azul-claro:  #e8f0fb;
+  --azul:        #247d56;
+  --azul-claro:  #eaf6ef;
 
-  --bg:        #f0f3f8;
-  --bg-2:      #f5f7fb;
-  --sidebar:   #003566;
-  --card:      #ffffff;
-  --card-2:    #f7f9fc;
+  --bg:        #f3f8f4;
+  --bg-2:      #eaf3ed;
+  --sidebar:   #12362a;
+  --card:      #fbfdfb;
+  --card-2:    #edf6f0;
 
-  --texto:   #0d1b2a;
-  --texto-2: #445566;
-  --cinza:   #8a97a8;
-  --borda:   #e2e8f0;
-  --borda-2: #eef1f6;
+  --texto:   #14251d;
+  --texto-2: #43584d;
+  --cinza:   #76887d;
+  --borda:   #d7e6dc;
+  --borda-2: #e4eee8;
 
   --amarelo:  #f5a623;
   --vermelho: #e53e3e;
 
-  --ok-bg:   #e6fff5;  --ok-text:   #00956a;
+  --ok-bg:   #e4f7ee;  --ok-text:   #147a4c;
   --err-bg:  #fff5f5;  --err-text:  #e53e3e;
-  --info-bg: #e8f0fb;  --info-text: #1d4ed8;
+  --info-bg: #eaf6ef;  --info-text: #247d56;
   --warn-bg: #fffbeb;  --warn-text: #92400e;
-  --neutro-bg: #f0f3f8;
+  --neutro-bg: #eef5f0;
 
   --ouro:   #d4af37;
   --prata:  #9aa3b2;
   --bronze: #b87333;
 
-  --input-bg: #ffffff;
-  --sombra:   0 4px 24px rgba(0,0,0,0.06);
+  --input-bg: #fbfdfb;
+  --sombra:   0 4px 24px rgba(18,54,42,0.08);
 
   color-scheme: light;
 }
@@ -513,6 +513,7 @@ nav { flex: 1; padding: 1rem 0.75rem; }
 .sit-aprovado  { background: var(--ok-bg);   color: var(--ok-text); }
 .sit-reprovado { background: var(--err-bg);  color: var(--err-text); }
 .sit-cursando  { background: var(--info-bg); color: var(--info-text); }
+.sit-concluido { background: var(--ok-bg);   color: var(--ok-text); }
 .sit-default   { background: var(--neutro-bg); color: var(--texto-2); }
 
 .freq-bar-wrap { display: flex; align-items: center; gap: 0.5rem; }
@@ -547,7 +548,7 @@ nav { flex: 1; padding: 1rem 0.75rem; }
   border-radius: 99px;
   margin-bottom: 0.65rem;
 }
-.tipo-pesquisa { background: var(--info-bg); color: var(--info-text); }
+.tipo-pesquisa { background: var(--azul-claro); color: var(--azul); }
 .tipo-extensao { background: var(--ok-bg);   color: var(--ok-text); }
 
 .projeto-titulo {
@@ -740,10 +741,9 @@ nav { flex: 1; padding: 1rem 0.75rem; }
 .stat-sub { font-size: 0.75rem; color: var(--cinza); margin-top: 0.2rem; }
 
 /* ── BOLETIM — extras ──────────────────────────────────────── */
-.badge-andamento {
+.badge-andamento,
+.badge-concluido {
   font-size: 0.58rem;
-  background: var(--info-bg);
-  color: var(--info-text);
   padding: 2px 7px;
   border-radius: 99px;
   vertical-align: middle;
@@ -751,6 +751,8 @@ nav { flex: 1; padding: 1rem 0.75rem; }
   margin-left: 8px;
   letter-spacing: 0.5px;
 }
+.badge-andamento { background: var(--info-bg); color: var(--info-text); }
+.badge-concluido { background: var(--ok-bg); color: var(--ok-text); }
 
 .th-diario    { width: 55px; }
 .th-disciplina{ min-width: 180px; }

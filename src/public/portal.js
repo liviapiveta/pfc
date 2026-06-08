@@ -4,6 +4,8 @@ const state = {
   periodos: [],
   anoAtual: null,
   periodoAtual: null,
+  anoCursoAtual: null,
+  periodoCursoAtual: null,
   loaded: {},
 };
 
@@ -16,8 +18,7 @@ const SUAP_WEB = 'https://suap.ifpr.edu.br';
 // caso não exista, constrói a partir do id do projeto.
 // (Se o seu SUAP usar outro caminho, ajuste apenas a última linha.)
 const linkProjetoSuap = (p) =>
-  p.link_suap || p.url_publica || p.pagina || p.link ||
-  (p.id != null ? `${SUAP_WEB}/projetos/projeto/${p.id}/` : null);
+  p.link_suap || p.url_publica || p.pagina || p.link_projeto || p.link || p.url || null;
 
 // ── Tema (claro / escuro) ──────────────────────────────────────
 const THEME_KEY = 'ifplenus-tema';
@@ -53,7 +54,11 @@ const api = async (url) => {
   return res.json();
 };
 
-const esc = (s) => String(s ?? '—').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const esc = (s) => String(s ?? '—')
+  .replace(/&/g,'&amp;')
+  .replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;')
+  .replace(/"/g,'&quot;');
 
 const normalizarTexto = (s) =>
   String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -118,6 +123,8 @@ const dadoItem = (label, valor) =>
       const ultimo       = state.periodos[state.periodos.length - 1];
       state.anoAtual     = ultimo.ano_letivo;
       state.periodoAtual = ultimo.periodo_letivo;
+      state.anoCursoAtual = ultimo.ano_letivo;
+      state.periodoCursoAtual = ultimo.periodo_letivo;
     }
 
     carregarSecao('dados');
@@ -298,7 +305,15 @@ const carregarBoletim = async () => {
 
     // _fonte: 'boletim' = histórico fechado | 'disciplinas' = em andamento
     const fonte       = disciplinas.length > 0 ? (disciplinas[0]._fonte ?? 'boletim') : 'boletim';
-    const emAndamento = fonte === 'disciplinas';
+    const periodoSelecionadoEhAtual =
+      Number(state.anoAtual) === Number(state.anoCursoAtual) &&
+      Number(state.periodoAtual) === Number(state.periodoCursoAtual);
+    const temSituacaoEmAndamento = disciplinas.some(d => {
+      const sit = typeof d.situacao === 'object' ? d.situacao?.rotulo : d.situacao;
+      const low = normalizarTexto(sit);
+      return low.includes('cursando') || low.includes('andamento') || low.includes('execucao');
+    });
+    const emAndamento = periodoSelecionadoEhAtual && (fonte === 'disciplinas' || temSituacaoEmAndamento);
 
     // ── Stats ──────────────────────────────────────────────────
     // Stats: conta aprovadas e calcula média
@@ -326,15 +341,15 @@ const carregarBoletim = async () => {
       ? (mediasNum.reduce((s,v) => s+v, 0) / mediasNum.length).toFixed(1)
       : '—';
 
-    const badgeAndamento = emAndamento
+    const badgePeriodo = emAndamento
       ? `<span class="badge-andamento">EM ANDAMENTO</span>`
-      : '';
+      : `<span class="badge-concluido">CONCLUÍDO</span>`;
 
     document.getElementById('boletimStats').innerHTML = `
       <div class="stat-card">
         <div class="stat-label">Período</div>
         <div class="stat-value" style="font-size:1.3rem">
-          ${state.anoAtual}.${state.periodoAtual}${badgeAndamento}
+          ${state.anoAtual}.${state.periodoAtual}${badgePeriodo}
         </div>
       </div>
       <div class="stat-card">
@@ -361,11 +376,17 @@ const carregarBoletim = async () => {
 
     // Situação com badge colorido
     const situacaoHtml = (sit) => {
-      const texto = typeof sit === 'object' ? (sit?.rotulo ?? '—') : (sit || '—');
+      const textoOriginal = typeof sit === 'object' ? (sit?.rotulo ?? '—') : (sit || '—');
+      const lowOriginal = normalizarTexto(textoOriginal);
+      const texto = !periodoSelecionadoEhAtual &&
+        (lowOriginal.includes('cursando') || lowOriginal.includes('andamento') || lowOriginal.includes('execucao'))
+          ? 'Concluído'
+          : textoOriginal;
       const low   = normalizarTexto(texto);
       const cls   = low.includes('aprovado')  ? 'sit-aprovado'
                   : low.includes('reprovado') ? 'sit-reprovado'
-                  : (low.includes('cursando') || low.includes('andamento')) ? 'sit-cursando'
+                  : low.includes('concluido') ? 'sit-concluido'
+                  : (low.includes('cursando') || low.includes('andamento') || low.includes('execucao')) ? 'sit-cursando'
                   : 'sit-default';
       return `<span class="situacao-badge ${cls}">${esc(texto)}</span>`;
     };
@@ -453,15 +474,32 @@ const carregarBoletim = async () => {
     // Lê uma etapa do boletim aceitando tanto o formato objeto {nota, faltas}
     // quanto valores soltos (algumas respostas do SUAP trazem só o número),
     // evitando que notas/faltas "sumam" quando o formato varia.
-    const lerEtapa = (raw) => {
-      if (raw === null || raw === undefined) return { nota: null, faltas: null };
+    const primeiroValor = (...valores) =>
+      valores.find(v => v !== null && v !== undefined && v !== '') ?? null;
+
+    const faltasEtapa = (disciplina, etapa) => primeiroValor(
+      disciplina?.[`faltas_etapa_${etapa}`],
+      disciplina?.[`faltas_etapa${etapa}`],
+      disciplina?.[`faltas_${etapa}`],
+      disciplina?.[`faltas${etapa}`],
+      disciplina?.[`numero_faltas_etapa_${etapa}`],
+      disciplina?.[`numero_faltas_etapa${etapa}`],
+      disciplina?.[`numero_faltas_${etapa}`],
+      disciplina?.[`qtd_faltas_etapa_${etapa}`],
+      disciplina?.[`qtd_faltas_etapa${etapa}`],
+      disciplina?.[`qtd_faltas_${etapa}`]
+    );
+
+    const lerEtapa = (raw, disciplina = {}, etapa = null) => {
+      const faltasFallback = etapa ? faltasEtapa(disciplina, etapa) : null;
+      if (raw === null || raw === undefined) return { nota: null, faltas: faltasFallback };
       if (typeof raw === 'object') {
         return {
           nota:   raw.nota ?? raw.valor ?? raw.media ?? null,
-          faltas: raw.faltas ?? raw.numero_faltas ?? raw.qtd_faltas ?? null,
+          faltas: primeiroValor(raw.faltas, raw.numero_faltas, raw.qtd_faltas, faltasFallback),
         };
       }
-      return { nota: raw, faltas: null };
+      return { nota: raw, faltas: faltasFallback };
     };
 
     const formatarFrequencia = (valor) => {
@@ -490,7 +528,7 @@ const carregarBoletim = async () => {
 
     const etapas = [1, 2, 3, 4];
     const valoresConceito = disciplinas.flatMap(d => [
-      ...etapas.map(n => lerEtapa(d[`nota_etapa_${n}`]).nota),
+      ...etapas.map(n => lerEtapa(d[`nota_etapa_${n}`], d, n).nota),
       d.media_final_disciplina,
       d.media_disciplina,
     ]).filter(v => v !== null && v !== undefined && v !== '');
@@ -499,6 +537,29 @@ const carregarBoletim = async () => {
       .filter(v => !isNaN(v));
     const usarCodigoConceito = numerosConceito.length > 0
       && numerosConceito.every(v => Number.isInteger(v) && v >= 1 && v <= 4);
+
+    const totalFaltasDisciplina = (d) => {
+      const total = primeiroValor(
+        d.numero_faltas,
+        d.qtd_faltas,
+        d.faltas,
+        d.total_faltas,
+        d.numero_total_faltas,
+        d.qtd_total_faltas
+      );
+      if (total !== null) return total;
+
+      const porEtapa = etapas
+        .map(n => lerEtapa(d[`nota_etapa_${n}`], d, n).faltas)
+        .filter(v => v !== null && v !== undefined && v !== '')
+        .map(v => Number(v));
+
+      if (porEtapa.length && porEtapa.every(v => !Number.isNaN(v))) {
+        return porEtapa.reduce((s, v) => s + v, 0);
+      }
+
+      return null;
+    };
 
     thead = `
       <tr class="boletim-head-top">
@@ -518,7 +579,7 @@ const carregarBoletim = async () => {
 
     const totalCh = disciplinas.reduce((s,d) => s + (d.carga_horaria ?? 0), 0);
     const totalAulas = disciplinas.reduce((s,d) => s + (d.carga_horaria_cumprida ?? d.carga_horaria ?? 0), 0);
-    const totalFaltas = disciplinas.reduce((s,d) => s + (d.numero_faltas ?? 0), 0);
+    const totalFaltas = disciplinas.reduce((s,d) => s + (Number(totalFaltasDisciplina(d)) || 0), 0);
     const freqTotal = totalAulas > 0
       ? (((totalAulas - totalFaltas) / totalAulas) * 100)
       : null;
@@ -526,17 +587,18 @@ const carregarBoletim = async () => {
     rows = disciplinas.map(d => {
       const conceitoFinal = d.media_final_disciplina ?? d.media_disciplina;
       const totalAulasDisciplina = d.carga_horaria_cumprida ?? d.carga_horaria ?? '—';
+      const faltasDisciplina = totalFaltasDisciplina(d);
 
       return `<tr>
         <td class="td-diario">${esc(d.codigo_diario ?? '—')}</td>
         <td class="td-disciplina">${esc(d.disciplina)}</td>
         <td class="td-num">${d.carga_horaria > 0 ? d.carga_horaria + ' aulas' : '—'}</td>
         <td class="td-num">${esc(totalAulasDisciplina)}</td>
-        <td class="td-num">${esc(d.numero_faltas ?? '—')}</td>
+        <td class="td-num">${esc(faltasDisciplina ?? '—')}</td>
         <td class="td-num">${formatarFrequencia(d.percentual_carga_horaria_frequentada)}</td>
         <td>${situacaoHtml(d.situacao)}</td>
         ${etapas.map(n => {
-          const etapa = lerEtapa(d[`nota_etapa_${n}`]);
+          const etapa = lerEtapa(d[`nota_etapa_${n}`], d, n);
           return `<td class="td-num">${conceitoCelula(etapa.nota)}</td><td class="td-num">${faltasCelula(etapa.faltas)}</td>`;
         }).join('')}
         <td class="td-num">${conceitoCelula(conceitoFinal, true)}</td>
@@ -643,11 +705,16 @@ const botaoParticipar = (meuStatus, onclickSolicitar, onclickResetar) => {
 // Card de projeto criado pela administração, com botão de participação
 const renderProjetoInterno = (p, tipo, tipoClass, tipoLabel) => {
   const botao = botaoParticipar(p.meuStatus, `solicitarParticipacao('${p._id}','${tipo}')`, `resetarSolicitacao('${p._id}','${tipo}')`);
+  const link = linkProjetoSuap(p);
+  const titulo = p.titulo || 'Sem título';
+  const tituloHtml = link
+    ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(titulo)}</a>`
+    : esc(titulo);
 
   return `
     <div class="projeto-card projeto-admin">
       <span class="projeto-tipo ${tipoClass}">${tipoLabel} · Administração</span>
-      <div class="projeto-titulo">${esc(p.titulo || 'Sem título')}</div>
+      <div class="projeto-titulo">${tituloHtml}</div>
       ${p.resumo ? `<p class="projeto-resumo">${esc(p.resumo)}</p>` : ''}
       <div class="projeto-detalhe">
         ${p.dt_inicio   ? `<span>📅 ${esc(p.dt_inicio)} – ${esc(p.dt_final ?? '?')}</span>` : ''}

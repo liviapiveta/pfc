@@ -19,6 +19,7 @@ const projetoSchema = new mongoose.Schema(
     dt_inicio: { type: String, default: null },
     dt_final: { type: String, default: null },
     campus_nome: { type: String, default: '' },
+    link_suap: { type: String, default: null },
     situacao: { type: String, default: 'Em execução' },
   },
   { timestamps: true }

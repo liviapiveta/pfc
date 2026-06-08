@@ -120,7 +120,7 @@ const getBoletim = async (token, anoLetivo, periodoLetivo) => {
   const data = response.data;
   const result = data.results ?? data;
   const boletim = Array.isArray(result)
-    ? result.map((item) => ({ ...item, _fonte: 'boletim' }))
+    ? result.map(normalizarItemBoletim)
     : [];
   if (!boletim.length) {
     return setCache(key, await getBoletimPorDisciplinas(token, ano, periodo));
@@ -134,6 +134,103 @@ const getBoletim = async (token, anoLetivo, periodoLetivo) => {
  */
 const _normalizarTexto = (valor) =>
   String(valor ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+const _primeiroValor = (...valores) =>
+  valores.find((valor) => valor !== null && valor !== undefined && valor !== '') ?? null;
+
+const _valorPorChaves = (obj, chaves) => {
+  for (const chave of chaves) {
+    const valor = obj?.[chave];
+    if (valor !== null && valor !== undefined && valor !== '') return valor;
+  }
+  return null;
+};
+
+const _chavesFaltasEtapa = (etapa) => {
+  const nomes = ['primeira', 'segunda', 'terceira', 'quarta'];
+  const ordinal = nomes[etapa - 1];
+  return [
+    `faltas_etapa_${etapa}`,
+    `faltas_etapa${etapa}`,
+    `faltas_${etapa}`,
+    `faltas${etapa}`,
+    `numero_faltas_etapa_${etapa}`,
+    `numero_faltas_etapa${etapa}`,
+    `numero_faltas_${etapa}`,
+    `qtd_faltas_etapa_${etapa}`,
+    `qtd_faltas_etapa${etapa}`,
+    `qtd_faltas_${etapa}`,
+    `faltas_bimestre_${etapa}`,
+    `faltas_bimestre${etapa}`,
+    `faltas_${etapa}_bimestre`,
+    ...(ordinal ? [
+      `faltas_${ordinal}_etapa`,
+      `numero_faltas_${ordinal}_etapa`,
+      `qtd_faltas_${ordinal}_etapa`,
+    ] : []),
+  ];
+};
+
+const _normalizarEtapaBoletim = (item, etapa) => {
+  const raw = _primeiroValor(
+    item?.[`nota_etapa_${etapa}`],
+    item?.[`nota_etapa${etapa}`],
+    item?.[`nota_${etapa}`],
+    item?.[`nota${etapa}`],
+    item?.[`conceito_etapa_${etapa}`],
+    item?.[`conceito_${etapa}`]
+  );
+
+  const faltas = _primeiroValor(
+    raw && typeof raw === 'object' ? raw?.faltas : null,
+    raw && typeof raw === 'object' ? raw?.numero_faltas : null,
+    raw && typeof raw === 'object' ? raw?.qtd_faltas : null,
+    _valorPorChaves(item, _chavesFaltasEtapa(etapa))
+  );
+
+  if (raw && typeof raw === 'object') {
+    return {
+      ...raw,
+      nota: _primeiroValor(raw.nota, raw.valor, raw.media),
+      faltas,
+    };
+  }
+
+  return { nota: raw, faltas };
+};
+
+const normalizarItemBoletim = (item) => {
+  const normalizado = { ...item, _fonte: 'boletim' };
+  const etapas = [1, 2, 3, 4];
+
+  etapas.forEach((etapa) => {
+    normalizado[`nota_etapa_${etapa}`] = _normalizarEtapaBoletim(item, etapa);
+  });
+
+  const totalFaltas = _primeiroValor(
+    item?.numero_faltas,
+    item?.qtd_faltas,
+    item?.faltas,
+    item?.total_faltas,
+    item?.numero_total_faltas,
+    item?.qtd_total_faltas
+  );
+
+  if (totalFaltas !== null) {
+    normalizado.numero_faltas = totalFaltas;
+  } else {
+    const faltasEtapas = etapas
+      .map((etapa) => normalizado[`nota_etapa_${etapa}`]?.faltas)
+      .filter((valor) => valor !== null && valor !== undefined && valor !== '')
+      .map((valor) => Number(valor));
+
+    if (faltasEtapas.length && faltasEtapas.every((valor) => !Number.isNaN(valor))) {
+      normalizado.numero_faltas = faltasEtapas.reduce((soma, valor) => soma + valor, 0);
+    }
+  }
+
+  return normalizado;
+};
 
 // Extrai nota de uma etapa específica de notas[] ou medias[]
 const _extrairEtapa = (notas, medias, num) => {
@@ -157,7 +254,17 @@ const _extrairEtapa = (notas, medias, num) => {
   });
 
   const porOrdem = notas[num - 1] ?? medias[num - 1];
-  return { nota: porTipo?.nota ?? porOrdem?.nota ?? null, faltas: null };
+  return {
+    nota: porTipo?.nota ?? porOrdem?.nota ?? null,
+    faltas: _primeiroValor(
+      porTipo?.faltas,
+      porTipo?.numero_faltas,
+      porTipo?.qtd_faltas,
+      porOrdem?.faltas,
+      porOrdem?.numero_faltas,
+      porOrdem?.qtd_faltas
+    ),
+  };
 };
 
 // Extrai média de um tipo específico de medias[]
@@ -193,7 +300,7 @@ const normalizarDisciplinaParaBoletim = (d) => ({
   carga_horaria:          d.ch_total_aula     ?? 0,
   carga_horaria_relogio:  d.ch_total_relogio  ?? 0,
   carga_horaria_cumprida: d.ch_cumprida_aula  ?? 0,
-  numero_faltas:          d.qtd_faltas        ?? 0,
+  numero_faltas:          _primeiroValor(d.qtd_faltas, d.numero_faltas, d.faltas, d.total_faltas, 0),
   quantidade_avaliacoes:  d.qtd_avaliacoes    ?? 0,
   percentual_carga_horaria_frequentada: d.frequencia ?? 0,
 
@@ -235,7 +342,8 @@ const getFaltasPorEtapa = async (token, idDiario) => {
     aulas.forEach((aula) => {
       const etapa = parseInt(String(aula.etapa ?? '').match(/\d+/)?.[0], 10);
       if (!etapa) return;
-      faltas[etapa] = (faltas[etapa] ?? 0) + (Number(aula.faltas) || 0);
+      const totalAula = Number(_primeiroValor(aula.faltas, aula.qtd_faltas, aula.numero_faltas, 0)) || 0;
+      faltas[etapa] = (faltas[etapa] ?? 0) + totalAula;
     });
 
     hasNext = Boolean(resp.data?.next);
