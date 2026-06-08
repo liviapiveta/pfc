@@ -9,6 +9,42 @@ const state = {
 
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
+// Base web do SUAP (sem o sufixo /api), usada para montar links de projetos.
+const SUAP_WEB = 'https://suap.ifpr.edu.br';
+
+// Monta o link do projeto no SUAP. Prioriza um link já fornecido pela API;
+// caso não exista, constrói a partir do id do projeto.
+// (Se o seu SUAP usar outro caminho, ajuste apenas a última linha.)
+const linkProjetoSuap = (p) =>
+  p.link_suap || p.url_publica || p.pagina || p.link ||
+  (p.id != null ? `${SUAP_WEB}/projetos/projeto/${p.id}/` : null);
+
+// ── Tema (claro / escuro) ──────────────────────────────────────
+const THEME_KEY = 'ifplenus-tema';
+
+const getTema = () => document.documentElement.getAttribute('data-theme') || 'dark';
+
+const aplicarTema = (tema, persistir = true) => {
+  const t = tema === 'light' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+
+  // Atualiza o controle segmentado, se estiver na tela
+  document.querySelectorAll('.seg-option').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tema === t);
+  });
+
+  if (persistir) {
+    try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* ignore */ }
+    // Sincroniza com o servidor (melhor esforço; não bloqueia a UI)
+    fetch('/api/preferencias', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ temaEscuro: t === 'dark' }),
+    }).catch(() => {});
+  }
+};
+
 // ── Utilidades ─────────────────────────────────────────────────
 const api = async (url) => {
   const res = await fetch(url, { credentials: 'include' });
@@ -61,6 +97,15 @@ const dadoItem = (label, valor) =>
     const me = await api('/api/auth/me');
     if (!me) return;
     state.usuario = me;
+
+    // Tema: localStorage tem prioridade; se não houver, usa a preferência salva no servidor
+    try {
+      const salvoLocal = localStorage.getItem(THEME_KEY);
+      if (!salvoLocal && me.preferencias && typeof me.preferencias.temaEscuro === 'boolean') {
+        aplicarTema(me.preferencias.temaEscuro ? 'dark' : 'light', false);
+      }
+    } catch (e) { /* ignore */ }
+
     document.getElementById('userAvatar').textContent = (me.nome || 'A')[0].toUpperCase();
     document.getElementById('userName').textContent   = me.nome;
     document.getElementById('userMat').textContent    = me.matricula;
@@ -159,13 +204,24 @@ const carregarDados = async () => {
 
     const vinculo = d.vinculo || {};
     const inicial = (d.nome_usual || d.nome || 'A')[0].toUpperCase();
+    const primeiroNome = String(d.nome_usual || d.nome || 'Aluno').trim().split(/\s+/)[0];
+    const temaAtual = getTema();
+
+    // Mostra o campus do aluno logado ao lado da logo (barra lateral)
+    const campusRaw = String(vinculo.campus || d.campus || '').trim();
+    if (campusRaw) {
+      const elCampus = document.getElementById('sidebarCampus');
+      if (elCampus) {
+        elCampus.textContent = /campus/i.test(campusRaw) ? campusRaw : `Campus ${campusRaw}`;
+      }
+    }
 
     document.getElementById('dadosContent').innerHTML = `
       <div class="card">
         <div class="perfil-hero">
           <div class="perfil-avatar">${inicial}</div>
           <div class="perfil-info">
-            <h2>${esc(d.nome_usual || d.nome)}</h2>
+            <h2>Olá, <span>${esc(primeiroNome)}</span>!</h2>
             <p>${esc(vinculo.curso || d.tipo_usuario || '')}</p>
             <span class="status-badge">${esc(vinculo.situacao || 'Ativo')}</span>
           </div>
@@ -183,6 +239,24 @@ const carregarDados = async () => {
           ${dadoItem('Período de Refer.',  vinculo.periodo_de_referencia != null ? vinculo.periodo_de_referencia + 'º' : null)}
           ${dadoItem('Data de Nascimento', formatarData(d.data_nascimento))}
           ${dadoItem('Cota SISTEC',        vinculo.cota_sistec)}
+        </div>
+      </div>
+
+      <div class="card pref-card">
+        <div class="card-header">
+          <span class="card-title">⚙️ Configurações do perfil</span>
+        </div>
+        <div class="pref-row">
+          <div class="pref-text">
+            <h4>Aparência</h4>
+            <p>Escolha entre o tema claro e o tema escuro do portal.</p>
+          </div>
+          <div class="seg-toggle" role="group" aria-label="Tema">
+            <button type="button" class="seg-option ${temaAtual === 'light' ? 'active' : ''}"
+                    data-tema="light" onclick="aplicarTema('light')">☀️ Claro</button>
+            <button type="button" class="seg-option ${temaAtual === 'dark' ? 'active' : ''}"
+                    data-tema="dark" onclick="aplicarTema('dark')">🌙 Escuro</button>
+          </div>
         </div>
       </div>`;
   } catch(e) {
@@ -376,6 +450,20 @@ const carregarBoletim = async () => {
       return esc(valor);
     };
 
+    // Lê uma etapa do boletim aceitando tanto o formato objeto {nota, faltas}
+    // quanto valores soltos (algumas respostas do SUAP trazem só o número),
+    // evitando que notas/faltas "sumam" quando o formato varia.
+    const lerEtapa = (raw) => {
+      if (raw === null || raw === undefined) return { nota: null, faltas: null };
+      if (typeof raw === 'object') {
+        return {
+          nota:   raw.nota ?? raw.valor ?? raw.media ?? null,
+          faltas: raw.faltas ?? raw.numero_faltas ?? raw.qtd_faltas ?? null,
+        };
+      }
+      return { nota: raw, faltas: null };
+    };
+
     const formatarFrequencia = (valor) => {
       const n = parseFloat(String(valor ?? '').replace(',', '.'));
       if (isNaN(n)) return '—';
@@ -402,7 +490,7 @@ const carregarBoletim = async () => {
 
     const etapas = [1, 2, 3, 4];
     const valoresConceito = disciplinas.flatMap(d => [
-      ...etapas.map(n => d[`nota_etapa_${n}`]?.nota),
+      ...etapas.map(n => lerEtapa(d[`nota_etapa_${n}`]).nota),
       d.media_final_disciplina,
       d.media_disciplina,
     ]).filter(v => v !== null && v !== undefined && v !== '');
@@ -448,7 +536,7 @@ const carregarBoletim = async () => {
         <td class="td-num">${formatarFrequencia(d.percentual_carga_horaria_frequentada)}</td>
         <td>${situacaoHtml(d.situacao)}</td>
         ${etapas.map(n => {
-          const etapa = d[`nota_etapa_${n}`] ?? {};
+          const etapa = lerEtapa(d[`nota_etapa_${n}`]);
           return `<td class="td-num">${conceitoCelula(etapa.nota)}</td><td class="td-num">${faltasCelula(etapa.faltas)}</td>`;
         }).join('')}
         <td class="td-num">${conceitoCelula(conceitoFinal, true)}</td>
@@ -503,10 +591,16 @@ const carregarProjetos = async (id, endpoint, tipoClass, tipoLabel) => {
       suapHtml = `<div class="empty-state"><div class="icon">📭</div>
         <p>Nenhum projeto de ${tipoLabel.toLowerCase()} encontrado no SUAP.</p></div>`;
     } else {
-      suapHtml = projetos.map(p => `
+      suapHtml = projetos.map(p => {
+        const titulo = p.titulo || p.nome || 'Sem título';
+        const link = linkProjetoSuap(p);
+        const tituloHtml = link
+          ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(titulo)}</a>`
+          : esc(titulo);
+        return `
         <div class="projeto-card">
           <span class="projeto-tipo ${tipoClass}">${tipoLabel}</span>
-          <div class="projeto-titulo">${esc(p.titulo || p.nome || 'Sem título')}</div>
+          <div class="projeto-titulo">${tituloHtml}</div>
           <div class="projeto-detalhe">
             ${p.dt_inicio             ? `<span>📅 ${esc(p.dt_inicio)} – ${esc(p.dt_final ?? '?')}</span>`  : ''}
             ${p.situacao              ? `<span>🔹 ${esc(p.situacao)}</span>`                                : ''}
@@ -514,7 +608,8 @@ const carregarProjetos = async (id, endpoint, tipoClass, tipoLabel) => {
             ${p.campus_nome_formatado ? `<span>🏫 ${esc(p.campus_nome_formatado)}</span>`                   : ''}
           </div>
           ${p.id != null ? `<div class="projeto-acoes">${botaoParticipar(p.meuStatus, `solicitarParticipacaoSuap('${p.id}','${id}')`, `resetarSolicitacaoSuap('${p.id}','${id}')`)}</div>` : ''}
-        </div>`).join('');
+        </div>`;
+      }).join('');
     }
 
     // 2) Projetos criados pela administração (locais), com botão "Fazer parte"
@@ -686,7 +781,7 @@ const carregarCalendario = async () => {
         </div>
         <div class="evento-info">
           <h4>${ev.link_suap
-            ? `<a href="${esc(ev.link_suap)}" target="_blank" rel="noopener" style="color:inherit">${esc(ev.nome || ev.titulo || 'Evento')}</a>`
+            ? `<a href="${esc(ev.link_suap)}" target="_blank" rel="noopener">${esc(ev.nome || ev.titulo || 'Evento')}</a>`
             : esc(ev.nome || ev.titulo || 'Evento')}</h4>
           <p>${esc(
             [ev.periodo_formatado, ev.local || ev.localizacao, ev.campus]

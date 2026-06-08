@@ -3,27 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SUAP Portal — Painel Admin</title>
+  <title>IFPlenus — Painel Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --verde: #00c27a;
-      --verde-claro: #e6fff5;
-      --verde-escuro: #00956a;
-      --azul: #003566;
-      --azul-claro: #e8f0fb;
-      --bg: #f0f3f8;
-      --card: #ffffff;
-      --texto: #0d1b2a;
-      --texto-2: #445566;
-      --cinza: #8a97a8;
-      --borda: #e2e8f0;
-      --amarelo: #f5a623;
-      --amarelo-claro: #fffbeb;
-      --vermelho: #e53e3e;
+      --verde: #44d883;
+      --verde-claro: rgba(68,216,131,0.14);
+      --verde-escuro: #36c172;
+      --azul: #5a93d6;
+      --azul-claro: rgba(96,165,250,0.16);
+      --bg: #1b1b1f;
+      --bg-2: #242428;
+      --card: #26262b;
+      --texto: #f4f5f7;
+      --texto-2: #c2c6cf;
+      --cinza: #8b909b;
+      --borda: rgba(255,255,255,0.1);
+      --amarelo: #f5b942;
+      --amarelo-claro: rgba(245,185,66,0.14);
+      --vermelho: #ff6b6b;
       --sidebar-w: 240px;
     }
 
@@ -60,7 +61,7 @@
       letter-spacing: -0.5px;
     }
 
-    .sidebar-logo h1 span { color: var(--amarelo); }
+    .sidebar-logo h1 span { color: var(--verde); }
     .sidebar-logo p { font-size: 0.7rem; color: rgba(255,255,255,0.35); margin-top: 0.2rem; }
 
     .admin-pill {
@@ -231,7 +232,7 @@
       font-family: 'DM Sans', sans-serif;
       font-size: 0.9rem;
       color: var(--texto);
-      background: white;
+      background: var(--bg-2);
       outline: none;
       transition: border-color 0.2s;
       width: 100%;
@@ -250,26 +251,26 @@
 
     /* ── BOTÕES ── */
     .btn-primary {
-      background: var(--azul);
-      color: white;
+      background: var(--verde);
+      color: #06281a;
       border: none;
       border-radius: 9px;
       padding: 0.65rem 1.4rem;
       font-family: 'Syne', sans-serif;
-      font-weight: 600;
+      font-weight: 700;
       font-size: 0.88rem;
       cursor: pointer;
       transition: background 0.2s, transform 0.1s;
       letter-spacing: 0.2px;
     }
 
-    .btn-primary:hover { background: #002a52; }
+    .btn-primary:hover { background: var(--verde-escuro); }
     .btn-primary:active { transform: scale(0.98); }
     .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
 
     .btn-add {
       background: var(--verde);
-      color: white;
+      color: #06281a;
       border: none;
       border-radius: 9px;
       padding: 0.55rem 1.1rem;
@@ -287,7 +288,7 @@
 
     .btn-del {
       background: none;
-      border: 1.5px solid #fed7d7;
+      border: 1.5px solid rgba(255,107,107,0.4);
       color: var(--vermelho);
       border-radius: 7px;
       padding: 0.3rem 0.65rem;
@@ -298,7 +299,7 @@
       transition: all 0.15s;
     }
 
-    .btn-del:hover { background: #fff5f5; }
+    .btn-del:hover { background: rgba(255,107,107,0.12); }
 
     .btn-edit {
       background: none;
@@ -343,7 +344,7 @@
     }
 
     .items-table tr:last-child td { border-bottom: none; }
-    .items-table tr:hover td { background: #fafbfc; }
+    .items-table tr:hover td { background: var(--bg-2); }
     .items-table td:first-child { color: var(--texto); font-weight: 500; max-width: 260px; }
 
     .empty-table {
@@ -367,8 +368,8 @@
       white-space: nowrap;
     }
 
-    .badge-pesquisa { background: #eff6ff; color: #1d4ed8; }
-    .badge-extensao { background: #f0fdf4; color: #15803d; }
+    .badge-pesquisa { background: var(--azul-claro); color: #93c5fd; }
+    .badge-extensao { background: var(--verde-claro); color: #5fe39a; }
     .badge-evento   { background: var(--azul-claro); color: var(--azul); }
 
     /* ── TOAST ── */
@@ -376,8 +377,8 @@
       position: fixed;
       bottom: 2rem;
       right: 2rem;
-      background: var(--texto);
-      color: white;
+      background: #2e2e34;
+      color: #f4f5f7;
       padding: 0.8rem 1.3rem;
       border-radius: 10px;
       font-size: 0.85rem;
@@ -410,7 +411,7 @@
     .modal-overlay.open { display: grid; }
 
     .modal {
-      background: white;
+      background: var(--card);
       border-radius: 16px;
       padding: 1.8rem;
       width: 100%;
@@ -528,8 +529,9 @@
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <h1>SUAP<span>.</span>Portal</h1>
-    <p>IFPR — Portal do Aluno</p>
+    <img src="images/if-logo.png" width="34" height="34" alt="Instituto Federal" style="object-fit:contain;display:block;margin-bottom:0.55rem" />
+    <h1>IF<span>Plenus</span></h1>
+    <p>IFPR — Campus Assis Chateaubriand</p>
   </div>
   <div class="admin-pill">⚙ Painel Admin</div>
   <nav>
@@ -908,17 +910,17 @@ const renderTabelaEventos = (dados) => {
 const renderTabelaSolicitacoes = (dados) => {
   const badge = (s) => {
     const map = {
-      pendente: ['#fffbeb', '#92400e', 'Pendente'],
-      aceito:   ['#f0fdf4', '#15803d', 'Aceito'],
-      recusado: ['#fff5f5', '#b91c1c', 'Recusado'],
+      pendente: ['rgba(245,185,66,0.14)', '#f5c469', 'Pendente'],
+      aceito:   ['rgba(68,216,131,0.16)', '#5fe39a', 'Aceito'],
+      recusado: ['rgba(255,107,107,0.16)', '#ff8585', 'Recusado'],
     };
     const [bg, cor, txt] = map[s] || map.pendente;
     return `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:${bg};color:${cor}">${txt}</span>`;
   };
   const tipoTxt = (t) => t === 'pesquisa' ? 'Pesquisa' : t === 'extensao' ? 'Extensão' : '—';
   const origemBadge = (o) => o === 'suap'
-    ? `<span style="display:inline-block;padding:0.15rem 0.55rem;border-radius:99px;font-size:0.68rem;font-weight:600;background:#eff6ff;color:#1d4ed8">SUAP</span>`
-    : `<span style="display:inline-block;padding:0.15rem 0.55rem;border-radius:99px;font-size:0.68rem;font-weight:600;background:#f0fdf4;color:#15803d">Local</span>`;
+    ? `<span style="display:inline-block;padding:0.15rem 0.55rem;border-radius:99px;font-size:0.68rem;font-weight:600;background:rgba(96,165,250,0.16);color:#93c5fd">SUAP</span>`
+    : `<span style="display:inline-block;padding:0.15rem 0.55rem;border-radius:99px;font-size:0.68rem;font-weight:600;background:rgba(68,216,131,0.16);color:#5fe39a">Local</span>`;
 
   const rows = dados.map(s => `
     <tr>

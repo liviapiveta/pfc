@@ -3,25 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SUAP Portal — Login</title>
+  <title>IFPlenus — Login</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --verde: #00c27a;
-      --verde-escuro: #00956a;
-      --azul: #003566;
-      --bg: #f5f7fa;
-      --texto: #0d1b2a;
-      --cinza: #6b7a8d;
-      --erro: #e53e3e;
+      --verde: #44d883;
+      --verde-escuro: #36c172;
+      --verde-glow: rgba(68,216,131,0.35);
+      --bg: #1b1b1f;
+      --panel: #121214;
+      --card: #26262b;
+      --texto: #f4f5f7;
+      --texto-2: #c2c6cf;
+      --cinza: #8b909b;
+      --borda: rgba(255,255,255,0.1);
+      --input-bg: #1f1f24;
+      --erro: #ff6b6b;
     }
 
     body {
       font-family: 'DM Sans', sans-serif;
       background: var(--bg);
+      color: var(--texto);
       min-height: 100vh;
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -29,7 +35,7 @@
 
     /* Lado esquerdo — visual */
     .visual {
-      background: var(--azul);
+      background: var(--panel);
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -37,64 +43,52 @@
       padding: 4rem;
       position: relative;
       overflow: hidden;
+      border-right: 1px solid var(--borda);
     }
-
     .visual::before {
       content: '';
       position: absolute;
-      width: 500px;
-      height: 500px;
-      background: radial-gradient(circle, rgba(0,194,122,0.25) 0%, transparent 70%);
-      top: -100px;
-      right: -100px;
+      width: 520px; height: 520px;
+      background: radial-gradient(circle, var(--verde-glow) 0%, transparent 70%);
+      top: -120px; right: -140px;
     }
-
     .visual::after {
       content: '';
       position: absolute;
-      width: 300px;
-      height: 300px;
-      background: radial-gradient(circle, rgba(0,194,122,0.15) 0%, transparent 70%);
-      bottom: -50px;
-      left: 50px;
+      width: 320px; height: 320px;
+      background: radial-gradient(circle, rgba(68,216,131,0.18) 0%, transparent 70%);
+      bottom: -60px; left: 40px;
     }
 
+    .brand { display: flex; align-items: center; gap: 0.8rem; position: relative; z-index: 1; margin-bottom: 1.2rem; }
     .visual-logo {
       font-family: 'Syne', sans-serif;
       font-weight: 800;
-      font-size: 2.5rem;
-      color: white;
+      font-size: 2.4rem;
+      color: #fff;
       letter-spacing: -1px;
-      margin-bottom: 1rem;
-      position: relative;
-      z-index: 1;
     }
-
     .visual-logo span { color: var(--verde); }
 
     .visual-tagline {
-      color: rgba(255,255,255,0.65);
+      color: var(--texto-2);
       font-size: 1.05rem;
       font-weight: 300;
       line-height: 1.7;
-      max-width: 340px;
+      max-width: 360px;
       position: relative;
       z-index: 1;
     }
+    .visual-sub { color: var(--cinza); font-size: 0.82rem; margin-top: 0.5rem; position: relative; z-index: 1; }
 
     .visual-badges {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.6rem;
-      margin-top: 2.5rem;
-      position: relative;
-      z-index: 1;
+      display: flex; flex-wrap: wrap; gap: 0.6rem;
+      margin-top: 2.5rem; position: relative; z-index: 1;
     }
-
     .badge {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.15);
-      color: rgba(255,255,255,0.8);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--borda);
+      color: var(--texto-2);
       font-size: 0.78rem;
       padding: 0.35rem 0.85rem;
       border-radius: 999px;
@@ -102,17 +96,8 @@
     }
 
     /* Lado direito — formulário */
-    .login-side {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-    }
-
-    .login-box {
-      width: 100%;
-      max-width: 400px;
-    }
+    .login-side { display: flex; align-items: center; justify-content: center; padding: 2rem; }
+    .login-box { width: 100%; max-width: 400px; }
 
     .login-title {
       font-family: 'Syne', sans-serif;
@@ -121,65 +106,49 @@
       color: var(--texto);
       margin-bottom: 0.4rem;
     }
+    .login-sub { color: var(--cinza); font-size: 0.9rem; margin-bottom: 2.2rem; }
 
-    .login-sub {
-      color: var(--cinza);
-      font-size: 0.9rem;
-      margin-bottom: 2.2rem;
-    }
-
-    .field {
-      margin-bottom: 1.2rem;
-    }
-
+    .field { margin-bottom: 1.2rem; }
     .field label {
-      display: block;
-      font-size: 0.82rem;
-      font-weight: 500;
-      color: var(--texto);
-      margin-bottom: 0.4rem;
-      letter-spacing: 0.3px;
+      display: block; font-size: 0.82rem; font-weight: 500;
+      color: var(--texto-2); margin-bottom: 0.4rem; letter-spacing: 0.3px;
     }
-
     .field input {
       width: 100%;
-      border: 1.5px solid #dde2e9;
+      border: 1.5px solid var(--borda);
       border-radius: 10px;
-      padding: 0.75rem 1rem;
+      padding: 0.78rem 1rem;
       font-family: 'DM Sans', sans-serif;
       font-size: 0.95rem;
       color: var(--texto);
-      background: white;
+      background: var(--input-bg);
       outline: none;
       transition: border-color 0.2s;
     }
-
-    .field input:focus {
-      border-color: var(--verde);
-    }
+    .field input::placeholder { color: var(--cinza); }
+    .field input:focus { border-color: var(--verde); }
 
     .btn-login {
       width: 100%;
       background: var(--verde);
-      color: white;
+      color: #06281a;
       border: none;
       border-radius: 10px;
       padding: 0.85rem;
       font-family: 'Syne', sans-serif;
-      font-weight: 600;
+      font-weight: 700;
       font-size: 1rem;
       cursor: pointer;
       transition: background 0.2s, transform 0.1s;
       margin-top: 0.5rem;
     }
-
     .btn-login:hover { background: var(--verde-escuro); }
     .btn-login:active { transform: scale(0.98); }
     .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
 
     .erro-msg {
-      background: #fff5f5;
-      border: 1px solid #fed7d7;
+      background: rgba(255,107,107,0.12);
+      border: 1px solid rgba(255,107,107,0.4);
       color: var(--erro);
       border-radius: 8px;
       padding: 0.7rem 1rem;
@@ -188,13 +157,7 @@
       display: none;
     }
 
-    .ifpr-note {
-      color: var(--cinza);
-      font-size: 0.78rem;
-      text-align: center;
-      margin-top: 1.8rem;
-      line-height: 1.5;
-    }
+    .ifpr-note { color: var(--cinza); font-size: 0.78rem; text-align: center; margin-top: 1.8rem; line-height: 1.5; }
 
     @media (max-width: 768px) {
       body { grid-template-columns: 1fr; }
@@ -205,8 +168,12 @@
 <body>
 
 <div class="visual">
-  <div class="visual-logo">SUAP<span>.</span>Portal</div>
+  <div class="brand">
+    <img src="images/if-logo.png" width="40" height="40" alt="Instituto Federal" style="object-fit:contain;display:block" />
+    <div class="visual-logo">IF<span>Plenus</span></div>
+  </div>
   <p class="visual-tagline">Acesse suas informações acadêmicas do IFPR em um só lugar.</p>
+  <p class="visual-sub">Instituto Federal do Paraná · Campus Assis Chateaubriand</p>
   <div class="visual-badges">
     <span class="badge">📊 Boletim</span>
     <span class="badge">👤 Dados Pessoais</span>

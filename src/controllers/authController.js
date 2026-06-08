@@ -102,6 +102,7 @@ const me = async (req, res) => {
       matricula: req.user.matricula,
       nome: req.user.nomeUsuario,
       ultimoAcesso: req.user.ultimoAcesso,
+      preferencias: req.user.preferencias || {},
     });
   } catch (err) {
     console.error(err.message);
