@@ -5,6 +5,7 @@ const authController = require('../controllers/authController');
 const suapController = require('../controllers/suapController');
 const adminController = require('../controllers/adminController');
 const adminAuth = require('../middleware/adminAuth');
+const conquistaController = require('../controllers/conquistaController');
 
 // ── Autenticação (sem middleware) ──────────────────────────────
 router.post('/auth/login', authController.login);
@@ -59,3 +60,15 @@ router.put('/admin/solicitacoes/:id', adminAuth, adminController.decidirSolicita
 router.get('/admin/projetos-suap/:tipo', adminAuth, adminController.getProjetosSuap);
 
 module.exports = router;
+
+// ── Conquistas (gamificação) — catálogo e concessão (admin) ───
+router.get('/admin/conquistas', adminAuth, conquistaController.getConquistas);
+router.get('/admin/conquistas/:id', adminAuth, conquistaController.getConquista);
+router.post('/admin/conquistas', adminAuth, conquistaController.criarConquista);
+router.put('/admin/conquistas/:id', adminAuth, conquistaController.atualizarConquista);
+router.delete('/admin/conquistas/:id', adminAuth, conquistaController.deletarConquista);
+
+// Concessão manual a um aluno
+router.post('/admin/conquistas/:id/conceder', adminAuth, conquistaController.concederConquista);
+router.get('/admin/alunos/:matricula/conquistas', adminAuth, conquistaController.getConquistasDoAluno);
+router.delete('/admin/conquistas-concedidas/:registroId', adminAuth, conquistaController.revogarConcessao);

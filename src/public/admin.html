@@ -557,6 +557,10 @@
     <div class="nav-item" data-section="suap">
       <span class="nav-icon">🔗</span> Projetos do SUAP
     </div>
+    <div class="nav-section">Gamificação</div>
+    <div class="nav-item" data-section="conquistas">
+      <span class="nav-icon">🏆</span> Conquistas
+    </div>
   </nav>
   <div class="sidebar-footer">
     <button class="btn-logout" onclick="fazerLogout()">↩ Sair do painel</button>
@@ -665,6 +669,25 @@
       </div>
     </section>
 
+    <!-- CONQUISTAS -->
+    <section class="section" id="section-conquistas">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Catálogo de Conquistas</span>
+          <button class="btn-add" onclick="abrirModal('conquista')">+ Nova conquista</button>
+        </div>
+        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
+          Cadastre as conquistas que os alunos podem desbloquear. Cada conquista
+          vale uma quantidade de <strong>estrelas (pontos)</strong>. Use
+          <strong>Conceder</strong> para entregar uma conquista a um aluno pela
+          matrícula — os pontos dele são atualizados na hora.
+        </p>
+        <div id="conquistasList">
+          <div class="loading"><div class="spinner"></div> Carregando…</div>
+        </div>
+      </div>
+    </section>
+
   </div>
 </main>
 
@@ -738,6 +761,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
       eventos:  'Eventos do Calendário',
       solicitacoes: 'Solicitações de Participação',
       suap: 'Projetos do SUAP',
+      conquistas: 'Conquistas',
     };
     document.getElementById('topbarTitle').textContent = titles[sec] || '';
     state.secaoAtiva = sec;
@@ -778,6 +802,8 @@ document.querySelectorAll('.nav-item').forEach(item => {
 // Carregar listas
 // ─────────────────────────────────────────────────────
 const carregarLista = async (tipo) => {
+  if (tipo === 'conquistas') return carregarConquistas();
+
   const elMap = { pesquisa: 'pesquisaList', extensao: 'extensaoList', eventos: 'eventosList', solicitacoes: 'solicitacoesList', suap: 'suapList' };
   const el = document.getElementById(elMap[tipo]);
   if (!el) return;
@@ -1082,10 +1108,18 @@ const abrirModal = (tipo, dados = {}) => {
     pesquisa: dados._id ? 'Editar projeto de pesquisa' : 'Novo projeto de pesquisa',
     extensao: dados._id ? 'Editar projeto de extensão' : 'Novo projeto de extensão',
     evento:   dados._id ? 'Editar evento'              : 'Novo evento',
+    conquista: dados._id ? 'Editar conquista'          : 'Nova conquista',
+    conceder: 'Conceder conquista a um aluno',
   };
   document.getElementById('modalTitle').textContent = titulos[tipo] || 'Novo item';
-  document.getElementById('modalBody').innerHTML =
-    tipo === 'evento' ? formsEvento(dados) : formsProjeto(dados);
+
+  let corpo;
+  if (tipo === 'evento')          corpo = formsEvento(dados);
+  else if (tipo === 'conquista')  corpo = formsConquista(dados);
+  else if (tipo === 'conceder')   corpo = formsConceder(dados);
+  else                            corpo = formsProjeto(dados);
+
+  document.getElementById('modalBody').innerHTML = corpo;
   document.getElementById('modalOverlay').classList.add('open');
 };
 
@@ -1110,6 +1144,53 @@ const salvarItem = async () => {
   try {
     const tipo = state.modalTipo;
     let body;
+
+    // ── Conceder conquista a um aluno (fluxo à parte) ──
+    if (tipo === 'conceder') {
+      const matricula = document.getElementById('f_matricula').value.trim();
+      if (!matricula) { mostrarToast('Informe a matrícula do aluno.', 'erro'); return; }
+
+      const resp = await apiJSON(`/api/admin/conquistas/${state.editandoId}/conceder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matricula }),
+      });
+
+      mostrarToast(
+        resp?.jaConcedida ? 'Este aluno já possuía esta conquista.' : 'Conquista concedida!',
+        'sucesso'
+      );
+      fecharModal();
+      return;
+    }
+
+    if (tipo === 'conquista') {
+      body = {
+        nome:      document.getElementById('f_nome_c').value.trim(),
+        descricao: document.getElementById('f_descricao_c').value.trim(),
+        icone:     document.getElementById('f_icone_c').value.trim() || '🏆',
+        categoria: document.getElementById('f_categoria_c').value,
+        pontos:    Number(document.getElementById('f_pontos_c').value) || 0,
+        ativa:     document.getElementById('f_ativa_c').value === 'true',
+        origem:    'manual',
+      };
+      if (!body.nome) { mostrarToast('O nome da conquista é obrigatório.', 'erro'); return; }
+      if (body.pontos < 0) { mostrarToast('Pontos não pode ser negativo.', 'erro'); return; }
+
+      const isEditC = !!state.editandoId;
+      await apiJSON(
+        isEditC ? `/api/admin/conquistas/${state.editandoId}` : '/api/admin/conquistas',
+        {
+          method: isEditC ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }
+      );
+      mostrarToast(isEditC ? 'Conquista atualizada!' : 'Conquista criada!', 'sucesso');
+      fecharModal();
+      await carregarConquistas();
+      return;
+    }
 
     if (tipo === 'evento') {
       body = {
@@ -1200,6 +1281,13 @@ const deletarItem = async (tipo, id) => {
   if (!confirm('Tem certeza que deseja excluir este item?')) return;
 
   try {
+    if (tipo === 'conquista') {
+      await apiJSON(`/api/admin/conquistas/${id}`, { method: 'DELETE' });
+      mostrarToast('Conquista excluída.', 'sucesso');
+      await carregarConquistas();
+      return;
+    }
+
     const endpoint = (tipo === 'evento')
       ? `/api/admin/eventos/${id}`
       : `/api/admin/projetos/${id}`;
@@ -1250,6 +1338,133 @@ const mostrarToast = (msg, tipo = '') => {
   el.className = `toast ${tipo} show`;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+};
+
+// ─────────────────────────────────────────────────────
+// CONQUISTAS (gamificação)
+// ─────────────────────────────────────────────────────
+
+// Carrega e renderiza o catálogo de conquistas
+let _conquistasCache = [];
+const carregarConquistas = async () => {
+  const el = document.getElementById('conquistasList');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+  try {
+    const dados = await apiJSON('/api/admin/conquistas');
+    if (!dados) return;
+    _conquistasCache = dados;
+    if (!dados.length) {
+      el.innerHTML = `<div class="empty-table"><div class="icon">🏆</div><p>Nenhuma conquista cadastrada ainda. Clique em “+ Nova conquista”.</p></div>`;
+      return;
+    }
+    el.innerHTML = renderTabelaConquistas(dados);
+  } catch(e) {
+    el.innerHTML = `<div class="empty-table"><div class="icon">⚠️</div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+  }
+};
+
+const catLabel = (c) => ({
+  academico: 'Acadêmico', projeto: 'Projeto', evento: 'Evento', especial: 'Especial',
+}[c] || 'Especial');
+
+const renderTabelaConquistas = (dados) => {
+  const rows = dados.map(c => {
+    const ativa = c.ativa
+      ? `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(68,216,131,0.16);color:#5fe39a">Ativa</span>`
+      : `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(139,144,155,0.18);color:#aab">Inativa</span>`;
+    return `
+    <tr>
+      <td>${esc(c.icone || '🏆')} ${esc(c.nome)}</td>
+      <td style="font-size:0.8rem;color:var(--cinza)">${esc(catLabel(c.categoria))}</td>
+      <td style="font-weight:700;color:#f5c469">⭐ ${Number(c.pontos) || 0}</td>
+      <td>${ativa}</td>
+      <td>
+        <button class="btn-add" onclick="abrirConceder('${c._id}')">🎖 Conceder</button>
+        <button class="btn-edit" onclick="editarConquista('${c._id}')">✏ Editar</button>
+        <button class="btn-del" onclick="deletarItem('conquista', '${c._id}')">🗑 Excluir</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `<div style="overflow-x:auto">
+    <table class="items-table">
+      <thead>
+        <tr><th>Conquista</th><th>Categoria</th><th>Pontos</th><th>Status</th><th>Ações</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+};
+
+// Formulário de cadastro/edição de conquista (usa o modal compartilhado)
+const formsConquista = (dados = {}) => `
+  <div class="form-grid">
+    <div class="field full">
+      <label>Nome da conquista *</label>
+      <input type="text" id="f_nome_c" value="${esc(dados.nome || '')}" placeholder="Ex: Primeira nota A" required />
+    </div>
+    <div class="field full">
+      <label>Descrição</label>
+      <textarea id="f_descricao_c" placeholder="Como o aluno conquista isto?">${esc(dados.descricao || '')}</textarea>
+    </div>
+    <div class="field">
+      <label>Ícone (emoji)</label>
+      <input type="text" id="f_icone_c" value="${esc(dados.icone || '🏆')}" placeholder="🏆" maxlength="4" />
+    </div>
+    <div class="field">
+      <label>Pontos (estrelas) *</label>
+      <input type="number" id="f_pontos_c" value="${dados.pontos != null ? dados.pontos : 100}" min="0" step="10" />
+    </div>
+    <div class="field">
+      <label>Categoria</label>
+      <select id="f_categoria_c">
+        <option value="academico" ${dados.categoria==='academico'?'selected':''}>Acadêmico</option>
+        <option value="projeto"   ${dados.categoria==='projeto'?'selected':''}>Projeto</option>
+        <option value="evento"    ${dados.categoria==='evento'?'selected':''}>Evento</option>
+        <option value="especial"  ${(dados.categoria||'especial')==='especial'?'selected':''}>Especial</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="f_ativa_c">
+        <option value="true"  ${dados.ativa!==false?'selected':''}>Ativa</option>
+        <option value="false" ${dados.ativa===false?'selected':''}>Inativa</option>
+      </select>
+    </div>
+  </div>`;
+
+// Formulário de concessão (matrícula do aluno)
+const formsConceder = (dados = {}) => `
+  <div class="form-grid">
+    <p style="grid-column:1/-1;color:var(--texto-2);font-size:0.88rem;margin-bottom:0.2rem">
+      Concedendo: <strong>${esc(dados.nomeConquista || 'conquista')}</strong>
+    </p>
+    <div class="field full">
+      <label>Matrícula do aluno *</label>
+      <input type="text" id="f_matricula" value="" placeholder="Ex: 2023001234" autocomplete="off" />
+    </div>
+    <p style="grid-column:1/-1;color:var(--cinza);font-size:0.78rem">
+      O aluno precisa já ter acessado o portal ao menos uma vez. Conceder de
+      novo a mesma conquista não soma pontos em dobro.
+    </p>
+  </div>`;
+
+// Abre o modal de edição de uma conquista (busca os dados primeiro)
+const editarConquista = async (id) => {
+  try {
+    const dados = await apiJSON(`/api/admin/conquistas/${id}`);
+    if (!dados) return;
+    abrirModal('conquista', dados);
+  } catch(e) {
+    mostrarToast('Erro ao carregar dados.', 'erro');
+  }
+};
+
+// Abre o modal de concessão para uma conquista específica
+const abrirConceder = (id) => {
+  const c = _conquistasCache.find(x => x._id === id);
+  abrirModal('conceder', { _id: id, nomeConquista: c ? c.nome : 'conquista' });
 };
 
 // ─────────────────────────────────────────────────────

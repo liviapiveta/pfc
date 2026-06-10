@@ -28,6 +28,25 @@ const userSchema = new mongoose.Schema(
             type: String,
             default: '',
         },
+
+        // ── Gamificação ──────────────────────────────────────────
+        // Total de "estrelas" acumuladas. É um CACHE denormalizado: a
+        // verdade são os registros em ConquistaUsuario (status confirmada).
+        // Mantemos este total aqui só para ordenar o ranking rápido, sem
+        // recalcular tudo a cada consulta. Sempre que conceder/remover uma
+        // conquista, atualize este campo junto.
+        pontos: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        // Curso do aluno (capturado do SUAP no login). Permite o ranking
+        // "do meu curso" além do ranking geral do campus.
+        curso: {
+            type: String,
+            default: '',
+        },
+
         // Preferências do portal
         preferencias: {
             anoLetivoAtual: { type: Number, default: null },
@@ -43,6 +62,9 @@ const userSchema = new mongoose.Schema(
         timestamps: true,
     }
 );
+
+// Índice para acelerar a ordenação do ranking (maior pontuação primeiro)
+userSchema.index({ pontos: -1 });
 
 // Atualiza ultimoAcesso ao salvar
 userSchema.pre('save', function (next) {
