@@ -14,11 +14,30 @@ const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov'
 // Base web do SUAP (sem o sufixo /api), usada para montar links de projetos.
 const SUAP_WEB = 'https://suap.ifpr.edu.br';
 
-// Monta o link do projeto no SUAP. Prioriza um link já fornecido pela API;
-// caso não exista, constrói a partir do id do projeto.
-// (Se o seu SUAP usar outro caminho, ajuste apenas a última linha.)
-const linkProjetoSuap = (p) =>
-  p.link_suap || p.url_publica || p.pagina || p.link_projeto || p.link || p.url || null;
+// Caminho do detalhe de um projeto no SUAP.
+// No SUAP o módulo chama-se "projetos" (atende pesquisa E extensão), e o
+// detalhe de um projeto fica em /projetos/projeto/{id}/.
+// Atenção: essa página exige login no SUAP — se o aluno não estiver logado
+// no suap.ifpr.edu.br, o SUAP redireciona para a tela de login (em vez de
+// abrir o projeto). Se a sua instância usar outro caminho, ajuste só aqui.
+const SUAP_PROJETO_PATH = 'projetos/projeto';
+
+// Monta o link do projeto no SUAP. Prioriza um link já fornecido pela API
+// (a API de projetos normalmente NÃO envia link); caso não exista, constrói
+// a partir do id do projeto.
+// (O `tipo` só é informado para projetos vindos do SUAP — projetos locais
+//  da administração só geram link se o admin tiver preenchido link_suap.)
+const linkProjetoSuap = (p, tipo) => {
+  const explicito =
+    p.link_suap || p.url_publica || p.pagina || p.link_projeto || p.link || p.url;
+  if (explicito) return explicito;
+
+  // Só constrói link para projetos do SUAP (tipo informado + id numérico).
+  if (tipo && p.id != null) {
+    return `${SUAP_WEB}/${SUAP_PROJETO_PATH}/${p.id}/`;
+  }
+  return null;
+};
 
 // ── Tema (claro / escuro) ──────────────────────────────────────
 const THEME_KEY = 'ifplenus-tema';
@@ -655,7 +674,7 @@ const carregarProjetos = async (id, endpoint, tipoClass, tipoLabel) => {
     } else {
       suapHtml = projetos.map(p => {
         const titulo = p.titulo || p.nome || 'Sem título';
-        const link = linkProjetoSuap(p);
+        const link = linkProjetoSuap(p, id);
         const tituloHtml = link
           ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(titulo)}</a>`
           : esc(titulo);
@@ -834,8 +853,9 @@ const carregarCalendario = async () => {
       return;
     }
 
+    // Ordem decrescente: eventos mais próximos/recentes em cima, mais antigos embaixo.
     const sorted = [...doAno].sort((a,b) =>
-      new Date(a.data_inicio || a.data || '') - new Date(b.data_inicio || b.data || '')
+      new Date(b.data_inicio || b.data || '') - new Date(a.data_inicio || a.data || '')
     );
 
     el.innerHTML = `<div class="eventos-lista">${sorted.map(ev => {
