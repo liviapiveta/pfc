@@ -218,6 +218,66 @@ const revogarConcessao = async (req, res) => {
   }
 };
 
+// ── Lado do aluno (portal) ────────────────────────────────────
+
+/**
+ * GET /api/minhas-conquistas   (aluno logado)
+ * Retorna as conquistas DESBLOQUEADAS pelo aluno e as DISPONÍVEIS
+ * (ativas que ele ainda não tem), além do total de pontos.
+ */
+const getMinhasConquistas = async (req, res) => {
+  try {
+    const matricula = req.user.matricula;
+
+    const [usuario, desbloqueadasRaw, catalogo] = await Promise.all([
+      User.findOne({ matricula }).select('pontos').lean(),
+      ConquistaUsuario.find({ matricula, status: 'confirmada' })
+        .populate('conquista', 'nome icone categoria descricao origem')
+        .sort({ createdAt: -1 })
+        .lean(),
+      Conquista.find({ ativa: true }).sort({ pontos: 1 }).lean(),
+    ]);
+
+    const idsDesbloqueadas = new Set(
+      desbloqueadasRaw.map(d => String(d.conquista?._id || d.conquista))
+    );
+
+    // Usa o "retrato" (nome/pontos no momento do desbloqueio) e completa com
+    // ícone/categoria do catálogo atual quando a conquista ainda existe.
+    const desbloqueadas = desbloqueadasRaw.map(d => ({
+      _id: d._id,
+      nome: d.nomeConquista || d.conquista?.nome || 'Conquista',
+      pontos: d.pontos,
+      icone: d.conquista?.icone || '🏆',
+      categoria: d.conquista?.categoria || 'especial',
+      descricao: d.conquista?.descricao || '',
+      origem: d.origem,            // 'admin' | 'automatica'
+      em: d.createdAt,
+    }));
+
+    const disponiveis = catalogo
+      .filter(c => !idsDesbloqueadas.has(String(c._id)))
+      .map(c => ({
+        _id: c._id,
+        nome: c.nome,
+        pontos: c.pontos,
+        icone: c.icone || '🏆',
+        categoria: c.categoria,
+        descricao: c.descricao || '',
+        origem: c.origem,          // 'manual' | 'automatica'
+      }));
+
+    return res.json({
+      pontos: usuario?.pontos || 0,
+      desbloqueadas,
+      disponiveis,
+    });
+  } catch (err) {
+    console.error('Erro ao buscar conquistas do aluno:', err.message);
+    return res.status(500).json({ erro: 'Erro ao buscar conquistas' });
+  }
+};
+
 module.exports = {
   recalcularPontosAluno, // exportado p/ reuso na Fase 2 (concessões automáticas)
   getConquistas,
@@ -228,4 +288,5 @@ module.exports = {
   concederConquista,
   getConquistasDoAluno,
   revogarConcessao,
+  getMinhasConquistas,
 };

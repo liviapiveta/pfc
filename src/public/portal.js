@@ -167,6 +167,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
       pesquisa:  'Projetos de Pesquisa',
       extensao:  'Projetos de Extensão',
       calendario:'Calendário Acadêmico',
+      conquistas:'Conquistas',
     };
     document.getElementById('topbarTitle').textContent = titles[sec] || '';
 
@@ -186,6 +187,7 @@ const carregarSecao = (sec) => {
     case 'pesquisa':   carregarPesquisa();   break;
     case 'extensao':   carregarExtensao();   break;
     case 'calendario': carregarCalendario(); break;
+    case 'conquistas': carregarConquistas(); break;
   }
 };
 
@@ -880,6 +882,57 @@ const carregarCalendario = async () => {
   } catch(e) {
     document.getElementById('calendarioContent').innerHTML =
       '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar calendário.</p></div>';
+  }
+};
+
+// ── Conquistas (gamificação) ───────────────────────────────────
+const carregarConquistas = async () => {
+  state.loaded['conquistas'] = true;
+  const el = document.getElementById('conquistasContent');
+  try {
+    const dados = await api('/api/minhas-conquistas');
+    if (!dados) return;
+
+    const { pontos = 0, desbloqueadas = [], disponiveis = [] } = dados;
+
+    const card = (c, desbloqueada) => `
+      <div class="conq-card ${desbloqueada ? 'desbloqueada' : 'bloqueada'}">
+        <div class="ic">${esc(c.icone || '🏆')}</div>
+        <div>
+          <div class="nome">${esc(c.nome)}</div>
+          ${c.descricao ? `<div class="desc">${esc(c.descricao)}</div>` : ''}
+          <span class="pts">⭐ ${Number(c.pontos) || 0} pts</span>
+          ${(!desbloqueada && c.origem === 'automatica')
+            ? `<span class="auto">⚙ Automática</span>` : ''}
+        </div>
+      </div>`;
+
+    const grupoDesbloqueadas = desbloqueadas.length
+      ? `<div class="conq-grid">${desbloqueadas.map(c => card(c, true)).join('')}</div>`
+      : `<div class="conq-vazio">Você ainda não desbloqueou nenhuma conquista. Veja abaixo o que dá para conquistar! 👇</div>`;
+
+    const grupoDisponiveis = disponiveis.length
+      ? `<div class="conq-grid">${disponiveis.map(c => card(c, false)).join('')}</div>`
+      : `<div class="conq-vazio">Você já desbloqueou todas as conquistas disponíveis. Parabéns! 🎉</div>`;
+
+    el.innerHTML = `
+      <div class="conq-resumo">
+        <span class="estrela">⭐</span>
+        <div>
+          <div class="total">${pontos}</div>
+          <div class="label">pontos acumulados · ${desbloqueadas.length} conquista(s)</div>
+        </div>
+      </div>
+
+      <div class="conq-grupo-titulo">✅ Desbloqueadas</div>
+      ${grupoDesbloqueadas}
+
+      <div class="conq-grupo-titulo">🔒 Disponíveis</div>
+      ${grupoDisponiveis}
+    `;
+  } catch (e) {
+    el.innerHTML =
+      '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar conquistas.</p></div>';
   }
 };
 

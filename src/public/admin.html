@@ -1165,6 +1165,17 @@ const salvarItem = async () => {
     }
 
     if (tipo === 'conquista') {
+      const origem = document.getElementById('f_origem_c').value;
+      let regra = { tipo: null, valor: null };
+      if (origem === 'automatica') {
+        const rtipo = document.getElementById('f_regra_tipo_c').value;
+        if (rtipo === 'nota') {
+          regra = { tipo: 'nota', valor: document.getElementById('f_regra_valor_nota_c').value };
+        } else if (rtipo === 'projeto_aceito') {
+          regra = { tipo: 'projeto_aceito', valor: document.getElementById('f_regra_valor_proj_c').value || null };
+        }
+      }
+
       body = {
         nome:      document.getElementById('f_nome_c').value.trim(),
         descricao: document.getElementById('f_descricao_c').value.trim(),
@@ -1172,7 +1183,8 @@ const salvarItem = async () => {
         categoria: document.getElementById('f_categoria_c').value,
         pontos:    Number(document.getElementById('f_pontos_c').value) || 0,
         ativa:     document.getElementById('f_ativa_c').value === 'true',
-        origem:    'manual',
+        origem,
+        regra,
       };
       if (!body.nome) { mostrarToast('O nome da conquista é obrigatório.', 'erro'); return; }
       if (body.pontos < 0) { mostrarToast('Pontos não pode ser negativo.', 'erro'); return; }
@@ -1373,9 +1385,12 @@ const renderTabelaConquistas = (dados) => {
     const ativa = c.ativa
       ? `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(68,216,131,0.16);color:#5fe39a">Ativa</span>`
       : `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(139,144,155,0.18);color:#aab">Inativa</span>`;
+    const autoBadge = c.origem === 'automatica'
+      ? ` <span style="display:inline-block;padding:0.12rem 0.5rem;border-radius:99px;font-size:0.66rem;font-weight:600;background:rgba(96,165,250,0.16);color:#93c5fd" title="Concedida automaticamente pelo sistema">⚙ Auto</span>`
+      : '';
     return `
     <tr>
-      <td>${esc(c.icone || '🏆')} ${esc(c.nome)}</td>
+      <td>${esc(c.icone || '🏆')} ${esc(c.nome)}${autoBadge}</td>
       <td style="font-size:0.8rem;color:var(--cinza)">${esc(catLabel(c.categoria))}</td>
       <td style="font-weight:700;color:#f5c469">⭐ ${Number(c.pontos) || 0}</td>
       <td>${ativa}</td>
@@ -1432,7 +1447,51 @@ const formsConquista = (dados = {}) => `
         <option value="false" ${dados.ativa===false?'selected':''}>Inativa</option>
       </select>
     </div>
+    <div class="field">
+      <label>Como é concedida</label>
+      <select id="f_origem_c" onchange="toggleRegraConquista()">
+        <option value="manual"     ${(dados.origem||'manual')==='manual'?'selected':''}>Manual (o admin concede)</option>
+        <option value="automatica" ${dados.origem==='automatica'?'selected':''}>Automática (o sistema concede)</option>
+      </select>
+    </div>
+    <div class="field full" id="f_regra_wrap" style="display:${dados.origem==='automatica'?'block':'none'}">
+      <label>Regra automática</label>
+      <select id="f_regra_tipo_c" onchange="toggleRegraConquista()">
+        <option value="nota"           ${dados?.regra?.tipo==='nota'?'selected':''}>Tirar um conceito/nota…</option>
+        <option value="projeto_aceito" ${dados?.regra?.tipo==='projeto_aceito'?'selected':''}>Ter participação aceita em projeto</option>
+      </select>
+
+      <div id="f_regra_nota_wrap" style="margin-top:0.6rem;display:${(!dados?.regra?.tipo||dados?.regra?.tipo==='nota')?'block':'none'}">
+        <label>Conceito alvo</label>
+        <select id="f_regra_valor_nota_c">
+          ${['A','B','C','D','E'].map(x => `<option value="${x}" ${((dados?.regra?.valor||'A')===x)?'selected':''}>${x}</option>`).join('')}
+        </select>
+      </div>
+
+      <div id="f_regra_proj_wrap" style="margin-top:0.6rem;display:${dados?.regra?.tipo==='projeto_aceito'?'block':'none'}">
+        <label>Tipo de projeto</label>
+        <select id="f_regra_valor_proj_c">
+          <option value=""         ${!dados?.regra?.valor?'selected':''}>Qualquer projeto</option>
+          <option value="pesquisa" ${dados?.regra?.valor==='pesquisa'?'selected':''}>Só pesquisa</option>
+          <option value="extensao" ${dados?.regra?.valor==='extensao'?'selected':''}>Só extensão</option>
+        </select>
+      </div>
+    </div>
   </div>`;
+
+// Mostra/esconde os campos de regra conforme origem e tipo escolhidos
+const toggleRegraConquista = () => {
+  const origem = document.getElementById('f_origem_c')?.value;
+  const wrap = document.getElementById('f_regra_wrap');
+  if (!wrap) return;
+  wrap.style.display = origem === 'automatica' ? 'block' : 'none';
+
+  const tipo = document.getElementById('f_regra_tipo_c')?.value;
+  const notaWrap = document.getElementById('f_regra_nota_wrap');
+  const projWrap = document.getElementById('f_regra_proj_wrap');
+  if (notaWrap) notaWrap.style.display = tipo === 'nota' ? 'block' : 'none';
+  if (projWrap) projWrap.style.display = tipo === 'projeto_aceito' ? 'block' : 'none';
+};
 
 // Formulário de concessão (matrícula do aluno)
 const formsConceder = (dados = {}) => `

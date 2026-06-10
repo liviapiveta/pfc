@@ -60,6 +60,10 @@
     <div class="nav-item" data-section="calendario">
       <span class="nav-icon">📅</span> Calendário
     </div>
+    <div class="nav-section">Gamificação</div>
+    <div class="nav-item" data-section="conquistas">
+      <span class="nav-icon">🏆</span> Conquistas
+    </div>
   </nav>
 
   <div class="sidebar-footer">
@@ -110,6 +114,54 @@
         <div class="loading"><div class="spinner"></div> Carregando calendário…</div>
       </div>
     </section>
+
+    <section class="section" id="section-conquistas">
+      <div id="conquistasContent">
+        <div class="loading"><div class="spinner"></div> Carregando conquistas…</div>
+      </div>
+    </section>
+
+    <style>
+      /* Conquistas (gamificação) */
+      .conq-resumo {
+        display:flex; align-items:center; gap:0.8rem;
+        background: var(--card, #26262b);
+        border:1px solid var(--borda, rgba(255,255,255,0.1));
+        border-radius:14px; padding:1rem 1.3rem; margin-bottom:1.4rem;
+      }
+      .conq-resumo .estrela { font-size:1.6rem; }
+      .conq-resumo .total { font-family:'Syne',sans-serif; font-weight:800; font-size:1.5rem; }
+      .conq-resumo .label { color:var(--cinza,#8b909b); font-size:0.85rem; }
+      .conq-grupo-titulo {
+        font-family:'Syne',sans-serif; font-weight:700; font-size:1rem;
+        margin:1.4rem 0 0.8rem; display:flex; align-items:center; gap:0.5rem;
+      }
+      .conq-grid {
+        display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:0.9rem;
+      }
+      .conq-card {
+        background: var(--card, #26262b);
+        border:1px solid var(--borda, rgba(255,255,255,0.1));
+        border-radius:14px; padding:1rem; display:flex; gap:0.8rem; align-items:flex-start;
+        transition:transform .12s, border-color .12s;
+      }
+      .conq-card.bloqueada { opacity:0.62; filter:grayscale(0.35); }
+      .conq-card.desbloqueada { border-color:rgba(68,216,131,0.45); }
+      .conq-card .ic {
+        font-size:1.7rem; line-height:1; flex-shrink:0;
+        width:46px; height:46px; display:grid; place-items:center;
+        background:rgba(255,255,255,0.05); border-radius:12px;
+      }
+      .conq-card .nome { font-weight:600; color:var(--texto,#f4f5f7); font-size:0.95rem; }
+      .conq-card .desc { color:var(--cinza,#8b909b); font-size:0.8rem; margin-top:0.2rem; line-height:1.45; }
+      .conq-card .pts { color:#f5c469; font-weight:700; font-size:0.82rem; margin-top:0.45rem; }
+      .conq-card .auto {
+        display:inline-block; margin-top:0.45rem; margin-left:0.4rem; padding:0.1rem 0.5rem;
+        border-radius:99px; font-size:0.68rem; font-weight:600;
+        background:rgba(96,165,250,0.16); color:#93c5fd;
+      }
+      .conq-vazio { color:var(--cinza,#8b909b); font-size:0.88rem; padding:0.6rem 0; }
+    </style>
 
   </div>
 

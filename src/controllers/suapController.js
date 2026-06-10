@@ -3,6 +3,7 @@ const Projeto = require('../models/Projeto');
 const Evento = require('../models/Evento');
 const Solicitacao = require('../models/Solicitacao');
 const ProjetoSuapCache = require('../models/ProjetoSuapCache');
+const conquistaEngine = require('../services/conquistaEngine');
 
 const linkProjetoSuap = (p = {}) =>
   p.link_suap || p.url_publica || p.pagina || p.link_projeto || p.link || p.url || null;
@@ -24,7 +25,21 @@ const getBoletim = async (req, res) => {
     const { ano, periodo } = req.params;
     if (!ano || !periodo)
       return res.status(400).json({ erro: 'Ano e período são obrigatórios' });
-    return res.json(await suapService.getBoletim(req.user.suapToken, ano, periodo));
+
+    const boletim = await suapService.getBoletim(req.user.suapToken, ano, periodo);
+
+    // Gatilho de gamificação: concede conquistas automáticas de nota
+    // (ex.: "Primeiro conceito A"). Nunca quebra a resposta do boletim.
+    try {
+      await conquistaEngine.processarBoletim(req.user.matricula, boletim, {
+        ano: Number(ano),
+        periodo: Number(periodo),
+      });
+    } catch (e) {
+      console.error('Falha ao processar conquista de boletim:', e.message);
+    }
+
+    return res.json(boletim);
   } catch (err) { return handleError(res, err, 'boletim'); }
 };
 

@@ -4,6 +4,7 @@ const Projeto = require('../models/Projeto');
 const Evento = require('../models/Evento');
 const Solicitacao = require('../models/Solicitacao');
 const ProjetoSuapCache = require('../models/ProjetoSuapCache');
+const conquistaEngine = require('../services/conquistaEngine');
 
 /**
  * Credenciais do administrador.
@@ -262,6 +263,16 @@ const decidirSolicitacao = async (req, res) => {
       { new: true, runValidators: true }
     );
     if (!sol) return res.status(404).json({ erro: 'Solicitação não encontrada' });
+
+    // Gatilho de gamificação: participação aceita pode conceder conquista(s)
+    // automática(s). Nunca quebra a resposta se algo falhar aqui.
+    if (sol.status === 'aceito') {
+      try {
+        await conquistaEngine.processarProjetoAceito(sol);
+      } catch (e) {
+        console.error('Falha ao processar conquista de projeto aceito:', e.message);
+      }
+    }
 
     return res.json({ sucesso: true, status: sol.status });
   } catch (err) {
