@@ -163,7 +163,6 @@ document.querySelectorAll('.nav-item').forEach(item => {
 
     const titles = {
       dados:     'Dados Pessoais',
-      boletim:   'Boletim Acadêmico',
       pesquisa:  'Projetos de Pesquisa',
       extensao:  'Projetos de Extensão',
       calendario:'Calendário Acadêmico',
@@ -172,8 +171,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     document.getElementById('topbarTitle').textContent = titles[sec] || '';
 
     const actions = document.getElementById('topbarActions');
-    if (sec === 'boletim') renderPeriodoSelect();
-    else actions.innerHTML = '';
+    actions.innerHTML = '';
 
     carregarSecao(sec);
   });
@@ -183,7 +181,6 @@ const carregarSecao = (sec) => {
   if (state.loaded[sec]) return;
   switch(sec) {
     case 'dados':      carregarDados();      break;
-    case 'boletim':    carregarBoletim();    break;
     case 'pesquisa':   carregarPesquisa();   break;
     case 'extensao':   carregarExtensao();   break;
     case 'calendario': carregarCalendario(); break;

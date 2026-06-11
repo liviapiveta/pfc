@@ -1,6 +1,35 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const suapService = require('../services/suapService');
+const conquistaEngine = require('../services/conquistaEngine');
+
+/**
+ * Verifica, em segundo plano, as conquistas automáticas de NOTA do aluno.
+ * Busca o boletim do período letivo mais recente e deixa o motor conceder
+ * o que for devido. Roda no login para não depender de uma aba de boletim.
+ * Falhas aqui NUNCA afetam o login (são apenas logadas).
+ */
+const verificarConquistasBoletim = async (token, matricula) => {
+  const periodos = await suapService.getMeusPeriodosLetivos(token);
+  if (!Array.isArray(periodos) || !periodos.length) return;
+
+  // Período mais recente (maior ano; em empate, maior período)
+  const atual = [...periodos].sort(
+    (a, b) =>
+      (b.ano_letivo - a.ano_letivo) || (b.periodo_letivo - a.periodo_letivo)
+  )[0];
+  if (!atual) return;
+
+  const boletim = await suapService.getBoletim(
+    token,
+    atual.ano_letivo,
+    atual.periodo_letivo
+  );
+  await conquistaEngine.processarBoletim(matricula, boletim, {
+    ano: atual.ano_letivo,
+    periodo: atual.periodo_letivo,
+  });
+};
 
 /**
  * POST /api/auth/login
@@ -66,6 +95,13 @@ const login = async (req, res) => {
       sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000,
     });
+
+    // Em 2º plano: verifica conquistas automáticas de nota a partir do
+    // boletim. Não usamos await — o login responde na hora, sem esperar
+    // o SUAP. Qualquer falha é apenas logada e não afeta o login.
+    verificarConquistasBoletim(accessToken, matricula).catch((e) =>
+      console.error('Falha ao verificar conquistas de boletim no login:', e.message)
+    );
 
     return res.json({
       sucesso: true,

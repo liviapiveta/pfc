@@ -100,21 +100,35 @@ const atualizarConquista = async (req, res) => {
 };
 
 /** DELETE /api/admin/conquistas/:id
- *  Bloqueia a exclusão se já houver alunos com ela (preserva histórico).
- *  Para "tirar de circulação", use ativa=false via PUT.
+ *  Exclui a conquista do catálogo E remove todas as concessões dela,
+ *  recalculando os pontos de cada aluno afetado (para não sobrar
+ *  pontuação "fantasma" de uma conquista que não existe mais).
+ *  Se preferir só "tirar de circulação" sem apagar histórico, use
+ *  ativa=false via PUT em vez de excluir.
  */
 const deletarConquista = async (req, res) => {
   try {
-    const emUso = await ConquistaUsuario.countDocuments({ conquista: req.params.id });
-    if (emUso > 0) {
-      return res.status(409).json({
-        erro: `Não é possível excluir: ${emUso} aluno(s) já possuem esta conquista. Desative-a (ativa=false) em vez de excluir.`,
-      });
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(404).json({ erro: 'Conquista não encontrada' });
     }
 
+    // 1. Descobre quais alunos têm esta conquista (para recalcular depois)
+    const concessoes = await ConquistaUsuario.find({ conquista: req.params.id })
+      .select('matricula')
+      .lean();
+    const matriculasAfetadas = [...new Set(concessoes.map(c => c.matricula))];
+
+    // 2. Apaga a conquista do catálogo
     const c = await Conquista.findByIdAndDelete(req.params.id);
     if (!c) return res.status(404).json({ erro: 'Conquista não encontrada' });
-    return res.json({ sucesso: true });
+
+    // 3. Apaga todas as concessões dela
+    await ConquistaUsuario.deleteMany({ conquista: req.params.id });
+
+    // 4. Recalcula os pontos de cada aluno que tinha a conquista
+    await Promise.all(matriculasAfetadas.map(m => recalcularPontosAluno(m)));
+
+    return res.json({ sucesso: true, alunosAfetados: matriculasAfetadas.length });
   } catch (err) {
     console.error('Erro ao excluir conquista:', err.message);
     return res.status(500).json({ erro: 'Erro ao excluir conquista' });

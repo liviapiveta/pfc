@@ -59,8 +59,6 @@ router.put('/admin/solicitacoes/:id', adminAuth, adminController.decidirSolicita
 // Catálogo de projetos do SUAP (espelho local, somente leitura)
 router.get('/admin/projetos-suap/:tipo', adminAuth, adminController.getProjetosSuap);
 
-module.exports = router;
-
 // ── Conquistas (gamificação) — catálogo e concessão (admin) ───
 router.get('/admin/conquistas', adminAuth, conquistaController.getConquistas);
 router.get('/admin/conquistas/:id', adminAuth, conquistaController.getConquista);
@@ -72,3 +70,8 @@ router.delete('/admin/conquistas/:id', adminAuth, conquistaController.deletarCon
 router.post('/admin/conquistas/:id/conceder', adminAuth, conquistaController.concederConquista);
 router.get('/admin/alunos/:matricula/conquistas', adminAuth, conquistaController.getConquistasDoAluno);
 router.delete('/admin/conquistas-concedidas/:registroId', adminAuth, conquistaController.revogarConcessao);
+
+// ── Conquistas do aluno (portal) ──────────────────────────────
+router.get('/minhas-conquistas', auth, conquistaController.getMinhasConquistas);
+
+module.exports = router;

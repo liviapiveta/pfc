@@ -1462,10 +1462,13 @@ const formsConquista = (dados = {}) => `
       </select>
 
       <div id="f_regra_nota_wrap" style="margin-top:0.6rem;display:${(!dados?.regra?.tipo||dados?.regra?.tipo==='nota')?'block':'none'}">
-        <label>Conceito alvo</label>
-        <select id="f_regra_valor_nota_c">
-          ${['A','B','C','D','E'].map(x => `<option value="${x}" ${((dados?.regra?.valor||'A')===x)?'selected':''}>${x}</option>`).join('')}
-        </select>
+        <label>Nota mínima (concede com nota igual ou acima deste valor)</label>
+        <input type="number" id="f_regra_valor_nota_c" min="0" max="100" step="1"
+               value="${esc(dados?.regra?.valor ?? '90')}" placeholder="Ex: 90" />
+        <p style="color:var(--cinza);font-size:0.74rem;margin-top:0.35rem">
+          Seu SUAP usa nota de 0 a 100. A conquista cai quando o aluno atinge
+          esta nota em qualquer etapa (trimestre) ou na média final.
+        </p>
       </div>
 
       <div id="f_regra_proj_wrap" style="margin-top:0.6rem;display:${dados?.regra?.tipo==='projeto_aceito'?'block':'none'}">
@@ -1501,13 +1504,59 @@ const formsConceder = (dados = {}) => `
     </p>
     <div class="field full">
       <label>Matrícula do aluno *</label>
-      <input type="text" id="f_matricula" value="" placeholder="Ex: 2023001234" autocomplete="off" />
+      <input type="text" id="f_matricula" value="" placeholder="Ex: 2023001234" autocomplete="off"
+             oninput="document.getElementById('conqDoAluno').innerHTML=''" />
     </div>
     <p style="grid-column:1/-1;color:var(--cinza);font-size:0.78rem">
       O aluno precisa já ter acessado o portal ao menos uma vez. Conceder de
       novo a mesma conquista não soma pontos em dobro.
     </p>
+    <div class="field full" style="margin-top:-0.3rem">
+      <button class="btn-edit" type="button" onclick="verConquistasDoAluno()">📋 Ver conquistas deste aluno</button>
+    </div>
+    <div id="conqDoAluno" style="grid-column:1/-1"></div>
   </div>`;
+
+// Busca e lista as conquistas que o aluno (matrícula digitada) já possui,
+// cada uma com um botão para remover.
+const verConquistasDoAluno = async () => {
+  const matricula = document.getElementById('f_matricula').value.trim();
+  const box = document.getElementById('conqDoAluno');
+  if (!matricula) { mostrarToast('Digite a matrícula primeiro.', 'erro'); return; }
+
+  box.innerHTML = `<div class="loading"><div class="spinner"></div> Buscando…</div>`;
+  try {
+    const lista = await apiJSON(`/api/admin/alunos/${encodeURIComponent(matricula)}/conquistas`);
+    if (!lista || !lista.length) {
+      box.innerHTML = `<p style="color:var(--cinza);font-size:0.82rem;padding:0.4rem 0">Este aluno ainda não possui conquistas.</p>`;
+      return;
+    }
+    const linhas = lista.map(r => `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:0.6rem;padding:0.5rem 0.2rem;border-bottom:1px solid var(--borda)">
+        <span style="font-size:0.86rem">
+          ${esc(r.nomeConquista || 'Conquista')}
+          <span style="color:#f5c469;font-weight:600">· ⭐ ${Number(r.pontos)||0}</span>
+          ${r.origem === 'automatica' ? '<span style="color:#93c5fd;font-size:0.72rem"> (auto)</span>' : ''}
+        </span>
+        <button class="btn-del" type="button" onclick="removerConcessao('${r._id}')">🗑 Remover</button>
+      </div>`).join('');
+    box.innerHTML = `<div style="margin-top:0.4rem">${linhas}</div>`;
+  } catch(e) {
+    box.innerHTML = `<p style="color:var(--erro);font-size:0.82rem">Erro: ${esc(e.message)}</p>`;
+  }
+};
+
+// Remove (revoga) uma conquista concedida e atualiza a lista
+const removerConcessao = async (registroId) => {
+  if (!confirm('Remover esta conquista do aluno? Os pontos serão recalculados.')) return;
+  try {
+    await apiJSON(`/api/admin/conquistas-concedidas/${registroId}`, { method: 'DELETE' });
+    mostrarToast('Conquista removida do aluno.', 'sucesso');
+    await verConquistasDoAluno(); // recarrega a lista
+  } catch(e) {
+    mostrarToast(`Erro: ${e.message}`, 'erro');
+  }
+};
 
 // Abre o modal de edição de uma conquista (busca os dados primeiro)
 const editarConquista = async (id) => {

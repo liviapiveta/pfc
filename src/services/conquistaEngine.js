@@ -83,14 +83,59 @@ const processarProjetoAceito = async (sol) => {
 };
 
 /**
- * Gatilho: aluno abriu o boletim.
- * Concede conquistas automáticas com regra { tipo: 'nota', valor: 'A' } (ou
- * outro conceito) quando QUALQUER disciplina tem aquele conceito FINAL.
+ * Gatilho: verificação do boletim (no login, em 2º plano).
+ * Concede conquistas automáticas com regra { tipo: 'nota', valor: X } quando
+ * QUALQUER disciplina atingiu o alvo em QUALQUER ETAPA (1º/2º/3º/4º) OU na
+ * média/conceito final.
  *
- * Usamos o conceito final da disciplina (media_final_disciplina, com
- * fallback para media_disciplina) — o MESMO critério que o portal já
- * usa para exibir a nota fechada da disciplina.
+ * O alvo (regra.valor) pode ser:
+ *   - NUMÉRICO (ex.: "90") → concede se a nota for número e MAIOR OU IGUAL ao alvo.
+ *     (É o caso do SUAP que usa nota 0–100, como o deste campus.)
+ *   - LETRA (ex.: "A")     → concede se o conceito for igual (A–E).
+ *
+ * O boletim traz as etapas em `nota_etapa_1`…`nota_etapa_4`, que podem vir
+ * como objeto `{ nota, faltas }` ou valor direto — tratamos os dois.
  */
+
+// Extrai o valor de uma etapa, aceitando objeto {nota|valor|media} ou valor direto
+const _valorEtapa = (raw) => {
+  if (raw == null) return '';
+  if (typeof raw === 'object') return raw.nota ?? raw.valor ?? raw.media ?? '';
+  return raw;
+};
+
+// Lista TODOS os valores de nota de uma disciplina (etapas + média + final)
+const _valoresDaDisciplina = (d) => {
+  const brutos = [
+    { de: 'etapa_1', v: _valorEtapa(d.nota_etapa_1) },
+    { de: 'etapa_2', v: _valorEtapa(d.nota_etapa_2) },
+    { de: 'etapa_3', v: _valorEtapa(d.nota_etapa_3) },
+    { de: 'etapa_4', v: _valorEtapa(d.nota_etapa_4) },
+    { de: 'media',   v: d.media_disciplina },
+    { de: 'final',   v: d.media_final_disciplina },
+  ];
+  return brutos
+    .map((x) => ({ de: x.de, valor: String(x.v ?? '').trim() }))
+    .filter((x) => x.valor !== '');
+};
+
+// A nota obtida satisfaz o alvo da regra?
+//  - alvo numérico ("90") → nota é número e >= alvo
+//  - alvo em letra ("A")  → conceito igual (sem diferenciar maiúscula/minúscula)
+const _atendeAlvo = (valorObtido, alvo) => {
+  const alvoStr = String(alvo ?? '').trim();
+  if (alvoStr === '') return false;
+
+  const alvoNum = Number(alvoStr.replace(',', '.'));
+  const alvoEhNumero = !Number.isNaN(alvoNum);
+
+  if (alvoEhNumero) {
+    const vNum = Number(String(valorObtido).replace(',', '.'));
+    return !Number.isNaN(vNum) && vNum >= alvoNum;
+  }
+  return String(valorObtido).trim().toUpperCase() === alvoStr.toUpperCase();
+};
+
 const processarBoletim = async (matricula, boletim, ctx = {}) => {
   if (!matricula || !Array.isArray(boletim) || !boletim.length) return;
 
@@ -101,19 +146,19 @@ const processarBoletim = async (matricula, boletim, ctx = {}) => {
   }).lean();
   if (!conquistas.length) return;
 
-  // Conceito final por disciplina (normalizado em MAIÚSCULA)
-  const conceitos = boletim
-    .map((d) => ({
-      disciplina: d.disciplina,
-      conceito: String(d.media_final_disciplina ?? d.media_disciplina ?? '')
-        .trim()
-        .toUpperCase(),
+  // Lista achatada de todas as notas obtidas (etapa a etapa + média + final),
+  // guardando de qual disciplina e de qual etapa cada uma veio.
+  const obtidos = boletim.flatMap((d) =>
+    _valoresDaDisciplina(d).map((x) => ({
+      disciplina: d.disciplina || '',
+      de: x.de,
+      valor: x.valor,
     }))
-    .filter((x) => x.conceito);
+  );
 
   for (const c of conquistas) {
-    const alvo = String(c.regra?.valor ?? 'A').trim().toUpperCase();
-    const achou = conceitos.find((x) => x.conceito === alvo);
+    const alvo = c.regra?.valor ?? 'A';
+    const achou = obtidos.find((x) => _atendeAlvo(x.valor, alvo));
     if (!achou) continue;
 
     await concederAutomatica({
@@ -121,8 +166,10 @@ const processarBoletim = async (matricula, boletim, ctx = {}) => {
       conquistaDoc: c,
       contexto: {
         gatilho: 'nota',
-        disciplina: achou.disciplina || '',
-        conceito: alvo,
+        disciplina: achou.disciplina,
+        valor: achou.valor,      // a nota que disparou (ex.: "100")
+        alvo: String(alvo),      // o alvo da regra (ex.: "90")
+        onde: achou.de,          // 'etapa_1'…'etapa_4' | 'media' | 'final'
         ano: ctx.ano ?? null,
         periodo: ctx.periodo ?? null,
       },
