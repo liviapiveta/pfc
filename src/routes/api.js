@@ -74,4 +74,10 @@ router.delete('/admin/conquistas-concedidas/:registroId', adminAuth, conquistaCo
 // ── Conquistas do aluno (portal) ──────────────────────────────
 router.get('/minhas-conquistas', auth, conquistaController.getMinhasConquistas);
 
+// ── Ranking (aluno) ───────────────────────────────────────────
+router.get('/ranking', auth, conquistaController.getRanking);
+
+// ── Dashboard (aluno) ─────────────────────────────────────────
+router.get('/dashboard', auth, conquistaController.getDashboard);
+
 module.exports = router;

@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Conquista = require('../models/Conquista');
 const ConquistaUsuario = require('../models/ConquistaUsuario');
 const User = require('../models/User');
+const { calcularNivel } = require('../services/niveis');
 
 /**
  * Recalcula o total de pontos de um aluno a partir das conquistas
@@ -292,6 +293,108 @@ const getMinhasConquistas = async (req, res) => {
   }
 };
 
+// ── Ranking ───────────────────────────────────────────────────
+
+/**
+ * GET /api/ranking?escopo=geral|curso   (aluno logado)
+ * Retorna o ranking ordenado por pontos. Em 'curso', restringe aos
+ * alunos do mesmo curso do aluno logado. Sempre devolve também a
+ * posição do próprio aluno (mesmo que ele esteja fora do top mostrado).
+ */
+const getRanking = async (req, res) => {
+  try {
+    const escopo = req.query.escopo === 'curso' ? 'curso' : 'geral';
+    const me = req.user;
+    const meusPontos = me.pontos || 0;
+
+    // Filtro do escopo
+    const filtro = {};
+    if (escopo === 'curso') {
+      if (!me.curso) {
+        // Aluno sem curso registrado (ex.: logou antes de capturarmos o curso)
+        return res.json({
+          escopo,
+          curso: null,
+          semCurso: true,
+          eu: { posicao: null, nome: me.nomeUsuario, pontos: meusPontos },
+          total: 0,
+          ranking: [],
+        });
+      }
+      filtro.curso = me.curso;
+    }
+
+    const TOP = 50;
+
+    const [top, total, acimaDeMim] = await Promise.all([
+      User.find(filtro)
+        .sort({ pontos: -1, nomeUsuario: 1 })
+        .limit(TOP)
+        .select('nomeUsuario pontos matricula')
+        .lean(),
+      User.countDocuments(filtro),
+      // Quantos têm MAIS pontos que eu → minha posição é isso + 1
+      User.countDocuments({ ...filtro, pontos: { $gt: meusPontos } }),
+    ]);
+
+    const minhaPosicao = acimaDeMim + 1;
+
+    // Monta a lista exibível (sem expor a matrícula dos outros)
+    const ranking = top.map((u, i) => ({
+      posicao: i + 1,
+      nome: u.nomeUsuario || 'Aluno',
+      pontos: u.pontos || 0,
+      isMe: u.matricula === me.matricula,
+    }));
+
+    return res.json({
+      escopo,
+      curso: escopo === 'curso' ? me.curso : null,
+      eu: { posicao: minhaPosicao, nome: me.nomeUsuario, pontos: meusPontos },
+      total,
+      ranking,
+    });
+  } catch (err) {
+    console.error('Erro ao montar ranking:', err.message);
+    return res.status(500).json({ erro: 'Erro ao buscar ranking' });
+  }
+};
+
+// ── Dashboard (resumo agregado do aluno) ──────────────────────
+
+/**
+ * GET /api/dashboard   (aluno logado)
+ * Reúne, numa resposta só, o que o painel inicial precisa:
+ * pontos, nível (com progresso), posição no ranking geral,
+ * total de conquistas e dados básicos do aluno.
+ * Os "próximos eventos" o front busca via /api/calendario (já existente).
+ */
+const getDashboard = async (req, res) => {
+  try {
+    const me = req.user;
+    const pontos = me.pontos || 0;
+
+    const [totalConquistas, totalAlunos, acimaDeMim] = await Promise.all([
+      ConquistaUsuario.countDocuments({ matricula: me.matricula, status: 'confirmada' }),
+      User.countDocuments({}),
+      User.countDocuments({ pontos: { $gt: pontos } }),
+    ]);
+
+    return res.json({
+      nome: me.nomeUsuario,
+      curso: me.curso || '',
+      pontos,
+      nivel: calcularNivel(pontos),       // { nivel, nome, progresso, faltamParaProximo, ... }
+      posicaoGeral: acimaDeMim + 1,
+      totalAlunos,
+      totalConquistas,
+    });
+  } catch (err) {
+    console.error('Erro ao montar dashboard:', err.message);
+    return res.status(500).json({ erro: 'Erro ao buscar dashboard' });
+  }
+};
+
 module.exports = {
   recalcularPontosAluno, // exportado p/ reuso na Fase 2 (concessões automáticas)
   getConquistas,
@@ -303,4 +406,6 @@ module.exports = {
   getConquistasDoAluno,
   revogarConcessao,
   getMinhasConquistas,
+  getRanking,
+  getDashboard,
 };

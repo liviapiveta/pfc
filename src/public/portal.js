@@ -146,7 +146,7 @@ const dadoItem = (label, valor) =>
       state.periodoCursoAtual = ultimo.periodo_letivo;
     }
 
-    carregarSecao('dados');
+    carregarSecao('dashboard');
   } catch(e) {
     console.error('Erro na inicialização:', e);
   }
@@ -162,11 +162,13 @@ document.querySelectorAll('.nav-item').forEach(item => {
     document.getElementById(`section-${sec}`).classList.add('active');
 
     const titles = {
+      dashboard: 'Dashboard',
       dados:     'Dados Pessoais',
       pesquisa:  'Projetos de Pesquisa',
       extensao:  'Projetos de Extensão',
       calendario:'Calendário Acadêmico',
       conquistas:'Conquistas',
+      ranking:'Ranking',
     };
     document.getElementById('topbarTitle').textContent = titles[sec] || '';
 
@@ -180,11 +182,13 @@ document.querySelectorAll('.nav-item').forEach(item => {
 const carregarSecao = (sec) => {
   if (state.loaded[sec]) return;
   switch(sec) {
+    case 'dashboard':  carregarDashboard();  break;
     case 'dados':      carregarDados();      break;
     case 'pesquisa':   carregarPesquisa();   break;
     case 'extensao':   carregarExtensao();   break;
     case 'calendario': carregarCalendario(); break;
     case 'conquistas': carregarConquistas(); break;
+    case 'ranking':    carregarRanking();    break;
   }
 };
 
@@ -930,6 +934,222 @@ const carregarConquistas = async () => {
   } catch (e) {
     el.innerHTML =
       '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar conquistas.</p></div>';
+  }
+};
+
+// ── Dashboard (painel inicial) ─────────────────────────────────
+const irParaSecao = (sec) => {
+  const item = document.querySelector(`.nav-item[data-section="${sec}"]`);
+  if (item) item.click();
+};
+
+const carregarDashboard = async () => {
+  state.loaded['dashboard'] = true;
+  const el = document.getElementById('dashboardContent');
+  try {
+    // Resumo, ranking (para o pódio) e eventos — em paralelo.
+    const [dash, rank, eventos] = await Promise.all([
+      api('/api/dashboard'),
+      api('/api/ranking?escopo=geral').catch(() => null),
+      api('/api/calendario').catch(() => []),
+    ]);
+    if (!dash) return;
+
+    const n = dash.nivel || {};
+    const primeiroNome = (dash.nome || 'Aluno').split(' ')[0];
+    const inicial = primeiroNome.charAt(0).toUpperCase() || '?';
+
+    const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const fmtData = (s) => {
+      const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return { dia: m[3], mes: MESES[Number(m[2]) - 1] || '' };
+      const d = new Date(s);
+      return isNaN(d) ? { dia: '–', mes: '' } : { dia: String(d.getDate()).padStart(2,'0'), mes: MESES[d.getMonth()] };
+    };
+
+    // ── Pódio do ranking (top 3) ──
+    const top3 = (rank?.ranking || []).slice(0, 3);
+    const podioHtml = top3.length
+      ? top3.map(r => {
+          const cls = r.posicao === 1 ? 'ouro' : r.posicao === 2 ? 'prata' : r.posicao === 3 ? 'bronze' : '';
+          return `
+            <div class="dash-rank-row ${r.isMe ? 'eu' : ''}">
+              <div class="pos ${cls}">${r.posicao}º</div>
+              <div class="av">👤</div>
+              <div class="nm">${esc(r.nome)}${r.isMe ? ' (Você)' : ''}</div>
+              <div class="xp">${r.pontos} xp</div>
+            </div>`;
+        }).join('')
+      : `<div style="color:var(--cinza);font-size:0.88rem;padding:0.5rem 0">Ninguém pontuou ainda. 🚀</div>`;
+
+    // ── Timeline de eventos (passados + futuros) ──
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const comData = (Array.isArray(eventos) ? eventos : [])
+      .map(ev => ({ ...ev, _d: new Date(ev.data_inicio || ev.data) }))
+      .filter(ev => !isNaN(ev._d));
+
+    const futuros  = comData.filter(ev => ev._d >= hoje).sort((a,b) => a._d - b._d); // mais perto primeiro
+    const passados = comData.filter(ev => ev._d <  hoje).sort((a,b) => b._d - a._d); // mais recente primeiro
+
+    const idProximo = futuros.length ? (futuros[0].id ?? futuros[0]._id ?? null) : null;
+
+    // Ordem de exibição (topo→baixo): futuros (mais perto no topo) → [aviso se não houver futuros] → passados
+    const linhaEvento = (ev, classe) => {
+      const { dia, mes } = fmtData(ev.data_inicio || ev.data);
+      const local = ev.local || ev.campus || '';
+      return `
+        <div class="dash-tl-item ${classe}">
+          <div class="dash-tl-data"><div class="dia">${dia}</div><div class="mes">${mes}</div></div>
+          <div class="dash-tl-corpo">
+            <div class="n">${esc(ev.nome || 'Evento')}</div>
+            ${local ? `<div class="s">${esc(local)}</div>` : ''}
+          </div>
+        </div>`;
+    };
+
+    let timelineHtml = '';
+    // Futuros no topo (o mais próximo recebe destaque "proximo")
+    futuros.slice().reverse().forEach(ev => {       // reverse: mais distante em cima, mais próximo embaixo do grupo
+      const ehProximo = (ev.id ?? ev._id ?? null) === idProximo;
+      timelineHtml += linhaEvento(ev, ehProximo ? 'futuro proximo' : 'futuro');
+    });
+    // Aviso quando NÃO há eventos futuros — exatamente um nó com a mensagem
+    if (!futuros.length) {
+      timelineHtml += `
+        <div class="dash-tl-item aviso proximo">
+          <div class="dash-tl-data"><div class="dia">—</div><div class="mes"></div></div>
+          <div class="dash-tl-corpo"><div class="n">Nenhum evento à frente por enquanto</div></div>
+        </div>`;
+    }
+    // Passados embaixo
+    passados.slice(0, 5).forEach(ev => { timelineHtml += linhaEvento(ev, 'passado'); });
+
+    if (!comData.length) {
+      timelineHtml = `<div style="color:var(--cinza);font-size:0.88rem;padding:0.5rem 0">Nenhum evento no calendário ainda. 🌱</div>`;
+    }
+
+    // ── Montagem ──
+    el.innerHTML = `
+      <div class="dash-hero">
+        <div class="dash-avatar">${esc(inicial)}</div>
+        <div class="ola">
+          <h2>Olá, ${esc(primeiroNome)}!</h2>
+          ${dash.curso ? `<div class="curso">${esc(dash.curso)}</div>` : ''}
+          <div class="dash-nivel-linha">
+            <span class="badge-nivel">♟ Nível ${n.nivel} · ${esc(n.nome || '')}</span>
+            <span>${n.faltamParaProximo ? `${n.faltamParaProximo} pts p/ ${esc(n.proximoNome)}` : 'nível máximo 🏆'}</span>
+          </div>
+          <div class="dash-barra"><span style="width:${Math.min(100, Math.max(0, n.progresso || 0))}%"></span></div>
+        </div>
+        <div class="indicadores">
+          <div class="indicador"><div class="ic">⭐</div><div class="v">${dash.pontos}</div><div class="l">Pontos</div></div>
+          <div class="indicador"><div class="ic">🏆</div><div class="v">${dash.posicaoGeral}º</div><div class="l">Lugar<br>Ranking Geral</div></div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div>
+          <div class="dash-mini-row">
+            <div class="dash-mini" onclick="irParaSecao('ranking')">
+              <span class="seta">→</span>
+              <div class="ic">🏆</div>
+              <div class="v">${dash.posicaoGeral}º</div>
+              <div class="l">Lugar<br>Ranking Geral</div>
+            </div>
+            <div class="dash-mini" onclick="irParaSecao('conquistas')">
+              <span class="seta">→</span>
+              <div class="ic">🎖️</div>
+              <div class="v">${dash.totalConquistas}</div>
+              <div class="l">Conquistas<br>Desbloqueadas</div>
+            </div>
+          </div>
+
+          <div class="dash-painel">
+            <div class="titulo">Ranking Geral</div>
+            ${podioHtml}
+            <span class="rodape-link" onclick="irParaSecao('ranking')">Ver Ranking Completo</span>
+          </div>
+        </div>
+
+        <div class="dash-painel">
+          <div class="titulo">Próximos Eventos</div>
+          <div class="dash-timeline">${timelineHtml}</div>
+          <span class="rodape-link" onclick="irParaSecao('calendario')">Ver Calendário</span>
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar o painel.</p></div>';
+  }
+};
+
+// ── Ranking (gamificação) ──────────────────────────────────────
+let _rankEscopo = 'geral';
+
+const carregarRanking = async () => {
+  state.loaded['ranking'] = true;
+  await renderRanking();
+};
+
+const trocarEscopoRanking = (escopo) => {
+  _rankEscopo = escopo;
+  renderRanking();
+};
+
+const renderRanking = async () => {
+  const el = document.getElementById('rankingContent');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando ranking…</div>';
+  try {
+    const dados = await api(`/api/ranking?escopo=${_rankEscopo}`);
+    if (!dados) return;
+
+    const toggle = `
+      <div class="rank-toggle">
+        <button class="${_rankEscopo === 'geral' ? 'ativo' : ''}" onclick="trocarEscopoRanking('geral')">🌎 Geral</button>
+        <button class="${_rankEscopo === 'curso' ? 'ativo' : ''}" onclick="trocarEscopoRanking('curso')">🎓 Meu curso</button>
+      </div>`;
+
+    // Caso o aluno não tenha curso registrado ainda
+    if (dados.semCurso) {
+      el.innerHTML = toggle + `
+        <div class="rank-vazio">
+          Seu curso ainda não está registrado. Saia e entre de novo no portal
+          para registrá-lo e habilitar o ranking do seu curso.
+        </div>`;
+      return;
+    }
+
+    const medalha = (pos) =>
+      pos === 1 ? 'ouro' : pos === 2 ? 'prata' : pos === 3 ? 'bronze' : '';
+    const simbolo = (pos) =>
+      pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos;
+
+    const eu = dados.eu || {};
+    const cabecalhoEu = `
+      <div class="rank-eu">
+        <div class="pos">${eu.posicao ? `${eu.posicao}º` : '—'}</div>
+        <div class="meta">
+          <div class="n">${esc(eu.nome || 'Você')}</div>
+          <div class="s">Sua posição ${dados.escopo === 'curso' ? 'no curso' : 'geral'} · entre ${dados.total} aluno(s)</div>
+        </div>
+        <div class="pts">⭐ ${eu.pontos || 0}</div>
+      </div>`;
+
+    let lista;
+    if (!dados.ranking.length) {
+      lista = `<div class="rank-vazio">Ninguém pontuou ainda. Seja o primeiro! 🚀</div>`;
+    } else {
+      lista = `<div class="rank-lista">` + dados.ranking.map(r => `
+        <div class="rank-row ${r.isMe ? 'eu' : ''}">
+          <div class="col-pos ${medalha(r.posicao)}">${simbolo(r.posicao)}</div>
+          <div class="col-nome">${esc(r.nome)}${r.isMe ? '<span class="vc">VOCÊ</span>' : ''}</div>
+          <div class="col-pts">⭐ ${r.pontos}</div>
+        </div>`).join('') + `</div>`;
+    }
+
+    el.innerHTML = toggle + cabecalhoEu + lista;
+  } catch (e) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar o ranking.</p></div>';
   }
 };
 

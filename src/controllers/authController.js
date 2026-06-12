@@ -69,6 +69,17 @@ const login = async (req, res) => {
 
     const nomeUsuario = dadosSuap.nome_usual || dadosSuap.nome || matricula;
 
+    // ── 2b. Busca o curso do aluno (para o ranking por curso) ────
+    // Endpoint separado do SUAP. Se falhar, não quebra o login —
+    // só fica sem curso (o ranking geral continua funcionando).
+    let curso = '';
+    try {
+      const dadosAluno = await suapService.getMeusDadosAluno(accessToken);
+      curso = dadosAluno?.curso || '';
+    } catch (err) {
+      console.warn('Aviso: não foi possível obter o curso do aluno:', err.message);
+    }
+
     // ── 3. Salva/atualiza usuário ────────────────────────────────
     const user = await User.findOneAndUpdate(
       { matricula },
@@ -77,6 +88,7 @@ const login = async (req, res) => {
         suapToken: accessToken,
         suapRefreshToken: refreshToken,
         nomeUsuario,
+        curso,
         ultimoAcesso: new Date(),
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }

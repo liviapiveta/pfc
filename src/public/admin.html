@@ -531,7 +531,7 @@
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <img src="images/if-logo.png" width="34" height="34" alt="Instituto Federal" style="object-fit:contain;display:block;margin-bottom:0.55rem" />
+    <img src="/images/if-logo.png" width="34" height="34" alt="Instituto Federal" style="object-fit:contain;display:block;margin-bottom:0.55rem" />
     <h1>IF<span>Plenus</span></h1>
     <p>IFPR — Campus Assis Chateaubriand</p>
   </div>
@@ -1395,7 +1395,9 @@ const renderTabelaConquistas = (dados) => {
       <td style="font-weight:700;color:#f5c469">⭐ ${Number(c.pontos) || 0}</td>
       <td>${ativa}</td>
       <td>
-        <button class="btn-add" onclick="abrirConceder('${c._id}')">🎖 Conceder</button>
+        ${c.origem === 'automatica'
+          ? ''
+          : `<button class="btn-add" onclick="abrirConceder('${c._id}')">🎖 Conceder</button>`}
         <button class="btn-edit" onclick="editarConquista('${c._id}')">✏ Editar</button>
         <button class="btn-del" onclick="deletarItem('conquista', '${c._id}')">🗑 Excluir</button>
       </td>
