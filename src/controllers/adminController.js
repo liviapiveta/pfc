@@ -259,19 +259,25 @@ const decidirSolicitacao = async (req, res) => {
 
     const sol = await Solicitacao.findByIdAndUpdate(
       req.params.id,
-      { status },
+      // Carimba a data da decisão quando aceita; limpa se sair de aceita.
+      { status, decididoEm: status === 'aceito' ? new Date() : null },
       { new: true, runValidators: true }
     );
     if (!sol) return res.status(404).json({ erro: 'Solicitação não encontrada' });
 
-    // Gatilho de gamificação: participação aceita pode conceder conquista(s)
-    // automática(s). Nunca quebra a resposta se algo falhar aqui.
-    if (sol.status === 'aceito') {
-      try {
+    // Gatilho de gamificação: aceitar pode CONCEDER conquista(s) automática(s);
+    // recusar/voltar a pendente pode REVOGÁ-las (se não houver mais
+    // justificativa). O update acima já gravou o novo status, então a
+    // reversão conta corretamente os projetos que ainda estão aceitos.
+    // Nunca quebra a resposta se algo falhar aqui.
+    try {
+      if (sol.status === 'aceito') {
         await conquistaEngine.processarProjetoAceito(sol);
-      } catch (e) {
-        console.error('Falha ao processar conquista de projeto aceito:', e.message);
+      } else {
+        await conquistaEngine.reverterProjetoAceito(sol);
       }
+    } catch (e) {
+      console.error('Falha ao processar conquista de solicitação:', e.message);
     }
 
     return res.json({ sucesso: true, status: sol.status });

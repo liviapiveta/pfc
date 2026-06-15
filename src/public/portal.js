@@ -168,6 +168,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
       extensao:  'Projetos de Extensão',
       calendario:'Calendário Acadêmico',
       conquistas:'Conquistas',
+      trajetoria:'Minha Trajetória',
       ranking:'Ranking',
     };
     document.getElementById('topbarTitle').textContent = titles[sec] || '';
@@ -188,6 +189,7 @@ const carregarSecao = (sec) => {
     case 'extensao':   carregarExtensao();   break;
     case 'calendario': carregarCalendario(); break;
     case 'conquistas': carregarConquistas(); break;
+    case 'trajetoria': carregarTrajetoria(); break;
     case 'ranking':    carregarRanking();    break;
   }
 };
@@ -1150,6 +1152,93 @@ const renderRanking = async () => {
     el.innerHTML = toggle + cabecalhoEu + lista;
   } catch (e) {
     el.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar o ranking.</p></div>';
+  }
+};
+
+// ── Minha Trajetória (histórico do aluno) ──────────────────────
+const carregarTrajetoria = async () => {
+  state.loaded['trajetoria'] = true;
+  const el = document.getElementById('trajetoriaContent');
+  try {
+    const dados = await api('/api/trajetoria');
+    if (!dados) return;
+
+    const itens = Array.isArray(dados.trajetoria) ? dados.trajetoria : [];
+
+    // Estado vazio
+    if (!itens.length) {
+      el.innerHTML = `
+        <div class="traj-resumo">
+          <span class="ic">🧭</span>
+          <div>
+            <div class="total">0</div>
+            <div class="label">Sua trajetória ainda está começando</div>
+          </div>
+        </div>
+        <div class="traj-painel">
+          <div class="traj-vazio">
+            Assim que você desbloquear conquistas ou tiver uma participação em
+            projeto aceita, os marcos vão aparecer aqui — do mais recente para
+            o mais antigo. 🚀
+          </div>
+        </div>`;
+      return;
+    }
+
+    const fmt = (iso) => {
+      const d = new Date(iso);
+      if (isNaN(d)) return { dia: '–', mes: '', hora: '' };
+      return {
+        dia: String(d.getDate()).padStart(2, '0'),
+        mes: MESES[d.getMonth()] || '',
+        hora: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+      };
+    };
+
+    // Monta a timeline (mais recente no topo — já vem ordenado do backend)
+    const linhas = itens.map((it) => {
+      const { dia, mes, hora } = fmt(it.data);
+      const ehConquista = it.tipo === 'conquista';
+      const classeTipo = ehConquista ? 'traj-conquista' : 'traj-projeto';
+
+      // Selo à direita do título
+      let selo = '';
+      if (ehConquista) {
+        selo = it.pontos ? `<span class="traj-pts">+${it.pontos} xp</span>` : '';
+      } else if (it.projetoTipo === 'pesquisa' || it.projetoTipo === 'extensao') {
+        const rotulo = it.projetoTipo === 'pesquisa' ? 'Pesquisa' : 'Extensão';
+        selo = `<span class="traj-tag ${it.projetoTipo}">${rotulo}</span>`;
+      }
+
+      const icone = it.icone || (ehConquista ? '🏆' : '📌');
+
+      return `
+        <div class="dash-tl-item traj ${classeTipo}">
+          <div class="dash-tl-data">
+            <div class="dia">${dia}</div>
+            <div class="mes">${mes}</div>
+            ${hora ? `<div class="traj-hora">${hora}</div>` : ''}
+          </div>
+          <div class="dash-tl-corpo">
+            <div class="n"><span class="traj-icone">${esc(icone)}</span>${esc(it.titulo)} ${selo}</div>
+            <div class="s">${esc(it.descricao || '')}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="traj-resumo">
+        <span class="ic">🧭</span>
+        <div>
+          <div class="total">${itens.length}</div>
+          <div class="label">marco(s) na sua trajetória até agora</div>
+        </div>
+      </div>
+      <div class="traj-painel">
+        <div class="dash-timeline">${linhas}</div>
+      </div>`;
+  } catch (e) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar a sua trajetória.</p></div>';
   }
 };
 

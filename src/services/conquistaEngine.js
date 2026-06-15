@@ -1,6 +1,7 @@
 const Conquista = require('../models/Conquista');
 const ConquistaUsuario = require('../models/ConquistaUsuario');
 const User = require('../models/User');
+const Solicitacao = require('../models/Solicitacao');
 
 /**
  * conquistaEngine — o "motor" das conquistas AUTOMÁTICAS.
@@ -79,6 +80,55 @@ const processarProjetoAceito = async (sol) => {
         projetoTitulo: sol.projetoTitulo || '',
       },
     });
+  }
+};
+
+/**
+ * Gatilho INVERSO: uma solicitação que estava aceita deixou de estar
+ * (foi recusada ou voltou a pendente). Revoga as conquistas automáticas
+ * de 'projeto_aceito' que o aluno não justifica mais.
+ *
+ * Cuidado: como a conquista é concedida UMA vez (chaveContexto ''), o aluno
+ * pode tê-la ganho por OUTRO projeto aceito. Por isso só revogamos quando
+ * NENHUM outro projeto aceito ainda justifica a conquista. Também só mexemos
+ * em concessões com origem 'automatica' — uma concessão manual do admin
+ * nunca é revogada por aqui.
+ *
+ * Importante: esta função deve ser chamada DEPOIS que o novo status já foi
+ * gravado no banco (a solicitação rejeitada não pode aparecer na contagem
+ * de projetos ainda aceitos).
+ */
+const reverterProjetoAceito = async (sol) => {
+  if (!sol || !sol.matricula) return;
+
+  const conquistas = await Conquista.find({
+    ativa: true,
+    origem: 'automatica',
+    'regra.tipo': 'projeto_aceito',
+  }).lean();
+
+  for (const c of conquistas) {
+    // Se a regra restringe a um tipo ('pesquisa'/'extensao') e o projeto
+    // rejeitado não é desse tipo, esta conquista não foi afetada.
+    if (c.regra?.valor && c.regra.valor !== sol.tipo) continue;
+
+    // A conquista ainda é justificada por algum OUTRO projeto aceito?
+    // (a solicitação atual já foi gravada como recusada/pendente, então
+    //  não entra nesta contagem)
+    const filtroAceitas = { matricula: sol.matricula, status: 'aceito' };
+    if (c.regra?.valor) filtroAceitas.tipo = c.regra.valor;
+
+    const aindaTem = await Solicitacao.countDocuments(filtroAceitas);
+    if (aindaTem > 0) continue; // ainda merece → não revoga
+
+    // Sem mais justificativa → remove a concessão automática (se existir)
+    const reg = await ConquistaUsuario.findOneAndDelete({
+      matricula: sol.matricula,
+      conquista: c._id,
+      origem: 'automatica',
+    });
+
+    if (reg) await recalcularPontosAluno(sol.matricula);
   }
 };
 
@@ -181,5 +231,6 @@ module.exports = {
   recalcularPontosAluno,
   concederAutomatica,
   processarProjetoAceito,
+  reverterProjetoAceito,
   processarBoletim,
 };

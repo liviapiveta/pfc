@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Conquista = require('../models/Conquista');
 const ConquistaUsuario = require('../models/ConquistaUsuario');
+const Solicitacao = require('../models/Solicitacao');
 const User = require('../models/User');
 const { calcularNivel } = require('../services/niveis');
 
@@ -22,6 +23,89 @@ const recalcularPontosAluno = async (matricula) => {
   const total = r[0]?.total || 0;
   await User.updateOne({ matricula }, { $set: { pontos: total } });
   return total;
+};
+
+/**
+ * _rankearAlunos — monta o ranking a partir da FONTE DA VERDADE.
+ *
+ * Em vez de confiar no cache User.pontos (que pode ficar desatualizado e,
+ * quando fica zerado para todos, faz todo mundo aparecer em 1º lugar),
+ * somamos aqui as conquistas CONFIRMADAS de cada aluno direto da coleção
+ * ConquistaUsuario. O índice em ConquistaUsuario.matricula mantém o lookup
+ * barato na escala de um campus.
+ *
+ * Retorna a lista já ORDENADA e com a `posicao` calculada.
+ *
+ * Ordenação: 1º por pontos (maior → menor); em caso de EMPATE, desempata
+ * por QUEM CHEGOU AO TOTAL PRIMEIRO — ou seja, pela data da conquista mais
+ * recente do aluno (a que o levou ao total atual): mais cedo fica acima.
+ * Como último critério (alunos sem conquista, todos com 0 pontos), usa o
+ * nome. A posição é ORDINAL (1, 2, 3, …), então cada aluno recebe um lugar
+ * distinto — sem "monte de gente" na mesma colocação.
+ *
+ * Cada item traz: nomeUsuario, matricula, curso, pontosReais,
+ * ultimaConquistaEm e posicao.
+ */
+const _rankearAlunos = async (filtroUser = {}) => {
+  const rows = await User.aggregate([
+    { $match: filtroUser },
+    {
+      $lookup: {
+        from: ConquistaUsuario.collection.name,
+        let: { mat: '$matricula' },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ['$matricula', '$$mat'] },
+                  { $eq: ['$status', 'confirmada'] },
+                ],
+              },
+            },
+          },
+          // Soma os pontos e guarda a data da conquista MAIS RECENTE
+          // (o momento em que o aluno atingiu o total atual).
+          {
+            $group: {
+              _id: null,
+              total: { $sum: '$pontos' },
+              ultima: { $max: '$createdAt' },
+            },
+          },
+        ],
+        as: '_cs',
+      },
+    },
+    {
+      $addFields: {
+        pontosReais: { $ifNull: [{ $arrayElemAt: ['$_cs.total', 0] }, 0] },
+        // Instante em que o aluno chegou ao total atual (desempate).
+        // Fica nulo só para quem não tem conquista (sempre 0 pontos).
+        ultimaConquistaEm: { $arrayElemAt: ['$_cs.ultima', 0] },
+      },
+    },
+    // Empate de pontos → quem conquistou primeiro (data asc) fica acima.
+    // Nulos (0 pontos / sem conquista) caem para o desempate por nome.
+    { $sort: { pontosReais: -1, ultimaConquistaEm: 1, nomeUsuario: 1 } },
+    {
+      $project: {
+        nomeUsuario: 1,
+        matricula: 1,
+        curso: 1,
+        pontosReais: 1,
+        ultimaConquistaEm: 1,
+      },
+    },
+  ]);
+
+  // Posição ORDINAL (1, 2, 3, …): o empate de pontos já foi resolvido pela
+  // data de conquista no $sort, então cada aluno tem uma colocação única.
+  rows.forEach((u, i) => {
+    u.posicao = i + 1;
+  });
+
+  return rows;
 };
 
 // ── Catálogo de conquistas ────────────────────────────────────
@@ -300,12 +384,15 @@ const getMinhasConquistas = async (req, res) => {
  * Retorna o ranking ordenado por pontos. Em 'curso', restringe aos
  * alunos do mesmo curso do aluno logado. Sempre devolve também a
  * posição do próprio aluno (mesmo que ele esteja fora do top mostrado).
+ *
+ * A pontuação e a posição vêm da FONTE DA VERDADE (ConquistaUsuario),
+ * não do cache User.pontos — assim a colocação fica correta mesmo que
+ * o cache esteja desatualizado.
  */
 const getRanking = async (req, res) => {
   try {
     const escopo = req.query.escopo === 'curso' ? 'curso' : 'geral';
     const me = req.user;
-    const meusPontos = me.pontos || 0;
 
     // Filtro do escopo
     const filtro = {};
@@ -316,7 +403,7 @@ const getRanking = async (req, res) => {
           escopo,
           curso: null,
           semCurso: true,
-          eu: { posicao: null, nome: me.nomeUsuario, pontos: meusPontos },
+          eu: { posicao: null, nome: me.nomeUsuario, pontos: me.pontos || 0 },
           total: 0,
           ranking: [],
         });
@@ -324,26 +411,17 @@ const getRanking = async (req, res) => {
       filtro.curso = me.curso;
     }
 
+    const todos = await _rankearAlunos(filtro);
+
+    const meu = todos.find(u => u.matricula === me.matricula);
+    const meusPontos = meu ? meu.pontosReais : 0;
+    const minhaPosicao = meu ? meu.posicao : null;
+
     const TOP = 50;
-
-    const [top, total, acimaDeMim] = await Promise.all([
-      User.find(filtro)
-        .sort({ pontos: -1, nomeUsuario: 1 })
-        .limit(TOP)
-        .select('nomeUsuario pontos matricula')
-        .lean(),
-      User.countDocuments(filtro),
-      // Quantos têm MAIS pontos que eu → minha posição é isso + 1
-      User.countDocuments({ ...filtro, pontos: { $gt: meusPontos } }),
-    ]);
-
-    const minhaPosicao = acimaDeMim + 1;
-
-    // Monta a lista exibível (sem expor a matrícula dos outros)
-    const ranking = top.map((u, i) => ({
-      posicao: i + 1,
+    const ranking = todos.slice(0, TOP).map(u => ({
+      posicao: u.posicao,
       nome: u.nomeUsuario || 'Aluno',
-      pontos: u.pontos || 0,
+      pontos: u.pontosReais || 0,
       isMe: u.matricula === me.matricula,
     }));
 
@@ -351,7 +429,7 @@ const getRanking = async (req, res) => {
       escopo,
       curso: escopo === 'curso' ? me.curso : null,
       eu: { posicao: minhaPosicao, nome: me.nomeUsuario, pontos: meusPontos },
-      total,
+      total: todos.length,
       ranking,
     });
   } catch (err) {
@@ -368,30 +446,101 @@ const getRanking = async (req, res) => {
  * pontos, nível (com progresso), posição no ranking geral,
  * total de conquistas e dados básicos do aluno.
  * Os "próximos eventos" o front busca via /api/calendario (já existente).
+ *
+ * Pontos e posição vêm da FONTE DA VERDADE (ConquistaUsuario), pelos
+ * mesmos motivos do ranking — evita todo aluno aparecer em 1º quando o
+ * cache User.pontos está zerado/desatualizado.
  */
 const getDashboard = async (req, res) => {
   try {
     const me = req.user;
-    const pontos = me.pontos || 0;
 
-    const [totalConquistas, totalAlunos, acimaDeMim] = await Promise.all([
-      ConquistaUsuario.countDocuments({ matricula: me.matricula, status: 'confirmada' }),
-      User.countDocuments({}),
-      User.countDocuments({ pontos: { $gt: pontos } }),
-    ]);
+    const todos = await _rankearAlunos({}); // ranking geral, fonte da verdade
+    const meu = todos.find(u => u.matricula === me.matricula);
+
+    const pontos = meu ? meu.pontosReais : 0;
+    const posicaoGeral = meu ? meu.posicao : todos.length + 1;
+    const totalAlunos = todos.length;
+
+    const totalConquistas = await ConquistaUsuario.countDocuments({
+      matricula: me.matricula,
+      status: 'confirmada',
+    });
 
     return res.json({
       nome: me.nomeUsuario,
       curso: me.curso || '',
       pontos,
       nivel: calcularNivel(pontos),       // { nivel, nome, progresso, faltamParaProximo, ... }
-      posicaoGeral: acimaDeMim + 1,
+      posicaoGeral,
       totalAlunos,
       totalConquistas,
     });
   } catch (err) {
     console.error('Erro ao montar dashboard:', err.message);
     return res.status(500).json({ erro: 'Erro ao buscar dashboard' });
+  }
+};
+
+// ── Minha Trajetória (histórico do aluno) ─────────────────────
+
+/**
+ * GET /api/trajetoria   (aluno logado)
+ * Monta a "linha do tempo" pessoal do aluno, misturando dois tipos de
+ * acontecimento num só histórico, já ordenado do mais recente para o
+ * mais antigo:
+ *   - conquista → uma conquista desbloqueada (data = createdAt do registro)
+ *   - projeto   → uma participação em projeto ACEITA (data = decididoEm;
+ *                 se for um registro antigo sem esse campo, usa updatedAt)
+ *
+ * O front desenha isso como a timeline de eventos do dashboard.
+ */
+const getTrajetoria = async (req, res) => {
+  try {
+    const matricula = req.user.matricula;
+
+    const [conquistas, participacoes] = await Promise.all([
+      ConquistaUsuario.find({ matricula, status: 'confirmada' })
+        .populate('conquista', 'icone categoria')
+        .sort({ createdAt: -1 })
+        .lean(),
+      Solicitacao.find({ matricula, status: 'aceito' })
+        .sort({ updatedAt: -1 })
+        .lean(),
+    ]);
+
+    const itensConquista = conquistas.map((c) => ({
+      tipo: 'conquista',
+      data: c.createdAt,
+      titulo: c.nomeConquista || 'Conquista',
+      descricao: 'Conquista desbloqueada',
+      icone: c.conquista?.icone || '🏆',
+      pontos: c.pontos || 0,
+      origem: c.origem, // 'automatica' | 'admin'
+    }));
+
+    const itensProjeto = participacoes.map((s) => ({
+      tipo: 'projeto',
+      data: s.decididoEm || s.updatedAt,
+      titulo: s.projetoTitulo || '(projeto)',
+      descricao:
+        s.tipo === 'pesquisa'
+          ? 'Participação aceita · Pesquisa'
+          : s.tipo === 'extensao'
+          ? 'Participação aceita · Extensão'
+          : 'Participação aceita',
+      icone: s.tipo === 'extensao' ? '🌱' : '🔬',
+      projetoTipo: s.tipo || null,
+    }));
+
+    const trajetoria = [...itensConquista, ...itensProjeto]
+      .filter((x) => x.data) // descarta itens sem data
+      .sort((a, b) => new Date(b.data) - new Date(a.data));
+
+    return res.json({ total: trajetoria.length, trajetoria });
+  } catch (err) {
+    console.error('Erro ao montar trajetória:', err.message);
+    return res.status(500).json({ erro: 'Erro ao buscar trajetória' });
   }
 };
 
@@ -408,4 +557,5 @@ module.exports = {
   getMinhasConquistas,
   getRanking,
   getDashboard,
+  getTrajetoria,
 };

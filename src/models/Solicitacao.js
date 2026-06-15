@@ -30,6 +30,11 @@ const solicitacaoSchema = new mongoose.Schema(
       enum: ['pendente', 'aceito', 'recusado'],
       default: 'pendente',
     },
+
+    // Momento em que a solicitação foi ACEITA (preenchido pelo admin ao
+    // aceitar). Serve como a "data da participação" na trajetória do aluno.
+    // Volta a null se a solicitação deixar de estar aceita.
+    decididoEm: { type: Date, default: null },
   },
   { timestamps: true }
 );

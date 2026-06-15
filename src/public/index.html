@@ -62,6 +62,9 @@
       <span class="nav-icon">📅</span> Calendário
     </div>
     <div class="nav-section">Gamificação</div>
+    <div class="nav-item" data-section="trajetoria">
+      <span class="nav-icon">🧭</span> Minha Trajetória
+    </div>
     <div class="nav-item" data-section="conquistas">
       <span class="nav-icon">🏆</span> Conquistas
     </div>
@@ -116,6 +119,12 @@
     <section class="section" id="section-conquistas">
       <div id="conquistasContent">
         <div class="loading"><div class="spinner"></div> Carregando conquistas…</div>
+      </div>
+    </section>
+
+    <section class="section" id="section-trajetoria">
+      <div id="trajetoriaContent">
+        <div class="loading"><div class="spinner"></div> Carregando sua trajetória…</div>
       </div>
     </section>
 
@@ -309,6 +318,55 @@
         background:rgba(96,165,250,0.16); color:#93c5fd;
       }
       .conq-vazio { color:var(--cinza,#8b909b); font-size:0.88rem; padding:0.6rem 0; }
+    </style>
+
+    <style>
+      /* Minha Trajetória (timeline do histórico do aluno) */
+      .traj-resumo {
+        display:flex; align-items:center; gap:0.8rem;
+        background:var(--card,#26262b); border:1px solid var(--borda,rgba(255,255,255,0.1));
+        border-radius:14px; padding:1rem 1.3rem; margin-bottom:1.4rem;
+      }
+      .traj-resumo .ic { font-size:1.5rem; }
+      .traj-resumo .total { font-family:'Syne',sans-serif; font-weight:800; font-size:1.4rem; color:var(--texto,#f4f5f7); }
+      .traj-resumo .label { color:var(--cinza,#8b909b); font-size:0.85rem; }
+
+      /* Painel que envolve a timeline (mesmo visual dos painéis do dashboard) */
+      .traj-painel {
+        background:var(--card,#26262b); border:1px solid var(--borda,rgba(255,255,255,0.1));
+        border-radius:16px; padding:1.4rem 1.5rem;
+      }
+
+      /* A timeline reutiliza .dash-timeline / .dash-tl-* do dashboard.
+         Aqui só ajustamos as cores do nó por tipo e o selo de pontos. */
+      .dash-tl-item.traj::after { background:var(--bg,#1b1b1f); }
+      .dash-tl-item.traj-conquista::after { border-color:#f5c469; box-shadow:0 0 0 4px rgba(245,196,105,0.14); }
+      .dash-tl-item.traj-projeto::after   { border-color:var(--verde,#44d883); box-shadow:0 0 0 4px rgba(68,216,131,0.14); }
+      .dash-tl-item.traj .dash-tl-corpo { padding-bottom:1.1rem; }
+      .dash-tl-item.traj .dash-tl-corpo .n { display:flex; align-items:center; flex-wrap:wrap; gap:0.4rem; }
+      .dash-tl-item.traj .dash-tl-data .dia { line-height:1.05; }
+      .traj-hora {
+        font-family:'DM Sans',sans-serif; font-weight:500; font-size:0.62rem;
+        color:var(--cinza,#8b909b); margin-top:0.2rem; letter-spacing:0.3px;
+      }
+      .traj-icone { font-size:1rem; }
+      .traj-pts {
+        font-family:'Syne',sans-serif; font-weight:700; font-size:0.72rem;
+        color:#f5c469; background:rgba(245,196,105,0.14);
+        padding:0.05rem 0.45rem; border-radius:99px;
+      }
+      .traj-tag {
+        font-size:0.68rem; font-weight:600; padding:0.05rem 0.5rem; border-radius:99px;
+        background:rgba(96,165,250,0.16); color:#93c5fd;
+      }
+      .traj-tag.pesquisa { background:rgba(96,165,250,0.16); color:#93c5fd; }
+      .traj-tag.extensao { background:rgba(68,216,131,0.16); color:var(--verde,#44d883); }
+      .traj-ano {
+        font-family:'Syne',sans-serif; font-weight:700; font-size:0.8rem;
+        color:var(--cinza,#8b909b); text-transform:uppercase; letter-spacing:0.5px;
+        margin:0.6rem 0 0.4rem 1.6rem;
+      }
+      .traj-vazio { color:var(--cinza,#8b909b); font-size:0.9rem; padding:1rem 0; }
     </style>
 
   </div>

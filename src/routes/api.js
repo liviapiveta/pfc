@@ -80,4 +80,7 @@ router.get('/ranking', auth, conquistaController.getRanking);
 // ── Dashboard (aluno) ─────────────────────────────────────────
 router.get('/dashboard', auth, conquistaController.getDashboard);
 
+// ── Minha Trajetória (aluno) ──────────────────────────────────
+router.get('/trajetoria', auth, conquistaController.getTrajetoria);
+
 module.exports = router;
