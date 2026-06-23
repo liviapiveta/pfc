@@ -138,6 +138,9 @@
     .back-link:hover { color: var(--verde); }
 
     @media (max-width: 480px) { .login-wrap { padding: 1rem; } }
+
+    /* Ícones (Lucide) — herdam tamanho (1em) e cor (currentColor) do contexto */
+    svg.lucide { width:1em; height:1em; display:inline-block; vertical-align:-0.125em; flex-shrink:0; stroke-width:2; }
   </style>
 </head>
 <body>
@@ -147,7 +150,7 @@
     <img src="/images/if-logo.png" width="30" height="30" alt="Instituto Federal" style="object-fit:contain;display:block" />
     <span>IF<span style="color:var(--verde)">Plenus</span></span>
   </div>
-  <div class="admin-badge">🔒 Área Administrativa</div>
+  <div class="admin-badge"><i data-lucide="lock"></i> Área Administrativa</div>
 
   <div class="login-box">
     <h1 class="login-title">Acesso restrito</h1>
@@ -167,7 +170,7 @@
     <div class="erro-msg" id="erroMsg"></div>
   </div>
 
-  <a class="back-link" href="/">← Voltar ao portal do aluno</a>
+  <a class="back-link" href="/"><i data-lucide="arrow-left"></i> Voltar ao portal do aluno</a>
 </div>
 
 <script>
@@ -213,6 +216,29 @@
 
   btn.addEventListener('click', fazerLogin);
   document.addEventListener('keydown', e => { if (e.key === 'Enter') fazerLogin(); });
+</script>
+<!-- Ícones (Lucide) -->
+<script src="https://unpkg.com/lucide@0.330.0/dist/umd/lucide.min.js"></script>
+<script>
+  (function () {
+    let agendado = false;
+    const desenhar = () => {
+      if (!window.lucide || agendado) return;
+      agendado = true;
+      requestAnimationFrame(() => { agendado = false; window.lucide.createIcons(); });
+    };
+    const iniciar = () => {
+      desenhar();
+      new MutationObserver(desenhar).observe(document.body, { childList: true, subtree: true });
+    };
+    // Espera o script do CDN carregar (defensivo: funciona mesmo se o
+    // <script> do Lucide ainda não tiver executado quando este rodar).
+    if (window.lucide) iniciar();
+    else {
+      const t = setInterval(() => { if (window.lucide) { clearInterval(t); iniciar(); } }, 50);
+      setTimeout(() => clearInterval(t), 8000);
+    }
+  })();
 </script>
 </body>
 </html>

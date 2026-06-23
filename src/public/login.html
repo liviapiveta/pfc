@@ -163,6 +163,9 @@
       body { grid-template-columns: 1fr; }
       .visual { display: none; }
     }
+
+    /* Ícones (Lucide) — herdam tamanho (1em) e cor (currentColor) do contexto */
+    svg.lucide { width:1em; height:1em; display:inline-block; vertical-align:-0.125em; flex-shrink:0; stroke-width:2; }
   </style>
 </head>
 <body>
@@ -175,11 +178,11 @@
   <p class="visual-tagline">Acesse suas informações acadêmicas do IFPR em um só lugar.</p>
   <p class="visual-sub">Instituto Federal do Paraná · Campus Assis Chateaubriand</p>
   <div class="visual-badges">
-    <span class="badge">📊 Boletim</span>
-    <span class="badge">👤 Dados Pessoais</span>
-    <span class="badge">🔬 Pesquisa</span>
-    <span class="badge">🌱 Extensão</span>
-    <span class="badge">📅 Calendário</span>
+    <span class="badge"><i data-lucide="bar-chart-3"></i> Boletim</span>
+    <span class="badge"><i data-lucide="user"></i> Dados Pessoais</span>
+    <span class="badge"><i data-lucide="microscope"></i> Pesquisa</span>
+    <span class="badge"><i data-lucide="sprout"></i> Extensão</span>
+    <span class="badge"><i data-lucide="calendar"></i> Calendário</span>
   </div>
 </div>
 
@@ -256,6 +259,29 @@
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') fazerLogin();
   });
+</script>
+<!-- Ícones (Lucide) -->
+<script src="https://unpkg.com/lucide@0.330.0/dist/umd/lucide.min.js"></script>
+<script>
+  (function () {
+    let agendado = false;
+    const desenhar = () => {
+      if (!window.lucide || agendado) return;
+      agendado = true;
+      requestAnimationFrame(() => { agendado = false; window.lucide.createIcons(); });
+    };
+    const iniciar = () => {
+      desenhar();
+      new MutationObserver(desenhar).observe(document.body, { childList: true, subtree: true });
+    };
+    // Espera o script do CDN carregar (defensivo: funciona mesmo se o
+    // <script> do Lucide ainda não tiver executado quando este rodar).
+    if (window.lucide) iniciar();
+    else {
+      const t = setInterval(() => { if (window.lucide) { clearInterval(t); iniciar(); } }, 50);
+      setTimeout(() => clearInterval(t), 8000);
+    }
+  })();
 </script>
 </body>
 </html>

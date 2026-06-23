@@ -254,8 +254,8 @@ const solicitarParticipacaoSuap = async (req, res) => {
 
 /**
  * DELETE /api/projetos-internos/:id/solicitacao
- * Remove a solicitação RECUSADA do aluno, permitindo solicitar de novo.
- * (Só apaga se o status for "recusado" — não desfaz pendentes/aceitas.)
+ * Cancela a solicitação enquanto está PENDENTE (o aluno desistiu) ou
+ * RECUSADA (para solicitar de novo). Nunca apaga uma ACEITA (participação efetiva).
  */
 const cancelarSolicitacao = async (req, res) => {
   try {
@@ -263,7 +263,7 @@ const cancelarSolicitacao = async (req, res) => {
       origem: 'local',
       projeto: req.params.id,
       matricula: req.user.matricula,
-      status: 'recusado',
+      status: { $in: ['pendente', 'recusado'] },
     });
     return res.json({ sucesso: true });
   } catch (err) {
@@ -279,7 +279,7 @@ const cancelarSolicitacaoSuap = async (req, res) => {
       origem: 'suap',
       projetoSuapId: Number(req.params.suapId),
       matricula: req.user.matricula,
-      status: 'recusado',
+      status: { $in: ['pendente', 'recusado'] },
     });
     return res.json({ sucesso: true });
   } catch (err) {

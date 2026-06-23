@@ -524,6 +524,9 @@
       .content { padding: 1rem; }
       .form-grid { grid-template-columns: 1fr; }
     }
+
+    /* Ícones (Lucide) — herdam tamanho (1em) e cor (currentColor) do contexto */
+    svg.lucide { width:1em; height:1em; display:inline-block; vertical-align:-0.125em; flex-shrink:0; stroke-width:2; }
   </style>
 </head>
 <body>
@@ -535,35 +538,35 @@
     <h1>IF<span>Plenus</span></h1>
     <p>IFPR — Campus Assis Chateaubriand</p>
   </div>
-  <div class="admin-pill">⚙ Painel Admin</div>
+  <div class="admin-pill"><i data-lucide="settings"></i> Painel Admin</div>
   <nav>
     <div class="nav-section">Conteúdo</div>
     <div class="nav-item active" data-section="overview">
-      <span class="nav-icon">📊</span> Visão Geral
+      <span class="nav-icon"><i data-lucide="bar-chart-3"></i></span> Visão Geral
     </div>
     <div class="nav-item" data-section="pesquisa">
-      <span class="nav-icon">🔬</span> Projetos de Pesquisa
+      <span class="nav-icon"><i data-lucide="microscope"></i></span> Projetos de Pesquisa
     </div>
     <div class="nav-item" data-section="extensao">
-      <span class="nav-icon">🌱</span> Projetos de Extensão
+      <span class="nav-icon"><i data-lucide="sprout"></i></span> Projetos de Extensão
     </div>
     <div class="nav-item" data-section="eventos">
-      <span class="nav-icon">📅</span> Eventos do Calendário
+      <span class="nav-icon"><i data-lucide="calendar"></i></span> Eventos do Calendário
     </div>
     <div class="nav-section">Participação</div>
     <div class="nav-item" data-section="solicitacoes">
-      <span class="nav-icon">📨</span> Solicitações
+      <span class="nav-icon"><i data-lucide="mail"></i></span> Solicitações
     </div>
     <div class="nav-item" data-section="suap">
-      <span class="nav-icon">🔗</span> Projetos do SUAP
+      <span class="nav-icon"><i data-lucide="link"></i></span> Projetos do SUAP
     </div>
     <div class="nav-section">Gamificação</div>
     <div class="nav-item" data-section="conquistas">
-      <span class="nav-icon">🏆</span> Conquistas
+      <span class="nav-icon"><i data-lucide="trophy"></i></span> Conquistas
     </div>
   </nav>
   <div class="sidebar-footer">
-    <button class="btn-logout" onclick="fazerLogout()">↩ Sair do painel</button>
+    <button class="btn-logout" onclick="fazerLogout()"><i data-lucide="log-out"></i> Sair do painel</button>
   </div>
 </aside>
 
@@ -571,7 +574,7 @@
 <main class="main">
   <div class="topbar">
     <span class="topbar-title" id="topbarTitle">Visão Geral</span>
-    <span class="topbar-badge">🔒 Administrador</span>
+    <span class="topbar-badge"><i data-lucide="lock"></i> Administrador</span>
   </div>
 
   <div class="content">
@@ -696,7 +699,7 @@
   <div class="modal" id="modal">
     <div class="modal-header">
       <span class="modal-title" id="modalTitle">Novo item</span>
-      <button class="modal-close" onclick="fecharModal()">✕</button>
+      <button class="modal-close" onclick="fecharModal()"><i data-lucide="x"></i></button>
     </div>
     <div id="modalBody"></div>
     <div class="modal-footer">
@@ -821,12 +824,12 @@ const carregarLista = async (tipo) => {
         ...(extensao || []).map(p => ({ ...p, tipo: 'extensao' })),
       ];
       if (!dados.length) {
-        el.innerHTML = `<div class="empty-table"><div class="icon">📭</div><p>Nenhum projeto do SUAP em cache ainda. Peça para um aluno abrir as abas de Pesquisa/Extensão no portal.</p></div>`;
+        el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>Nenhum projeto do SUAP em cache ainda. Peça para um aluno abrir as abas de Pesquisa/Extensão no portal.</p></div>`;
         return;
       }
       el.innerHTML = renderTabelaProjetosSuap(dados);
     } catch(e) {
-      el.innerHTML = `<div class="empty-table"><div class="icon">⚠️</div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+      el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
     }
     return;
   }
@@ -841,7 +844,7 @@ const carregarLista = async (tipo) => {
 
     if (!dados.length) {
       const msg = tipo === 'solicitacoes' ? 'Nenhuma solicitação recebida ainda.' : 'Nenhum item cadastrado ainda.';
-      el.innerHTML = `<div class="empty-table"><div class="icon">📭</div><p>${msg}</p></div>`;
+      el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>${msg}</p></div>`;
       return;
     }
 
@@ -853,7 +856,7 @@ const carregarLista = async (tipo) => {
       el.innerHTML = renderTabelaProjetos(dados, tipo);
     }
   } catch(e) {
-    el.innerHTML = `<div class="empty-table"><div class="icon">⚠️</div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+    el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
   }
 };
 
@@ -913,8 +916,8 @@ const renderTabelaProjetos = (dados, tipo) => {
       <td style="font-size:0.8rem">${esc(p.situacao || '—')}</td>
       <td style="font-size:0.8rem">${link}</td>
       <td>
-        <button class="btn-edit" onclick="editarProjeto('${tipo}', '${p._id}')">✏ Editar</button>
-        <button class="btn-del" onclick="deletarItem('${tipo}', '${p._id}')">🗑 Excluir</button>
+        <button class="btn-edit" onclick="editarProjeto('${tipo}', '${p._id}')"><i data-lucide="pencil"></i> Editar</button>
+        <button class="btn-del" onclick="deletarItem('${tipo}', '${p._id}')"><i data-lucide="trash-2"></i> Excluir</button>
       </td>
     </tr>`;
   }).join('');
@@ -939,8 +942,8 @@ const renderTabelaEventos = (dados) => {
       <td style="font-size:0.8rem">${esc(ev.data_fim || '—')}</td>
       <td style="font-size:0.8rem;color:var(--cinza)">${esc(ev.local || '—')}</td>
       <td>
-        <button class="btn-edit" onclick="editarEvento('${ev._id}')">✏ Editar</button>
-        <button class="btn-del" onclick="deletarItem('evento', '${ev._id}')">🗑 Excluir</button>
+        <button class="btn-edit" onclick="editarEvento('${ev._id}')"><i data-lucide="pencil"></i> Editar</button>
+        <button class="btn-del" onclick="deletarItem('evento', '${ev._id}')"><i data-lucide="trash-2"></i> Excluir</button>
       </td>
     </tr>`).join('');
 
@@ -982,8 +985,8 @@ const renderTabelaSolicitacoes = (dados) => {
       <td style="font-size:0.8rem;color:var(--cinza)">${tipoTxt(s.projetoTipo)}</td>
       <td>${badge(s.status)}</td>
       <td>
-        ${s.status !== 'aceito'   ? `<button class="btn-edit" onclick="decidirSolicitacao('${s._id}','aceito')">✓ Aceitar</button>` : ''}
-        ${s.status !== 'recusado' ? `<button class="btn-del" onclick="decidirSolicitacao('${s._id}','recusado')">✕ Recusar</button>` : ''}
+        ${s.status !== 'aceito'   ? `<button class="btn-edit" onclick="decidirSolicitacao('${s._id}','aceito')"><i data-lucide="check"></i> Aceitar</button>` : ''}
+        ${s.status !== 'recusado' ? `<button class="btn-del" onclick="decidirSolicitacao('${s._id}','recusado')"><i data-lucide="x"></i> Recusar</button>` : ''}
       </td>
     </tr>`).join('');
 
@@ -1346,7 +1349,7 @@ const atualizarStats = (stats) => {
 let toastTimer;
 const mostrarToast = (msg, tipo = '') => {
   const el = document.getElementById('toast');
-  el.textContent = tipo === 'sucesso' ? '✓ ' + msg : tipo === 'erro' ? '✕ ' + msg : msg;
+  el.textContent = tipo === 'sucesso' ? '<i data-lucide="check"></i> ' + msg : tipo === 'erro' ? '<i data-lucide="x"></i> ' + msg : msg;
   el.className = `toast ${tipo} show`;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
@@ -1367,12 +1370,12 @@ const carregarConquistas = async () => {
     if (!dados) return;
     _conquistasCache = dados;
     if (!dados.length) {
-      el.innerHTML = `<div class="empty-table"><div class="icon">🏆</div><p>Nenhuma conquista cadastrada ainda. Clique em “+ Nova conquista”.</p></div>`;
+      el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="trophy"></i></div><p>Nenhuma conquista cadastrada ainda. Clique em “+ Nova conquista”.</p></div>`;
       return;
     }
     el.innerHTML = renderTabelaConquistas(dados);
   } catch(e) {
-    el.innerHTML = `<div class="empty-table"><div class="icon">⚠️</div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+    el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
   }
 };
 
@@ -1386,20 +1389,20 @@ const renderTabelaConquistas = (dados) => {
       ? `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(68,216,131,0.16);color:#5fe39a">Ativa</span>`
       : `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(139,144,155,0.18);color:#aab">Inativa</span>`;
     const autoBadge = c.origem === 'automatica'
-      ? ` <span style="display:inline-block;padding:0.12rem 0.5rem;border-radius:99px;font-size:0.66rem;font-weight:600;background:rgba(96,165,250,0.16);color:#93c5fd" title="Concedida automaticamente pelo sistema">⚙ Auto</span>`
+      ? ` <span style="display:inline-block;padding:0.12rem 0.5rem;border-radius:99px;font-size:0.66rem;font-weight:600;background:rgba(96,165,250,0.16);color:#93c5fd" title="Concedida automaticamente pelo sistema"><i data-lucide="settings"></i> Auto</span>`
       : '';
     return `
     <tr>
       <td>${esc(c.icone || '🏆')} ${esc(c.nome)}${autoBadge}</td>
       <td style="font-size:0.8rem;color:var(--cinza)">${esc(catLabel(c.categoria))}</td>
-      <td style="font-weight:700;color:#f5c469">⭐ ${Number(c.pontos) || 0}</td>
+      <td style="font-weight:700;color:#f5c469"><i data-lucide="star"></i> ${Number(c.pontos) || 0}</td>
       <td>${ativa}</td>
       <td>
         ${c.origem === 'automatica'
           ? ''
-          : `<button class="btn-add" onclick="abrirConceder('${c._id}')">🎖 Conceder</button>`}
-        <button class="btn-edit" onclick="editarConquista('${c._id}')">✏ Editar</button>
-        <button class="btn-del" onclick="deletarItem('conquista', '${c._id}')">🗑 Excluir</button>
+          : `<button class="btn-add" onclick="abrirConceder('${c._id}')"><i data-lucide="medal"></i> Conceder</button>`}
+        <button class="btn-edit" onclick="editarConquista('${c._id}')"><i data-lucide="pencil"></i> Editar</button>
+        <button class="btn-del" onclick="deletarItem('conquista', '${c._id}')"><i data-lucide="trash-2"></i> Excluir</button>
       </td>
     </tr>`;
   }).join('');
@@ -1514,7 +1517,7 @@ const formsConceder = (dados = {}) => `
       novo a mesma conquista não soma pontos em dobro.
     </p>
     <div class="field full" style="margin-top:-0.3rem">
-      <button class="btn-edit" type="button" onclick="verConquistasDoAluno()">📋 Ver conquistas deste aluno</button>
+      <button class="btn-edit" type="button" onclick="verConquistasDoAluno()"><i data-lucide="clipboard-list"></i> Ver conquistas deste aluno</button>
     </div>
     <div id="conqDoAluno" style="grid-column:1/-1"></div>
   </div>`;
@@ -1537,10 +1540,10 @@ const verConquistasDoAluno = async () => {
       <div style="display:flex;align-items:center;justify-content:space-between;gap:0.6rem;padding:0.5rem 0.2rem;border-bottom:1px solid var(--borda)">
         <span style="font-size:0.86rem">
           ${esc(r.nomeConquista || 'Conquista')}
-          <span style="color:#f5c469;font-weight:600">· ⭐ ${Number(r.pontos)||0}</span>
+          <span style="color:#f5c469;font-weight:600">· <i data-lucide="star"></i> ${Number(r.pontos)||0}</span>
           ${r.origem === 'automatica' ? '<span style="color:#93c5fd;font-size:0.72rem"> (auto)</span>' : ''}
         </span>
-        <button class="btn-del" type="button" onclick="removerConcessao('${r._id}')">🗑 Remover</button>
+        <button class="btn-del" type="button" onclick="removerConcessao('${r._id}')"><i data-lucide="trash-2"></i> Remover</button>
       </div>`).join('');
     box.innerHTML = `<div style="margin-top:0.4rem">${linhas}</div>`;
   } catch(e) {
@@ -1584,6 +1587,29 @@ const fazerLogout = async () => {
   await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' });
   window.location.href = '/admin/login';
 };
+</script>
+<!-- Ícones (Lucide) -->
+<script src="https://unpkg.com/lucide@0.330.0/dist/umd/lucide.min.js"></script>
+<script>
+  (function () {
+    let agendado = false;
+    const desenhar = () => {
+      if (!window.lucide || agendado) return;
+      agendado = true;
+      requestAnimationFrame(() => { agendado = false; window.lucide.createIcons(); });
+    };
+    const iniciar = () => {
+      desenhar();
+      new MutationObserver(desenhar).observe(document.body, { childList: true, subtree: true });
+    };
+    // Espera o script do CDN carregar (defensivo: funciona mesmo se o
+    // <script> do Lucide ainda não tiver executado quando este rodar).
+    if (window.lucide) iniciar();
+    else {
+      const t = setInterval(() => { if (window.lucide) { clearInterval(t); iniciar(); } }, 50);
+      setTimeout(() => clearInterval(t), 8000);
+    }
+  })();
 </script>
 </body>
 </html>

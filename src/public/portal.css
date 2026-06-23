@@ -880,3 +880,44 @@ nav { flex: 1; padding: 1rem 0.75rem; }
   .footer-cols { grid-template-columns: 1fr; gap: 1.5rem; }
   .footer-bottom { flex-direction: column; align-items: flex-start; }
 }
+
+/* ── Ícones (Lucide) ──────────────────────────────────────────
+   Substituem os antigos emojis. Herdam o tamanho (1em) e a cor
+   (currentColor) do contexto, exatamente como o emoji fazia. */
+svg.lucide {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  vertical-align: -0.125em;
+  flex-shrink: 0;
+  stroke-width: 2;
+}
+/* Botões: pequeno respiro entre ícone e texto */
+.btn-participar svg.lucide,
+.rodape-link svg.lucide { margin-right: 0.25em; }
+
+/* ── Projetos: abas de área (Pesquisa | Extensão) e grupos de fonte ── */
+.proj-area-tabs { display:flex; gap:0.5rem; margin-bottom:1.4rem; }
+.proj-area-tabs button {
+  flex:0 0 auto; padding:0.5rem 1.3rem; border-radius:99px; cursor:pointer;
+  font-family:'DM Sans',sans-serif; font-size:0.9rem; font-weight:600;
+  background:transparent; color:var(--texto-2); border:1px solid var(--borda); transition:all .15s;
+}
+.proj-area-tabs button:hover { border-color:var(--verde); color:var(--texto); }
+.proj-area-tabs button.ativo { background:var(--verde); color:#06281a; border-color:var(--verde); }
+
+.proj-fonte { margin-bottom:1.8rem; }
+.proj-fonte-titulo {
+  display:flex; align-items:center; gap:0.5rem;
+  font-family:'Syne',sans-serif; font-weight:700; font-size:1.05rem; color:var(--texto);
+  margin-bottom:0.9rem; padding-bottom:0.5rem; border-bottom:1px solid var(--borda);
+}
+.proj-fonte-titulo svg.lucide { color:var(--verde); }
+.proj-lista { display:flex; flex-direction:column; gap:0.9rem; }
+.proj-vazio { color:var(--cinza); font-size:0.9rem; padding:0.4rem 0 0.8rem; }
+
+/* Ações de participação: status "pendente" + botão de cancelar */
+.projeto-acoes { align-items:center; gap:0.6rem; flex-wrap:wrap; }
+.status-pendente { display:inline-flex; align-items:center; gap:0.35rem; font-size:0.85rem; font-weight:600; color:var(--amarelo); }
+.btn-participar.cancelar { background:transparent; color:#ff6b6b; border:1px solid #ff6b6b; }
+.btn-participar.cancelar:hover { background:rgba(255,107,107,0.12); }

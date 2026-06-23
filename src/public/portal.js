@@ -164,8 +164,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     const titles = {
       dashboard: 'Dashboard',
       dados:     'Dados Pessoais',
-      pesquisa:  'Projetos de Pesquisa',
-      extensao:  'Projetos de Extensão',
+      projetos:  'Projetos',
       calendario:'Calendário Acadêmico',
       conquistas:'Conquistas',
       trajetoria:'Minha Trajetória',
@@ -180,13 +179,19 @@ document.querySelectorAll('.nav-item').forEach(item => {
   });
 });
 
+// Seções cujos dados mudam com o tempo (pontos, ranking, conquistas,
+// trajetória) devem ser SEMPRE recarregadas ao entrar — senão exibem
+// valores congelados da primeira visita. As demais (dados, projetos,
+// calendário) podem manter o cache de "já carregado".
+const SECOES_DINAMICAS = new Set(['dashboard', 'conquistas', 'ranking', 'trajetoria']);
+
 const carregarSecao = (sec) => {
+  if (SECOES_DINAMICAS.has(sec)) delete state.loaded[sec];
   if (state.loaded[sec]) return;
   switch(sec) {
     case 'dashboard':  carregarDashboard();  break;
     case 'dados':      carregarDados();      break;
-    case 'pesquisa':   carregarPesquisa();   break;
-    case 'extensao':   carregarExtensao();   break;
+    case 'projetos':   carregarProjetos();   break;
     case 'calendario': carregarCalendario(); break;
     case 'conquistas': carregarConquistas(); break;
     case 'trajetoria': carregarTrajetoria(); break;
@@ -275,7 +280,7 @@ const carregarDados = async () => {
 
       <div class="card pref-card">
         <div class="card-header">
-          <span class="card-title">⚙️ Configurações do perfil</span>
+          <span class="card-title"><i data-lucide="settings"></i> Configurações do perfil</span>
         </div>
         <div class="pref-row">
           <div class="pref-text">
@@ -284,15 +289,15 @@ const carregarDados = async () => {
           </div>
           <div class="seg-toggle" role="group" aria-label="Tema">
             <button type="button" class="seg-option ${temaAtual === 'light' ? 'active' : ''}"
-                    data-tema="light" onclick="aplicarTema('light')">☀️ Claro</button>
+                    data-tema="light" onclick="aplicarTema('light')"><i data-lucide="sun"></i> Claro</button>
             <button type="button" class="seg-option ${temaAtual === 'dark' ? 'active' : ''}"
-                    data-tema="dark" onclick="aplicarTema('dark')">🌙 Escuro</button>
+                    data-tema="dark" onclick="aplicarTema('dark')"><i data-lucide="moon"></i> Escuro</button>
           </div>
         </div>
       </div>`;
   } catch(e) {
     document.getElementById('dadosContent').innerHTML =
-      '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar dados pessoais.</p></div>';
+      '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar dados pessoais.</p></div>';
   }
 };
 
@@ -316,7 +321,7 @@ const carregarBoletim = async () => {
 
   if (!state.anoAtual) {
     document.getElementById('boletimContent').innerHTML =
-      '<div class="empty-state"><div class="icon">📭</div><p>Nenhum período letivo encontrado.</p></div>';
+      '<div class="empty-state"><div class="icon"><i data-lucide="inbox"></i></div><p>Nenhum período letivo encontrado.</p></div>';
     return;
   }
 
@@ -392,7 +397,7 @@ const carregarBoletim = async () => {
 
     if (!disciplinas.length) {
       document.getElementById('boletimContent').innerHTML =
-        '<div class="empty-state"><div class="icon">📭</div><p>Nenhuma disciplina encontrada.</p></div>';
+        '<div class="empty-state"><div class="icon"><i data-lucide="inbox"></i></div><p>Nenhuma disciplina encontrada.</p></div>';
       return;
     }
 
@@ -650,108 +655,152 @@ const carregarBoletim = async () => {
   } catch(e) {
     console.error('Erro boletim:', e);
     document.getElementById('boletimContent').innerHTML =
-      '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar boletim.</p></div>';
+      '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar boletim.</p></div>';
   }
 };
 
-// ── PROJETOS ───────────────────────────────────────────────────
-const carregarPesquisa = async () => {
-  state.loaded['pesquisa'] = true;
-  await carregarProjetos('pesquisa', '/api/projetos/pesquisa', 'tipo-pesquisa', 'Pesquisa');
+// ── PROJETOS (aba única: áreas Pesquisa/Extensão × fontes Sistema/Admin) ──
+// state.projArea guarda a área (tópico) selecionada: 'pesquisa' | 'extensao'.
+
+const _projMeta = {
+  pesquisa: { class: 'tipo-pesquisa', label: 'Pesquisa' },
+  extensao: { class: 'tipo-extensao', label: 'Extensão' },
 };
 
-const carregarExtensao = async () => {
-  state.loaded['extensao'] = true;
-  await carregarProjetos('extensao', '/api/projetos/extensao', 'tipo-extensao', 'Extensão');
+const carregarProjetos = async () => {
+  state.loaded['projetos'] = true;
+  if (!state.projArea) state.projArea = 'pesquisa';
+  renderProjetosShell();
+  await renderAreaProjetos(state.projArea);
 };
 
-const carregarProjetos = async (id, endpoint, tipoClass, tipoLabel) => {
-  const el = document.getElementById(`${id}Content`);
+// Casca da aba: botões de área (Pesquisa | Extensão) + container do conteúdo.
+const renderProjetosShell = () => {
+  const el = document.getElementById('projetosContent');
+  const aba = (area, label) =>
+    `<button class="${state.projArea === area ? 'ativo' : ''}" onclick="trocarAreaProjetos('${area}')">${label}</button>`;
+  el.innerHTML = `
+    <div class="proj-area-tabs">
+      ${aba('pesquisa', 'Pesquisa')}
+      ${aba('extensao', 'Extensão')}
+    </div>
+    <div id="projetosArea"><div class="loading"><div class="spinner"></div> Buscando projetos…</div></div>`;
+};
+
+// Troca a área selecionada e re-renderiza.
+const trocarAreaProjetos = async (area) => {
+  if (area !== 'pesquisa' && area !== 'extensao') return;
+  state.projArea = area;
+  renderProjetosShell();
+  await renderAreaProjetos(area);
+};
+
+// Recarrega a aba de projetos (após solicitar/cancelar), mantendo a área.
+const recarregarProjetos = (area) => {
+  state.projArea = (area === 'pesquisa' || area === 'extensao') ? area : (state.projArea || 'pesquisa');
+  state.loaded['projetos'] = true;
+  renderProjetosShell();
+  renderAreaProjetos(state.projArea);
+};
+
+// Dentro da área, dois grupos: Projetos do Sistema (SUAP) e
+// Projetos Adicionados pelo Admin (locais).
+const renderAreaProjetos = async (area) => {
+  const cont = document.getElementById('projetosArea');
+  if (!cont) return;
+  const meta = _projMeta[area];
   try {
-    // 1) Projetos vindos do SUAP
-    const projetos = await api(endpoint);
-    if (projetos === null) return; // 401 já redirecionou
+    const [suap, internos] = await Promise.all([
+      api(`/api/projetos/${area}`),
+      api(`/api/projetos-internos/${area}`).catch(() => []),
+    ]);
+    if (suap === null) return; // 401 já redirecionou
 
-    let suapHtml;
-    if (!projetos.length) {
-      suapHtml = `<div class="empty-state"><div class="icon">📭</div>
-        <p>Nenhum projeto de ${tipoLabel.toLowerCase()} encontrado no SUAP.</p></div>`;
-    } else {
-      suapHtml = projetos.map(p => {
-        const titulo = p.titulo || p.nome || 'Sem título';
-        const link = linkProjetoSuap(p, id);
-        const tituloHtml = link
-          ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(titulo)}</a>`
-          : esc(titulo);
-        return `
-        <div class="projeto-card">
-          <span class="projeto-tipo ${tipoClass}">${tipoLabel}</span>
-          <div class="projeto-titulo">${tituloHtml}</div>
-          <div class="projeto-detalhe">
-            ${p.dt_inicio             ? `<span>📅 ${esc(p.dt_inicio)} – ${esc(p.dt_final ?? '?')}</span>`  : ''}
-            ${p.situacao              ? `<span>🔹 ${esc(p.situacao)}</span>`                                : ''}
-            ${p.nome_coordenador      ? `<span>👤 ${esc(p.nome_coordenador)}</span>`                        : ''}
-            ${p.campus_nome_formatado ? `<span>🏫 ${esc(p.campus_nome_formatado)}</span>`                   : ''}
-          </div>
-          ${p.id != null ? `<div class="projeto-acoes">${botaoParticipar(p.meuStatus, `solicitarParticipacaoSuap('${p.id}','${id}')`, `resetarSolicitacaoSuap('${p.id}','${id}')`)}</div>` : ''}
-        </div>`;
-      }).join('');
-    }
+    const suapCards = (Array.isArray(suap) && suap.length)
+      ? suap.map(p => renderProjetoSuap(p, area, meta)).join('')
+      : `<div class="proj-vazio">Nenhum projeto de ${meta.label.toLowerCase()} encontrado no sistema (SUAP).</div>`;
 
-    // 2) Projetos criados pela administração (locais), com botão "Fazer parte"
-    let internosHtml = '';
-    try {
-      const internos = await api(`/api/projetos-internos/${id}`);
-      if (internos && internos.length) {
-        internosHtml = `
-          <div class="projetos-admin-sep">Projetos criados pela administração</div>
-          ${internos.map(p => renderProjetoInterno(p, id, tipoClass, tipoLabel)).join('')}`;
-      }
-    } catch (e) { /* se falhar, mostra apenas os do SUAP */ }
+    const adminCards = (Array.isArray(internos) && internos.length)
+      ? internos.map(p => renderProjetoInterno(p, area, meta.class, meta.label)).join('')
+      : `<div class="proj-vazio">Nenhum projeto adicionado pela administração ainda.</div>`;
 
-    el.innerHTML = suapHtml + internosHtml;
-  } catch(e) {
-    el.innerHTML =
-      '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar projetos.</p></div>';
+    cont.innerHTML = `
+      <div class="proj-fonte">
+        <div class="proj-fonte-titulo"><i data-lucide="server"></i> Projetos do Sistema</div>
+        <div class="proj-lista">${suapCards}</div>
+      </div>
+      <div class="proj-fonte">
+        <div class="proj-fonte-titulo"><i data-lucide="user-cog"></i> Projetos Adicionados pelo Admin</div>
+        <div class="proj-lista">${adminCards}</div>
+      </div>`;
+  } catch (e) {
+    cont.innerHTML =
+      '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar projetos.</p></div>';
   }
 };
 
-// Botão de participação conforme o status do aluno
-const botaoParticipar = (meuStatus, onclickSolicitar, onclickResetar) => {
+// Card de um projeto vindo do SUAP (sistema).
+const renderProjetoSuap = (p, area, meta) => {
+  const titulo = p.titulo || p.nome || 'Sem título';
+  const link = linkProjetoSuap(p, area);
+  const tituloHtml = link
+    ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(titulo)}</a>`
+    : esc(titulo);
+  return `
+    <div class="projeto-card">
+      <span class="projeto-tipo ${meta.class}">${meta.label}</span>
+      <div class="projeto-titulo">${tituloHtml}</div>
+      <div class="projeto-detalhe">
+        ${p.dt_inicio             ? `<span><i data-lucide="calendar"></i> ${esc(p.dt_inicio)} – ${esc(p.dt_final ?? '?')}</span>` : ''}
+        ${p.situacao              ? `<span><i data-lucide="circle-dot"></i> ${esc(p.situacao)}</span>`                              : ''}
+        ${p.nome_coordenador      ? `<span><i data-lucide="user"></i> ${esc(p.nome_coordenador)}</span>`                       : ''}
+        ${p.campus_nome_formatado ? `<span><i data-lucide="school"></i> ${esc(p.campus_nome_formatado)}</span>`                  : ''}
+      </div>
+      ${p.id != null ? `<div class="projeto-acoes">${botaoParticipar(p.meuStatus, `solicitarParticipacaoSuap('${p.id}','${area}')`, `resetarSolicitacaoSuap('${p.id}','${area}')`)}</div>` : ''}
+    </div>`;
+};
+
+// Botão/estado de participação conforme o status do aluno.
+//  - sem status → "Fazer parte"
+//  - pendente   → aviso + "Cancelar solicitação"
+//  - aceito     → "Você faz parte" (sem ação)
+//  - recusado   → "tentar de novo" (apaga a recusada e libera novo pedido)
+const botaoParticipar = (meuStatus, onclickSolicitar, onclickCancelar) => {
   switch (meuStatus) {
-    case 'pendente': return `<button class="btn-participar pendente" disabled>⏳ Solicitação enviada</button>`;
-    case 'aceito':   return `<button class="btn-participar aceito" disabled>✓ Você faz parte</button>`;
-    case 'recusado': return `<button class="btn-participar recusado" onclick="${onclickResetar}" title="Solicitação recusada — clique para solicitar de novo">✕ Recusada · tentar de novo</button>`;
+    case 'pendente': return `
+      <span class="status-pendente"><i data-lucide="hourglass"></i> Solicitação enviada</span>
+      <button class="btn-participar cancelar" onclick="${onclickCancelar}" title="Cancelar sua solicitação"><i data-lucide="x"></i> Cancelar solicitação</button>`;
+    case 'aceito':   return `<button class="btn-participar aceito" disabled><i data-lucide="check"></i> Você faz parte</button>`;
+    case 'recusado': return `<button class="btn-participar recusado" onclick="${onclickCancelar}" title="Solicitação recusada — clique para solicitar de novo"><i data-lucide="x"></i> Recusada · tentar de novo</button>`;
     default:         return `<button class="btn-participar" onclick="${onclickSolicitar}">+ Fazer parte</button>`;
   }
 };
 
-// Card de projeto criado pela administração, com botão de participação
-const renderProjetoInterno = (p, tipo, tipoClass, tipoLabel) => {
-  const botao = botaoParticipar(p.meuStatus, `solicitarParticipacao('${p._id}','${tipo}')`, `resetarSolicitacao('${p._id}','${tipo}')`);
+// Card de projeto criado pela administração (local).
+const renderProjetoInterno = (p, area, tipoClass, tipoLabel) => {
+  const botao = botaoParticipar(p.meuStatus, `solicitarParticipacao('${p._id}','${area}')`, `resetarSolicitacao('${p._id}','${area}')`);
   const link = linkProjetoSuap(p);
   const titulo = p.titulo || 'Sem título';
   const tituloHtml = link
     ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(titulo)}</a>`
     : esc(titulo);
-
   return `
     <div class="projeto-card projeto-admin">
       <span class="projeto-tipo ${tipoClass}">${tipoLabel} · Administração</span>
       <div class="projeto-titulo">${tituloHtml}</div>
       ${p.resumo ? `<p class="projeto-resumo">${esc(p.resumo)}</p>` : ''}
       <div class="projeto-detalhe">
-        ${p.dt_inicio   ? `<span>📅 ${esc(p.dt_inicio)} – ${esc(p.dt_final ?? '?')}</span>` : ''}
-        ${p.situacao    ? `<span>🔹 ${esc(p.situacao)}</span>`                              : ''}
-        ${p.coordenador ? `<span>👤 ${esc(p.coordenador)}</span>`                           : ''}
-        ${p.campus_nome ? `<span>🏫 ${esc(p.campus_nome)}</span>`                           : ''}
+        ${p.dt_inicio   ? `<span><i data-lucide="calendar"></i> ${esc(p.dt_inicio)} – ${esc(p.dt_final ?? '?')}</span>` : ''}
+        ${p.situacao    ? `<span><i data-lucide="circle-dot"></i> ${esc(p.situacao)}</span>`                              : ''}
+        ${p.coordenador ? `<span><i data-lucide="user"></i> ${esc(p.coordenador)}</span>`                           : ''}
+        ${p.campus_nome ? `<span><i data-lucide="school"></i> ${esc(p.campus_nome)}</span>`                           : ''}
       </div>
       <div class="projeto-acoes">${botao}</div>
     </div>`;
 };
 
-// Envia a solicitação de participação e recarrega a seção
-const solicitarParticipacao = async (projetoId, tipo) => {
+// Envia a solicitação de participação (projeto local) e recarrega a aba.
+const solicitarParticipacao = async (projetoId, area) => {
   try {
     const res = await fetch(`/api/projetos-internos/${projetoId}/solicitar`, {
       method: 'POST',
@@ -759,79 +808,55 @@ const solicitarParticipacao = async (projetoId, tipo) => {
     });
     if (res.status === 401) { window.location.href = '/login'; return; }
     const data = await res.json();
-
-    if (res.ok && data.sucesso) {
-      delete state.loaded[tipo];
-      document.getElementById(`${tipo}Content`).innerHTML =
-        '<div class="loading"><div class="spinner"></div> Atualizando…</div>';
-      if (tipo === 'pesquisa') carregarPesquisa();
-      else carregarExtensao();
-    } else {
-      alert(data.erro || 'Não foi possível enviar a solicitação.');
-    }
+    if (res.ok && data.sucesso) recarregarProjetos(area);
+    else alert(data.erro || 'Não foi possível enviar a solicitação.');
   } catch (e) {
     alert('Erro de conexão ao enviar a solicitação.');
   }
 };
 
-// Envia a solicitação de participação em um projeto do SUAP
-const solicitarParticipacaoSuap = async (suapId, tipo) => {
+// Envia a solicitação de participação (projeto do SUAP) e recarrega a aba.
+const solicitarParticipacaoSuap = async (suapId, area) => {
   try {
     const res = await fetch(`/api/projetos-suap/${suapId}/solicitar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ tipo }),
+      body: JSON.stringify({ tipo: area }),
     });
     if (res.status === 401) { window.location.href = '/login'; return; }
     const data = await res.json();
-
-    if (res.ok && data.sucesso) {
-      delete state.loaded[tipo];
-      document.getElementById(`${tipo}Content`).innerHTML =
-        '<div class="loading"><div class="spinner"></div> Atualizando…</div>';
-      if (tipo === 'pesquisa') carregarPesquisa();
-      else carregarExtensao();
-    } else {
-      alert(data.erro || 'Não foi possível enviar a solicitação.');
-    }
+    if (res.ok && data.sucesso) recarregarProjetos(area);
+    else alert(data.erro || 'Não foi possível enviar a solicitação.');
   } catch (e) {
     alert('Erro de conexão ao enviar a solicitação.');
   }
 };
 
-// Recarrega a seção de projetos (pesquisa/extensão) após uma ação
-const recarregarSecaoProjetos = (tipo) => {
-  delete state.loaded[tipo];
-  document.getElementById(`${tipo}Content`).innerHTML =
-    '<div class="loading"><div class="spinner"></div> Atualizando…</div>';
-  if (tipo === 'pesquisa') carregarPesquisa();
-  else carregarExtensao();
-};
-
-// Cancela uma solicitação RECUSADA (projeto da administração) → volta para "Fazer parte"
-const resetarSolicitacao = async (projetoId, tipo) => {
+// Cancela a solicitação (pendente → desistência; recusada → tentar de novo)
+// de um projeto local, e recarrega a aba.
+const resetarSolicitacao = async (projetoId, area) => {
   try {
     const res = await fetch(`/api/projetos-internos/${projetoId}/solicitacao`, {
       method: 'DELETE',
       credentials: 'include',
     });
     if (res.status === 401) { window.location.href = '/login'; return; }
-    recarregarSecaoProjetos(tipo);
+    recarregarProjetos(area);
   } catch (e) {
     alert('Erro de conexão.');
   }
 };
 
-// Cancela uma solicitação RECUSADA (projeto do SUAP) → volta para "Fazer parte"
-const resetarSolicitacaoSuap = async (suapId, tipo) => {
+// Cancela a solicitação (pendente/recusada) de um projeto do SUAP.
+const resetarSolicitacaoSuap = async (suapId, area) => {
   try {
     const res = await fetch(`/api/projetos-suap/${suapId}/solicitacao`, {
       method: 'DELETE',
       credentials: 'include',
     });
     if (res.status === 401) { window.location.href = '/login'; return; }
-    recarregarSecaoProjetos(tipo);
+    recarregarProjetos(area);
   } catch (e) {
     alert('Erro de conexão.');
   }
@@ -854,7 +879,7 @@ const carregarCalendario = async () => {
     });
 
     if (!doAno.length) {
-      el.innerHTML = `<div class="empty-state"><div class="icon">📅</div><p>Nenhum evento encontrado para ${anoAtual}.</p></div>`;
+      el.innerHTML = `<div class="empty-state"><div class="icon"><i data-lucide="calendar"></i></div><p>Nenhum evento encontrado para ${anoAtual}.</p></div>`;
       return;
     }
 
@@ -884,7 +909,7 @@ const carregarCalendario = async () => {
     }).join('')}</div>`;
   } catch(e) {
     document.getElementById('calendarioContent').innerHTML =
-      '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar calendário.</p></div>';
+      '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar calendário.</p></div>';
   }
 };
 
@@ -904,38 +929,38 @@ const carregarConquistas = async () => {
         <div>
           <div class="nome">${esc(c.nome)}</div>
           ${c.descricao ? `<div class="desc">${esc(c.descricao)}</div>` : ''}
-          <span class="pts">⭐ ${Number(c.pontos) || 0} pts</span>
+          <span class="pts"><i data-lucide="star"></i> ${Number(c.pontos) || 0} pts</span>
           ${(!desbloqueada && c.origem === 'automatica')
-            ? `<span class="auto">⚙ Automática</span>` : ''}
+            ? `<span class="auto"><i data-lucide="settings"></i> Automática</span>` : ''}
         </div>
       </div>`;
 
     const grupoDesbloqueadas = desbloqueadas.length
       ? `<div class="conq-grid">${desbloqueadas.map(c => card(c, true)).join('')}</div>`
-      : `<div class="conq-vazio">Você ainda não desbloqueou nenhuma conquista. Veja abaixo o que dá para conquistar! 👇</div>`;
+      : `<div class="conq-vazio">Você ainda não desbloqueou nenhuma conquista. Veja abaixo o que dá para conquistar! <i data-lucide="arrow-down"></i></div>`;
 
     const grupoDisponiveis = disponiveis.length
       ? `<div class="conq-grid">${disponiveis.map(c => card(c, false)).join('')}</div>`
-      : `<div class="conq-vazio">Você já desbloqueou todas as conquistas disponíveis. Parabéns! 🎉</div>`;
+      : `<div class="conq-vazio">Você já desbloqueou todas as conquistas disponíveis. Parabéns! <i data-lucide="party-popper"></i></div>`;
 
     el.innerHTML = `
       <div class="conq-resumo">
-        <span class="estrela">⭐</span>
+        <span class="estrela"><i data-lucide="star"></i></span>
         <div>
           <div class="total">${pontos}</div>
           <div class="label">pontos acumulados · ${desbloqueadas.length} conquista(s)</div>
         </div>
       </div>
 
-      <div class="conq-grupo-titulo">✅ Desbloqueadas</div>
+      <div class="conq-grupo-titulo"><i data-lucide="badge-check"></i> Desbloqueadas</div>
       ${grupoDesbloqueadas}
 
-      <div class="conq-grupo-titulo">🔒 Disponíveis</div>
+      <div class="conq-grupo-titulo"><i data-lucide="lock"></i> Disponíveis</div>
       ${grupoDisponiveis}
     `;
   } catch (e) {
     el.innerHTML =
-      '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar conquistas.</p></div>';
+      '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar conquistas.</p></div>';
   }
 };
 
@@ -977,12 +1002,12 @@ const carregarDashboard = async () => {
           return `
             <div class="dash-rank-row ${r.isMe ? 'eu' : ''}">
               <div class="pos ${cls}">${r.posicao}º</div>
-              <div class="av">👤</div>
+              <div class="av"><i data-lucide="user"></i></div>
               <div class="nm">${esc(r.nome)}${r.isMe ? ' (Você)' : ''}</div>
               <div class="xp">${r.pontos} xp</div>
             </div>`;
         }).join('')
-      : `<div style="color:var(--cinza);font-size:0.88rem;padding:0.5rem 0">Ninguém pontuou ainda. 🚀</div>`;
+      : `<div style="color:var(--cinza);font-size:0.88rem;padding:0.5rem 0">Ninguém pontuou ainda. <i data-lucide="rocket"></i></div>`;
 
     // ── Timeline de eventos (passados + futuros) ──
     const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
@@ -1027,7 +1052,7 @@ const carregarDashboard = async () => {
     passados.slice(0, 5).forEach(ev => { timelineHtml += linhaEvento(ev, 'passado'); });
 
     if (!comData.length) {
-      timelineHtml = `<div style="color:var(--cinza);font-size:0.88rem;padding:0.5rem 0">Nenhum evento no calendário ainda. 🌱</div>`;
+      timelineHtml = `<div style="color:var(--cinza);font-size:0.88rem;padding:0.5rem 0">Nenhum evento no calendário ainda. <i data-lucide="sprout"></i></div>`;
     }
 
     // ── Montagem ──
@@ -1038,14 +1063,14 @@ const carregarDashboard = async () => {
           <h2>Olá, ${esc(primeiroNome)}!</h2>
           ${dash.curso ? `<div class="curso">${esc(dash.curso)}</div>` : ''}
           <div class="dash-nivel-linha">
-            <span class="badge-nivel">♟ Nível ${n.nivel} · ${esc(n.nome || '')}</span>
-            <span>${n.faltamParaProximo ? `${n.faltamParaProximo} pts p/ ${esc(n.proximoNome)}` : 'nível máximo 🏆'}</span>
+            <span class="badge-nivel"><i data-lucide="award"></i> Nível ${n.nivel} · ${esc(n.nome || '')}</span>
+            <span>${n.faltamParaProximo ? `${n.faltamParaProximo} pts p/ ${esc(n.proximoNome)}` : 'nível máximo <i data-lucide="trophy"></i>'}</span>
           </div>
           <div class="dash-barra"><span style="width:${Math.min(100, Math.max(0, n.progresso || 0))}%"></span></div>
         </div>
         <div class="indicadores">
-          <div class="indicador"><div class="ic">⭐</div><div class="v">${dash.pontos}</div><div class="l">Pontos</div></div>
-          <div class="indicador"><div class="ic">🏆</div><div class="v">${dash.posicaoGeral}º</div><div class="l">Lugar<br>Ranking Geral</div></div>
+          <div class="indicador"><div class="ic"><i data-lucide="star"></i></div><div class="v">${dash.pontos}</div><div class="l">Pontos</div></div>
+          <div class="indicador"><div class="ic"><i data-lucide="trophy"></i></div><div class="v">${dash.posicaoGeral}º</div><div class="l">Lugar<br>Ranking Geral</div></div>
         </div>
       </div>
 
@@ -1053,14 +1078,14 @@ const carregarDashboard = async () => {
         <div>
           <div class="dash-mini-row">
             <div class="dash-mini" onclick="irParaSecao('ranking')">
-              <span class="seta">→</span>
-              <div class="ic">🏆</div>
+              <span class="seta"><i data-lucide="arrow-right"></i></span>
+              <div class="ic"><i data-lucide="trophy"></i></div>
               <div class="v">${dash.posicaoGeral}º</div>
               <div class="l">Lugar<br>Ranking Geral</div>
             </div>
             <div class="dash-mini" onclick="irParaSecao('conquistas')">
-              <span class="seta">→</span>
-              <div class="ic">🎖️</div>
+              <span class="seta"><i data-lucide="arrow-right"></i></span>
+              <div class="ic"><i data-lucide="medal"></i></div>
               <div class="v">${dash.totalConquistas}</div>
               <div class="l">Conquistas<br>Desbloqueadas</div>
             </div>
@@ -1081,7 +1106,7 @@ const carregarDashboard = async () => {
       </div>
     `;
   } catch (e) {
-    el.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar o painel.</p></div>';
+    el.innerHTML = '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar o painel.</p></div>';
   }
 };
 
@@ -1107,8 +1132,8 @@ const renderRanking = async () => {
 
     const toggle = `
       <div class="rank-toggle">
-        <button class="${_rankEscopo === 'geral' ? 'ativo' : ''}" onclick="trocarEscopoRanking('geral')">🌎 Geral</button>
-        <button class="${_rankEscopo === 'curso' ? 'ativo' : ''}" onclick="trocarEscopoRanking('curso')">🎓 Meu curso</button>
+        <button class="${_rankEscopo === 'geral' ? 'ativo' : ''}" onclick="trocarEscopoRanking('geral')"><i data-lucide="globe"></i> Geral</button>
+        <button class="${_rankEscopo === 'curso' ? 'ativo' : ''}" onclick="trocarEscopoRanking('curso')"><i data-lucide="graduation-cap"></i> Meu curso</button>
       </div>`;
 
     // Caso o aluno não tenha curso registrado ainda
@@ -1124,7 +1149,7 @@ const renderRanking = async () => {
     const medalha = (pos) =>
       pos === 1 ? 'ouro' : pos === 2 ? 'prata' : pos === 3 ? 'bronze' : '';
     const simbolo = (pos) =>
-      pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos;
+      pos === 1 ? '<i data-lucide="medal"></i>' : pos === 2 ? '<i data-lucide="medal"></i>' : pos === 3 ? '<i data-lucide="medal"></i>' : pos;
 
     const eu = dados.eu || {};
     const cabecalhoEu = `
@@ -1134,24 +1159,24 @@ const renderRanking = async () => {
           <div class="n">${esc(eu.nome || 'Você')}</div>
           <div class="s">Sua posição ${dados.escopo === 'curso' ? 'no curso' : 'geral'} · entre ${dados.total} aluno(s)</div>
         </div>
-        <div class="pts">⭐ ${eu.pontos || 0}</div>
+        <div class="pts"><i data-lucide="star"></i> ${eu.pontos || 0}</div>
       </div>`;
 
     let lista;
     if (!dados.ranking.length) {
-      lista = `<div class="rank-vazio">Ninguém pontuou ainda. Seja o primeiro! 🚀</div>`;
+      lista = `<div class="rank-vazio">Ninguém pontuou ainda. Seja o primeiro! <i data-lucide="rocket"></i></div>`;
     } else {
       lista = `<div class="rank-lista">` + dados.ranking.map(r => `
         <div class="rank-row ${r.isMe ? 'eu' : ''}">
           <div class="col-pos ${medalha(r.posicao)}">${simbolo(r.posicao)}</div>
           <div class="col-nome">${esc(r.nome)}${r.isMe ? '<span class="vc">VOCÊ</span>' : ''}</div>
-          <div class="col-pts">⭐ ${r.pontos}</div>
+          <div class="col-pts"><i data-lucide="star"></i> ${r.pontos}</div>
         </div>`).join('') + `</div>`;
     }
 
     el.innerHTML = toggle + cabecalhoEu + lista;
   } catch (e) {
-    el.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar o ranking.</p></div>';
+    el.innerHTML = '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar o ranking.</p></div>';
   }
 };
 
@@ -1169,7 +1194,7 @@ const carregarTrajetoria = async () => {
     if (!itens.length) {
       el.innerHTML = `
         <div class="traj-resumo">
-          <span class="ic">🧭</span>
+          <span class="ic"><i data-lucide="compass"></i></span>
           <div>
             <div class="total">0</div>
             <div class="label">Sua trajetória ainda está começando</div>
@@ -1179,7 +1204,7 @@ const carregarTrajetoria = async () => {
           <div class="traj-vazio">
             Assim que você desbloquear conquistas ou tiver uma participação em
             projeto aceita, os marcos vão aparecer aqui — do mais recente para
-            o mais antigo. 🚀
+            o mais antigo. <i data-lucide="rocket"></i>
           </div>
         </div>`;
       return;
@@ -1228,7 +1253,7 @@ const carregarTrajetoria = async () => {
 
     el.innerHTML = `
       <div class="traj-resumo">
-        <span class="ic">🧭</span>
+        <span class="ic"><i data-lucide="compass"></i></span>
         <div>
           <div class="total">${itens.length}</div>
           <div class="label">marco(s) na sua trajetória até agora</div>
@@ -1238,7 +1263,7 @@ const carregarTrajetoria = async () => {
         <div class="dash-timeline">${linhas}</div>
       </div>`;
   } catch (e) {
-    el.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar a sua trajetória.</p></div>';
+    el.innerHTML = '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar a sua trajetória.</p></div>';
   }
 };
 

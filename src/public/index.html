@@ -42,39 +42,31 @@
   </div>
 
   <nav>
-    <div class="nav-section">Início</div>
     <div class="nav-item active" data-section="dashboard">
-      <span class="nav-icon">🏠</span> Dashboard
+      <span class="nav-icon"><i data-lucide="home"></i></span> Dashboard
     </div>
-    <div class="nav-section">Acadêmico</div>
     <div class="nav-item" data-section="dados">
-      <span class="nav-icon">👤</span> Dados &amp; Perfil
+      <span class="nav-icon"><i data-lucide="user"></i></span> Dados &amp; Perfil
     </div>
-    <div class="nav-section">Atividades</div>
-    <div class="nav-item" data-section="pesquisa">
-      <span class="nav-icon">🔬</span> Projetos de Pesquisa
+    <div class="nav-item" data-section="projetos">
+      <span class="nav-icon"><i data-lucide="folder"></i></span> Projetos
     </div>
-    <div class="nav-item" data-section="extensao">
-      <span class="nav-icon">🌱</span> Projetos de Extensão
-    </div>
-    <div class="nav-section">Institucional</div>
     <div class="nav-item" data-section="calendario">
-      <span class="nav-icon">📅</span> Calendário
+      <span class="nav-icon"><i data-lucide="calendar"></i></span> Calendário
     </div>
-    <div class="nav-section">Gamificação</div>
     <div class="nav-item" data-section="trajetoria">
-      <span class="nav-icon">🧭</span> Minha Trajetória
+      <span class="nav-icon"><i data-lucide="compass"></i></span> Minha Trajetória
     </div>
     <div class="nav-item" data-section="conquistas">
-      <span class="nav-icon">🏆</span> Conquistas
+      <span class="nav-icon"><i data-lucide="trophy"></i></span> Conquistas
     </div>
     <div class="nav-item" data-section="ranking">
-      <span class="nav-icon">📈</span> Ranking
+      <span class="nav-icon"><i data-lucide="trending-up"></i></span> Ranking
     </div>
   </nav>
 
   <div class="sidebar-footer">
-    <button class="btn-logout" onclick="logout()">↩ Sair</button>
+    <button class="btn-logout" onclick="logout()"><i data-lucide="log-out"></i> Sair</button>
   </div>
 </aside>
 
@@ -98,14 +90,8 @@
       </div>
     </section>
 
-    <section class="section" id="section-pesquisa">
-      <div id="pesquisaContent">
-        <div class="loading"><div class="spinner"></div> Buscando projetos…</div>
-      </div>
-    </section>
-
-    <section class="section" id="section-extensao">
-      <div id="extensaoContent">
+    <section class="section" id="section-projetos">
+      <div id="projetosContent">
         <div class="loading"><div class="spinner"></div> Buscando projetos…</div>
       </div>
     </section>
@@ -387,8 +373,7 @@
         <h4>Acadêmico</h4>
         <ul>
           <li><a href="#" data-section="dados">Dados &amp; Perfil</a></li>
-          <li><a href="#" data-section="pesquisa">Projetos de Pesquisa</a></li>
-          <li><a href="#" data-section="extensao">Projetos de Extensão</a></li>
+          <li><a href="#" data-section="projetos">Projetos</a></li>
           <li><a href="#" data-section="calendario">Calendário</a></li>
         </ul>
       </div>
@@ -405,12 +390,36 @@
 
     <div class="footer-bottom">
       <span>© <span id="footerYear"></span> IFPlenus · IFPR — Instituto Federal do Paraná</span>
-      <a class="footer-admin-link" href="/admin/login">🔒 Acesso administrativo</a>
+      <a class="footer-admin-link" href="/admin/login"><i data-lucide="lock"></i> Acesso administrativo</a>
     </div>
   </footer>
 </main>
 
 <script src="/portal.js"></script>
+<!-- Ícones (Lucide): converte os <i data-lucide> em SVG e re-renderiza
+     quando o conteúdo dinâmico muda (dashboard, ranking, conquistas…). -->
+<script src="https://unpkg.com/lucide@0.330.0/dist/umd/lucide.min.js"></script>
+<script>
+  (function () {
+    let agendado = false;
+    const desenhar = () => {
+      if (!window.lucide || agendado) return;
+      agendado = true;
+      requestAnimationFrame(() => { agendado = false; window.lucide.createIcons(); });
+    };
+    const iniciar = () => {
+      desenhar();
+      new MutationObserver(desenhar).observe(document.body, { childList: true, subtree: true });
+    };
+    // Espera o script do CDN carregar (defensivo: funciona mesmo se o
+    // <script> do Lucide ainda não tiver executado quando este rodar).
+    if (window.lucide) iniciar();
+    else {
+      const t = setInterval(() => { if (window.lucide) { clearInterval(t); iniciar(); } }, 50);
+      setTimeout(() => clearInterval(t), 8000);
+    }
+  })();
+</script>
 <script>
   // Ano atual no rodapé
   document.getElementById('footerYear').textContent = new Date().getFullYear();
