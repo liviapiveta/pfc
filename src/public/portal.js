@@ -1136,6 +1136,17 @@ const renderRanking = async () => {
         <button class="${_rankEscopo === 'curso' ? 'ativo' : ''}" onclick="trocarEscopoRanking('curso')"><i data-lucide="graduation-cap"></i> Meu curso</button>
       </div>`;
 
+    // Aviso explicando o critério de classificação (e o desempate).
+    const rankInfo = `
+      <div class="rank-info">
+        <span class="ic"><i data-lucide="info"></i></span>
+        <p>O ranking ordena os alunos pelo total de <strong>estrelas (pontos)</strong>,
+           da maior para a menor. Em caso de <strong>empate de pontos</strong>, fica à
+           frente quem <strong>alcançou aquele total primeiro</strong> — ou seja, quem
+           teve a conquista mais recente concedida mais cedo. Permanecendo o empate
+           (alunos ainda sem pontos), a ordem é alfabética.</p>
+      </div>`;
+
     // Caso o aluno não tenha curso registrado ainda
     if (dados.semCurso) {
       el.innerHTML = toggle + `
@@ -1174,7 +1185,7 @@ const renderRanking = async () => {
         </div>`).join('') + `</div>`;
     }
 
-    el.innerHTML = toggle + cabecalhoEu + lista;
+    el.innerHTML = toggle + rankInfo + cabecalhoEu + lista;
   } catch (e) {
     el.innerHTML = '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar o ranking.</p></div>';
   }

@@ -921,3 +921,13 @@ svg.lucide {
 .status-pendente { display:inline-flex; align-items:center; gap:0.35rem; font-size:0.85rem; font-weight:600; color:var(--amarelo); }
 .btn-participar.cancelar { background:transparent; color:#ff6b6b; border:1px solid #ff6b6b; }
 .btn-participar.cancelar:hover { background:rgba(255,107,107,0.12); }
+
+/* ── Ranking: aviso explicativo ── */
+.rank-info {
+  display:flex; gap:0.7rem; align-items:flex-start;
+  background:rgba(68,216,131,0.08); border:1px solid rgba(68,216,131,0.25);
+  border-radius:12px; padding:0.85rem 1rem; margin-bottom:1.4rem;
+}
+.rank-info .ic { color:var(--verde); font-size:1.1rem; flex-shrink:0; line-height:1; margin-top:0.15rem; }
+.rank-info p { color:var(--texto-2); font-size:0.85rem; line-height:1.6; margin:0; }
+.rank-info strong { color:var(--texto); font-weight:600; }

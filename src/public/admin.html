@@ -527,6 +527,15 @@
 
     /* Ícones (Lucide) — herdam tamanho (1em) e cor (currentColor) do contexto */
     svg.lucide { width:1em; height:1em; display:inline-block; vertical-align:-0.125em; flex-shrink:0; stroke-width:2; }
+    /* Abas de área (Pesquisa | Extensão) da seção Projetos */
+    .proj-area-tabs { display:flex; gap:0.5rem; margin-bottom:1.4rem; }
+    .proj-area-tabs button {
+      flex:0 0 auto; padding:0.5rem 1.3rem; border-radius:99px; cursor:pointer;
+      font-family:'DM Sans',sans-serif; font-size:0.9rem; font-weight:600;
+      background:transparent; color:var(--texto-2); border:1px solid var(--borda); transition:all .15s;
+    }
+    .proj-area-tabs button:hover { border-color:var(--verde); color:#fff; }
+    .proj-area-tabs button.ativo { background:var(--verde); color:#06281a; border-color:var(--verde); }
   </style>
 </head>
 <body>
@@ -540,27 +549,18 @@
   </div>
   <div class="admin-pill"><i data-lucide="settings"></i> Painel Admin</div>
   <nav>
-    <div class="nav-section">Conteúdo</div>
     <div class="nav-item active" data-section="overview">
       <span class="nav-icon"><i data-lucide="bar-chart-3"></i></span> Visão Geral
     </div>
-    <div class="nav-item" data-section="pesquisa">
-      <span class="nav-icon"><i data-lucide="microscope"></i></span> Projetos de Pesquisa
-    </div>
-    <div class="nav-item" data-section="extensao">
-      <span class="nav-icon"><i data-lucide="sprout"></i></span> Projetos de Extensão
+    <div class="nav-item" data-section="projetos">
+      <span class="nav-icon"><i data-lucide="folder"></i></span> Projetos
     </div>
     <div class="nav-item" data-section="eventos">
       <span class="nav-icon"><i data-lucide="calendar"></i></span> Eventos do Calendário
     </div>
-    <div class="nav-section">Participação</div>
     <div class="nav-item" data-section="solicitacoes">
       <span class="nav-icon"><i data-lucide="mail"></i></span> Solicitações
     </div>
-    <div class="nav-item" data-section="suap">
-      <span class="nav-icon"><i data-lucide="link"></i></span> Projetos do SUAP
-    </div>
-    <div class="nav-section">Gamificação</div>
     <div class="nav-item" data-section="conquistas">
       <span class="nav-icon"><i data-lucide="trophy"></i></span> Conquistas
     </div>
@@ -598,27 +598,34 @@
       </div>
     </section>
 
-    <!-- PESQUISA -->
-    <section class="section" id="section-pesquisa">
+    <!-- PROJETOS (pesquisa + extensão + espelho do SUAP, em uma aba) -->
+    <section class="section" id="section-projetos">
+      <div class="proj-area-tabs" id="projAreaTabs">
+        <button class="ativo" data-area="pesquisa" onclick="trocarAreaAdmin('pesquisa')">Pesquisa</button>
+        <button data-area="extensao" onclick="trocarAreaAdmin('extensao')">Extensão</button>
+      </div>
+
       <div class="card">
         <div class="card-header">
-          <span class="card-title">Projetos de Pesquisa</span>
-          <button class="btn-add" onclick="abrirModal('pesquisa')">+ Novo projeto</button>
+          <span class="card-title">Projetos Adicionados pelo Admin · <span id="projAreaLabel1">Pesquisa</span></span>
+          <button class="btn-add" onclick="abrirModal(state.projArea)">+ Novo projeto</button>
         </div>
-        <div id="pesquisaList">
+        <div id="projAdminList">
           <div class="loading"><div class="spinner"></div> Carregando…</div>
         </div>
       </div>
-    </section>
 
-    <!-- EXTENSAO -->
-    <section class="section" id="section-extensao">
       <div class="card">
         <div class="card-header">
-          <span class="card-title">Projetos de Extensão</span>
-          <button class="btn-add" onclick="abrirModal('extensao')">+ Novo projeto</button>
+          <span class="card-title">Projetos do Sistema · SUAP · <span id="projAreaLabel2">Pesquisa</span></span>
         </div>
-        <div id="extensaoList">
+        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
+          Espelho dos projetos que vêm do SUAP (somente leitura). A lista é preenchida
+          conforme os alunos abrem a aba <strong>Projetos</strong> no portal — o painel
+          não acessa o SUAP diretamente. Os alunos podem solicitar participação nestes
+          projetos, e os pedidos aparecem em <strong>Solicitações</strong>.
+        </p>
+        <div id="projSuapList">
           <div class="loading"><div class="spinner"></div> Carregando…</div>
         </div>
       </div>
@@ -648,25 +655,6 @@
           confirmar a participação ou recuse a solicitação.
         </p>
         <div id="solicitacoesList">
-          <div class="loading"><div class="spinner"></div> Carregando…</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- PROJETOS DO SUAP (somente leitura) -->
-    <section class="section" id="section-suap">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">Projetos do SUAP</span>
-        </div>
-        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
-          Espelho dos projetos que vêm do SUAP (somente leitura). A lista é
-          preenchida conforme os alunos abrem as abas de Pesquisa/Extensão no
-          portal — o painel não acessa o SUAP diretamente. Os alunos podem
-          solicitar participação nestes projetos, e os pedidos aparecem em
-          <strong>Solicitações</strong>.
-        </p>
-        <div id="suapList">
           <div class="loading"><div class="spinner"></div> Carregando…</div>
         </div>
       </div>
@@ -718,6 +706,7 @@
 // ─────────────────────────────────────────────────────
 const state = {
   secaoAtiva: 'overview',
+  projArea: 'pesquisa',
   modalTipo: null,
   editandoId: null,
 };
@@ -759,11 +748,9 @@ document.querySelectorAll('.nav-item').forEach(item => {
     document.getElementById(`section-${sec}`).classList.add('active');
     const titles = {
       overview: 'Visão Geral',
-      pesquisa: 'Projetos de Pesquisa',
-      extensao: 'Projetos de Extensão',
+      projetos: 'Projetos',
       eventos:  'Eventos do Calendário',
       solicitacoes: 'Solicitações de Participação',
-      suap: 'Projetos do SUAP',
       conquistas: 'Conquistas',
     };
     document.getElementById('topbarTitle').textContent = titles[sec] || '';
@@ -806,39 +793,17 @@ document.querySelectorAll('.nav-item').forEach(item => {
 // ─────────────────────────────────────────────────────
 const carregarLista = async (tipo) => {
   if (tipo === 'conquistas') return carregarConquistas();
+  if (tipo === 'projetos')   return carregarProjetosAdminSec();
 
-  const elMap = { pesquisa: 'pesquisaList', extensao: 'extensaoList', eventos: 'eventosList', solicitacoes: 'solicitacoesList', suap: 'suapList' };
+  const elMap = { eventos: 'eventosList', solicitacoes: 'solicitacoesList' };
   const el = document.getElementById(elMap[tipo]);
   if (!el) return;
   el.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
 
-  // Catálogo do SUAP: junta pesquisa + extensão (somente leitura)
-  if (tipo === 'suap') {
-    try {
-      const [pesquisa, extensao] = await Promise.all([
-        apiJSON('/api/admin/projetos-suap/pesquisa'),
-        apiJSON('/api/admin/projetos-suap/extensao'),
-      ]);
-      const dados = [
-        ...(pesquisa || []).map(p => ({ ...p, tipo: 'pesquisa' })),
-        ...(extensao || []).map(p => ({ ...p, tipo: 'extensao' })),
-      ];
-      if (!dados.length) {
-        el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>Nenhum projeto do SUAP em cache ainda. Peça para um aluno abrir as abas de Pesquisa/Extensão no portal.</p></div>`;
-        return;
-      }
-      el.innerHTML = renderTabelaProjetosSuap(dados);
-    } catch(e) {
-      el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
-    }
-    return;
-  }
-
   try {
     const endpoint =
       tipo === 'solicitacoes' ? '/api/admin/solicitacoes'
-      : tipo === 'eventos'    ? '/api/admin/eventos'
-      : `/api/admin/projetos/${tipo}`;
+      : '/api/admin/eventos';
     const dados = await apiJSON(endpoint);
     if (!dados) return;
 
@@ -850,15 +815,65 @@ const carregarLista = async (tipo) => {
 
     if (tipo === 'solicitacoes') {
       el.innerHTML = renderTabelaSolicitacoes(dados);
-    } else if (tipo === 'eventos') {
-      el.innerHTML = renderTabelaEventos(dados);
     } else {
-      el.innerHTML = renderTabelaProjetos(dados, tipo);
+      el.innerHTML = renderTabelaEventos(dados);
     }
   } catch(e) {
     el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
   }
 };
+
+// ── Seção Projetos (unificada): área Pesquisa/Extensão × fontes Admin/SUAP ──
+const trocarAreaAdmin = (area) => {
+  if (area !== 'pesquisa' && area !== 'extensao') return;
+  state.projArea = area;
+  carregarProjetosAdminSec();
+};
+
+const carregarProjetosAdminSec = async () => {
+  const area  = (state.projArea === 'extensao') ? 'extensao' : 'pesquisa';
+  const label = area === 'pesquisa' ? 'Pesquisa' : 'Extensão';
+
+  // Marca a aba ativa e atualiza os rótulos dos dois grupos
+  document.querySelectorAll('#projAreaTabs button').forEach(b =>
+    b.classList.toggle('ativo', b.dataset.area === area));
+  const l1 = document.getElementById('projAreaLabel1');
+  const l2 = document.getElementById('projAreaLabel2');
+  if (l1) l1.textContent = label;
+  if (l2) l2.textContent = label;
+
+  const adminEl = document.getElementById('projAdminList');
+  const suapEl  = document.getElementById('projSuapList');
+  if (!adminEl || !suapEl) return;
+  adminEl.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+  suapEl.innerHTML  = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+
+  // 1) Projetos cadastrados pela administração (CRUD)
+  try {
+    const dados = await apiJSON(`/api/admin/projetos/${area}`);
+    if (!dados || !dados.length) {
+      adminEl.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>Nenhum projeto de ${label.toLowerCase()} cadastrado ainda.</p></div>`;
+    } else {
+      adminEl.innerHTML = renderTabelaProjetos(dados, area);
+    }
+  } catch(e) {
+    adminEl.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+  }
+
+  // 2) Espelho do SUAP (somente leitura) — só a área atual
+  try {
+    const suap  = await apiJSON(`/api/admin/projetos-suap/${area}`);
+    const lista = (suap || []).map(p => ({ ...p, tipo: area }));
+    if (!lista.length) {
+      suapEl.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>Nenhum projeto de ${label.toLowerCase()} do SUAP em cache. Peça para um aluno abrir a aba Projetos no portal.</p></div>`;
+    } else {
+      suapEl.innerHTML = renderTabelaProjetosSuap(lista);
+    }
+  } catch(e) {
+    suapEl.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+  }
+};
+
 
 const renderTabelaProjetosSuap = (dados) => {
   const tipoBadge = (t) => t === 'pesquisa'
@@ -1250,8 +1265,10 @@ const salvarItem = async () => {
     mostrarToast(isEdit ? 'Item atualizado com sucesso!' : 'Item criado com sucesso!', 'sucesso');
     fecharModal();
 
-    // Recarrega a seção ativa
-    const secaoMap = { pesquisa: 'pesquisa', extensao: 'extensao', evento: 'eventos' };
+    // Recarrega a seção ativa. Projetos (pesquisa/extensão) recaem na aba
+    // unificada "Projetos"; garantimos que a área exibida seja a do item salvo.
+    if (tipo === 'pesquisa' || tipo === 'extensao') state.projArea = tipo;
+    const secaoMap = { pesquisa: 'projetos', extensao: 'projetos', evento: 'eventos' };
     await carregarLista(secaoMap[tipo]);
 
     // Atualiza stats
@@ -1310,7 +1327,8 @@ const deletarItem = async (tipo, id) => {
     await apiJSON(endpoint, { method: 'DELETE' });
     mostrarToast('Item excluído.', 'sucesso');
 
-    const secaoMap = { pesquisa: 'pesquisa', extensao: 'extensao', evento: 'eventos' };
+    if (tipo === 'pesquisa' || tipo === 'extensao') state.projArea = tipo;
+    const secaoMap = { pesquisa: 'projetos', extensao: 'projetos', evento: 'eventos' };
     await carregarLista(secaoMap[tipo]);
 
     const stats = await apiJSON('/api/admin/stats');
