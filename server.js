@@ -17,27 +17,27 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // ── Arquivos estáticos ───────────────────────────────────────
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'src', 'public')));
 
 // ── Rotas da API ─────────────────────────────────────────────
 app.use('/api', apiRoutes);
 
 // ── Rotas de páginas (SPA-style: tudo vai para o index.html) ──
 app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+  res.sendFile(path.join(__dirname, 'src', 'public', 'login.html'));
 });
 
 // ── Painel administrativo ─────────────────────────────────────
 app.get('/admin/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin-login.html'));
+  res.sendFile(path.join(__dirname, 'src', 'public', 'admin-login.html'));
 });
 
 app.get('/admin', adminAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+  res.sendFile(path.join(__dirname, 'src', 'public', 'admin.html'));
 });
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'src', 'public', 'index.html'));
 });
 
 // ── Error handler global ──────────────────────────────────────
