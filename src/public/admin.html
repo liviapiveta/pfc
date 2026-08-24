@@ -147,17 +147,47 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 0.75rem;
       position: sticky;
       top: 0;
       z-index: 50;
     }
+
+    .topbar-left { display: flex; align-items: center; min-width: 0; }
 
     .topbar-title {
       font-family: 'Syne', sans-serif;
       font-weight: 700;
       font-size: 1.1rem;
       color: var(--texto);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+
+    .menu-toggle {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      color: var(--texto);
+      cursor: pointer;
+      padding: 0.4rem;
+      margin-right: 0.9rem;
+      border-radius: 8px;
+    }
+    .menu-toggle:hover { background: rgba(255,255,255,0.05); }
+    .menu-toggle svg { width: 24px; height: 24px; }
+
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 90;
+    }
+    .sidebar-overlay.open { display: block; }
 
     .topbar-badge {
       background: var(--amarelo-claro);
@@ -167,6 +197,8 @@
       font-weight: 600;
       padding: 0.2rem 0.65rem;
       border-radius: 99px;
+      flex-shrink: 0;
+      white-space: nowrap;
     }
 
     .content { padding: 2rem; }
@@ -188,6 +220,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.6rem;
       margin-bottom: 1.2rem;
       padding-bottom: 0.85rem;
       border-bottom: 1px solid var(--borda);
@@ -318,6 +352,8 @@
     .btn-edit:hover { border-color: var(--azul); color: var(--azul); }
 
     /* ── TABELA DE ITENS ── */
+    .table-wrap { overflow-x: auto; }
+
     .items-table {
       width: 100%;
       border-collapse: collapse;
@@ -517,18 +553,90 @@
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ══════════════════════════════════════════════════════════
+       RESPONSIVO
+       ══════════════════════════════════════════════════════════ */
     @media (max-width: 768px) {
-      .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+      .sidebar { transform: translateX(-100%); transition: transform 0.3s; z-index: 100; }
       .sidebar.open { transform: translateX(0); }
-      .main { margin-left: 0; }
+      .main { margin-left: 0; width: 100%; }
       .content { padding: 1rem; }
       .form-grid { grid-template-columns: 1fr; }
+      .menu-toggle { display: inline-flex; }
+      .topbar-title { font-size: 1rem; }
+      .topbar { padding: 0.85rem 1rem; }
+      .topbar-badge { font-size: 0.64rem; padding: 0.18rem 0.5rem; }
+
+      .card { padding: 1.1rem; }
+      .card-header { flex-direction: column; align-items: stretch; }
+      .card-header .btn-add { width: 100%; justify-content: center; }
+
+      .stats-row { grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
+      .stat-card { padding: 0.9rem 1rem; }
+      .stat-value { font-size: 1.35rem; }
+
+      .modal-overlay { padding: 0; align-items: flex-end; }
+      .modal { max-width: 100%; width: 100%; border-radius: 18px 18px 0 0; max-height: 92vh; padding: 1.3rem; }
+      .modal-footer { flex-wrap: wrap; }
+      .modal-footer button { flex: 1 1 auto; }
+
+      .toast { left: 1rem; right: 1rem; bottom: 1rem; max-width: none; }
+
+      .proj-area-tabs { flex-wrap: wrap; }
+      .proj-area-tabs button { flex: 1 1 auto; text-align: center; }
+
+      /* Tabelas viram listas de cards no mobile */
+      .table-wrap { overflow-x: visible; }
+      .items-table thead { display: none; }
+      .items-table, .items-table tbody { display: block; width: 100%; }
+      .items-table tr {
+        display: block;
+        background: var(--bg-2);
+        border: 1px solid var(--borda);
+        border-radius: 12px;
+        padding: 0.85rem 0.9rem;
+        margin-bottom: 0.7rem;
+      }
+      .items-table tr:hover td { background: none; }
+      .items-table td {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+        text-align: right;
+        padding: 0.4rem 0;
+        border-bottom: 1px solid var(--borda);
+        max-width: none;
+      }
+      .items-table td:last-child { border-bottom: none; }
+      .items-table td::before {
+        content: attr(data-label);
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--cinza);
+        text-align: left;
+        flex-shrink: 0;
+        padding-top: 0.1rem;
+      }
+      .items-table td:first-child { color: var(--texto); }
+      .items-table td.td-acoes { flex-direction: column; align-items: stretch; gap: 0.4rem; }
+      .items-table td.td-acoes::before { padding-top: 0; margin-bottom: 0.1rem; }
+      .items-table td.td-acoes button { width: 100%; justify-content: center; margin-right: 0; }
+    }
+
+    @media (max-width: 480px) {
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .sidebar-logo h1 { font-size: 1.2rem; }
+      .admin-pill { margin: 0.6rem 1.2rem; }
+      .nav-item { padding: 0.6rem 1.2rem; }
     }
 
     /* Ícones (Lucide) — herdam tamanho (1em) e cor (currentColor) do contexto */
     svg.lucide { width:1em; height:1em; display:inline-block; vertical-align:-0.125em; flex-shrink:0; stroke-width:2; }
     /* Abas de área (Pesquisa | Extensão) da seção Projetos */
-    .proj-area-tabs { display:flex; gap:0.5rem; margin-bottom:1.4rem; }
+    .proj-area-tabs { display:flex; gap:0.5rem; margin-bottom:1.4rem; flex-wrap: wrap; }
     .proj-area-tabs button {
       flex:0 0 auto; padding:0.5rem 1.3rem; border-radius:99px; cursor:pointer;
       font-family:'DM Sans',sans-serif; font-size:0.9rem; font-weight:600;
@@ -570,10 +678,18 @@
   </div>
 </aside>
 
+<!-- Overlay usado para fechar o menu ao tocar fora dele (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <!-- MAIN -->
 <main class="main">
   <div class="topbar">
-    <span class="topbar-title" id="topbarTitle">Visão Geral</span>
+    <div class="topbar-left">
+      <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">
+        <i data-lucide="menu"></i>
+      </button>
+      <span class="topbar-title" id="topbarTitle">Visão Geral</span>
+    </div>
     <span class="topbar-badge"><i data-lucide="lock"></i> Administrador</span>
   </div>
 
@@ -737,6 +853,28 @@ const apiJSON = async (url, opts = {}) => {
 };
 
 // ─────────────────────────────────────────────────────
+// Menu hambúrguer (mobile)
+// ─────────────────────────────────────────────────────
+const sidebarEl = document.getElementById('sidebar');
+const menuToggleEl = document.getElementById('menuToggle');
+const sidebarOverlayEl = document.getElementById('sidebarOverlay');
+
+const abrirSidebar = () => {
+  sidebarEl?.classList.add('open');
+  sidebarOverlayEl?.classList.add('open');
+};
+const fecharSidebar = () => {
+  sidebarEl?.classList.remove('open');
+  sidebarOverlayEl?.classList.remove('open');
+};
+
+menuToggleEl?.addEventListener('click', () => {
+  if (sidebarEl?.classList.contains('open')) fecharSidebar();
+  else abrirSidebar();
+});
+sidebarOverlayEl?.addEventListener('click', fecharSidebar);
+
+// ─────────────────────────────────────────────────────
 // Navegação
 // ─────────────────────────────────────────────────────
 document.querySelectorAll('.nav-item').forEach(item => {
@@ -756,6 +894,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     document.getElementById('topbarTitle').textContent = titles[sec] || '';
     state.secaoAtiva = sec;
     if (sec !== 'overview') carregarLista(sec);
+    fecharSidebar(); // fecha o menu mobile ao trocar de aba
   });
 });
 
@@ -890,16 +1029,16 @@ const renderTabelaProjetosSuap = (dados) => {
 
     return `
     <tr>
-      <td>${titulo}</td>
-      <td>${tipoBadge(p.tipo)}</td>
-      <td style="font-size:0.8rem;color:var(--cinza)">${esc(p.coordenador || '—')}</td>
-      <td style="font-size:0.8rem">${esc(p.dt_inicio || '—')} – ${esc(p.dt_final || '—')}</td>
-      <td style="font-size:0.8rem">${esc(p.situacao || '—')}</td>
-      <td style="font-size:0.8rem">${link}</td>
+      <td data-label="Título">${titulo}</td>
+      <td data-label="Tipo">${tipoBadge(p.tipo)}</td>
+      <td data-label="Coordenador" style="font-size:0.8rem;color:var(--cinza)">${esc(p.coordenador || '—')}</td>
+      <td data-label="Período" style="font-size:0.8rem">${esc(p.dt_inicio || '—')} – ${esc(p.dt_final || '—')}</td>
+      <td data-label="Situação" style="font-size:0.8rem">${esc(p.situacao || '—')}</td>
+      <td data-label="Link" style="font-size:0.8rem">${link}</td>
     </tr>`;
   }).join('');
 
-  return `<div style="overflow-x:auto">
+  return `<div class="table-wrap">
     <table class="items-table">
       <thead>
         <tr><th>Título</th><th>Tipo</th><th>Coordenador</th><th>Período</th><th>Situação</th><th>Link</th></tr>
@@ -924,20 +1063,20 @@ const renderTabelaProjetos = (dados, tipo) => {
 
     return `
     <tr>
-      <td>${titulo}</td>
-      <td>${badge}</td>
-      <td style="font-size:0.8rem;color:var(--cinza)">${esc(p.coordenador || '—')}</td>
-      <td style="font-size:0.8rem">${esc(p.dt_inicio || '—')} – ${esc(p.dt_final || '—')}</td>
-      <td style="font-size:0.8rem">${esc(p.situacao || '—')}</td>
-      <td style="font-size:0.8rem">${link}</td>
-      <td>
+      <td data-label="Título">${titulo}</td>
+      <td data-label="Tipo">${badge}</td>
+      <td data-label="Coordenador" style="font-size:0.8rem;color:var(--cinza)">${esc(p.coordenador || '—')}</td>
+      <td data-label="Período" style="font-size:0.8rem">${esc(p.dt_inicio || '—')} – ${esc(p.dt_final || '—')}</td>
+      <td data-label="Situação" style="font-size:0.8rem">${esc(p.situacao || '—')}</td>
+      <td data-label="Link" style="font-size:0.8rem">${link}</td>
+      <td data-label="Ações" class="td-acoes">
         <button class="btn-edit" onclick="editarProjeto('${tipo}', '${p._id}')"><i data-lucide="pencil"></i> Editar</button>
         <button class="btn-del" onclick="deletarItem('${tipo}', '${p._id}')"><i data-lucide="trash-2"></i> Excluir</button>
       </td>
     </tr>`;
   }).join('');
 
-  return `<div style="overflow-x:auto">
+  return `<div class="table-wrap">
     <table class="items-table">
       <thead>
         <tr>
@@ -952,17 +1091,17 @@ const renderTabelaProjetos = (dados, tipo) => {
 const renderTabelaEventos = (dados) => {
   const rows = dados.map(ev => `
     <tr>
-      <td>${esc(ev.nome)}</td>
-      <td style="font-size:0.8rem">${esc(ev.data_inicio || '—')}</td>
-      <td style="font-size:0.8rem">${esc(ev.data_fim || '—')}</td>
-      <td style="font-size:0.8rem;color:var(--cinza)">${esc(ev.local || '—')}</td>
-      <td>
+      <td data-label="Nome">${esc(ev.nome)}</td>
+      <td data-label="Data Início" style="font-size:0.8rem">${esc(ev.data_inicio || '—')}</td>
+      <td data-label="Data Fim" style="font-size:0.8rem">${esc(ev.data_fim || '—')}</td>
+      <td data-label="Local" style="font-size:0.8rem;color:var(--cinza)">${esc(ev.local || '—')}</td>
+      <td data-label="Ações" class="td-acoes">
         <button class="btn-edit" onclick="editarEvento('${ev._id}')"><i data-lucide="pencil"></i> Editar</button>
         <button class="btn-del" onclick="deletarItem('evento', '${ev._id}')"><i data-lucide="trash-2"></i> Excluir</button>
       </td>
     </tr>`).join('');
 
-  return `<div style="overflow-x:auto">
+  return `<div class="table-wrap">
     <table class="items-table">
       <thead>
         <tr>
@@ -994,18 +1133,18 @@ const renderTabelaSolicitacoes = (dados) => {
 
   const rows = dados.map(s => `
     <tr>
-      <td>${esc(s.nomeAluno || '—')}<br><span style="font-size:0.78rem;color:var(--cinza)">${esc(s.matricula)}</span></td>
-      <td>${esc(s.projetoTitulo)}</td>
-      <td>${origemBadge(s.origem)}</td>
-      <td style="font-size:0.8rem;color:var(--cinza)">${tipoTxt(s.projetoTipo)}</td>
-      <td>${badge(s.status)}</td>
-      <td>
+      <td data-label="Aluno">${esc(s.nomeAluno || '—')}<br><span style="font-size:0.78rem;color:var(--cinza)">${esc(s.matricula)}</span></td>
+      <td data-label="Projeto">${esc(s.projetoTitulo)}</td>
+      <td data-label="Origem">${origemBadge(s.origem)}</td>
+      <td data-label="Tipo" style="font-size:0.8rem;color:var(--cinza)">${tipoTxt(s.projetoTipo)}</td>
+      <td data-label="Status">${badge(s.status)}</td>
+      <td data-label="Ações" class="td-acoes">
         ${s.status !== 'aceito'   ? `<button class="btn-edit" onclick="decidirSolicitacao('${s._id}','aceito')"><i data-lucide="check"></i> Aceitar</button>` : ''}
         ${s.status !== 'recusado' ? `<button class="btn-del" onclick="decidirSolicitacao('${s._id}','recusado')"><i data-lucide="x"></i> Recusar</button>` : ''}
       </td>
     </tr>`).join('');
 
-  return `<div style="overflow-x:auto">
+  return `<div class="table-wrap">
     <table class="items-table">
       <thead>
         <tr><th>Aluno</th><th>Projeto</th><th>Origem</th><th>Tipo</th><th>Status</th><th>Ações</th></tr>
@@ -1411,11 +1550,11 @@ const renderTabelaConquistas = (dados) => {
       : '';
     return `
     <tr>
-      <td>${esc(c.icone || '🏆')} ${esc(c.nome)}${autoBadge}</td>
-      <td style="font-size:0.8rem;color:var(--cinza)">${esc(catLabel(c.categoria))}</td>
-      <td style="font-weight:700;color:#f5c469"><i data-lucide="star"></i> ${Number(c.pontos) || 0}</td>
-      <td>${ativa}</td>
-      <td>
+      <td data-label="Conquista">${esc(c.icone || '🏆')} ${esc(c.nome)}${autoBadge}</td>
+      <td data-label="Categoria" style="font-size:0.8rem;color:var(--cinza)">${esc(catLabel(c.categoria))}</td>
+      <td data-label="Pontos" style="font-weight:700;color:#f5c469"><i data-lucide="star"></i> ${Number(c.pontos) || 0}</td>
+      <td data-label="Status">${ativa}</td>
+      <td data-label="Ações" class="td-acoes">
         ${c.origem === 'automatica'
           ? ''
           : `<button class="btn-add" onclick="abrirConceder('${c._id}')"><i data-lucide="medal"></i> Conceder</button>`}
@@ -1425,7 +1564,7 @@ const renderTabelaConquistas = (dados) => {
     </tr>`;
   }).join('');
 
-  return `<div style="overflow-x:auto">
+  return `<div class="table-wrap">
     <table class="items-table">
       <thead>
         <tr><th>Conquista</th><th>Categoria</th><th>Pontos</th><th>Status</th><th>Ações</th></tr>

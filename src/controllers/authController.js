@@ -91,7 +91,7 @@ const login = async (req, res) => {
         curso,
         ultimoAcesso: new Date(),
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
 
     // ── 4. JWT interno (24h) ─────────────────────────────────────

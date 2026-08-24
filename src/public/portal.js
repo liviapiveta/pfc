@@ -152,6 +152,26 @@ const dadoItem = (label, valor) =>
   }
 })();
 
+// ── Menu hambúrguer (mobile) ─────────────────────────────────────
+const sidebarEl = document.getElementById('sidebar');
+const menuToggleEl = document.getElementById('menuToggle');
+const sidebarOverlayEl = document.getElementById('sidebarOverlay');
+
+const abrirSidebar = () => {
+  sidebarEl?.classList.add('open');
+  sidebarOverlayEl?.classList.add('open');
+};
+const fecharSidebar = () => {
+  sidebarEl?.classList.remove('open');
+  sidebarOverlayEl?.classList.remove('open');
+};
+
+menuToggleEl?.addEventListener('click', () => {
+  if (sidebarEl?.classList.contains('open')) fecharSidebar();
+  else abrirSidebar();
+});
+sidebarOverlayEl?.addEventListener('click', fecharSidebar);
+
 // ── Navegação ──────────────────────────────────────────────────
 document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => {
@@ -160,6 +180,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.add('active');
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById(`section-${sec}`).classList.add('active');
+    fecharSidebar(); // fecha o menu mobile ao trocar de aba
 
     const titles = {
       dashboard: 'Dashboard',

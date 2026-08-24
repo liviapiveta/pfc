@@ -159,9 +159,19 @@
 
     .ifpr-note { color: var(--cinza); font-size: 0.78rem; text-align: center; margin-top: 1.8rem; line-height: 1.5; }
 
+    @media (max-width: 1024px) {
+      .visual { padding: 2.5rem; }
+    }
+
     @media (max-width: 768px) {
       body { grid-template-columns: 1fr; }
       .visual { display: none; }
+      .login-side { padding: 1.5rem; }
+    }
+
+    @media (max-width: 380px) {
+      .login-side { padding: 1.1rem; }
+      .login-title { font-size: 1.5rem; }
     }
 
     /* Ícones (Lucide) — herdam tamanho (1em) e cor (currentColor) do contexto */

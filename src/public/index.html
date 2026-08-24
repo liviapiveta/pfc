@@ -70,10 +70,18 @@
   </div>
 </aside>
 
+<!-- Overlay usado para fechar o menu ao tocar fora dele (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <!-- MAIN -->
 <main class="main">
   <div class="topbar">
-    <span class="topbar-title" id="topbarTitle">Dashboard</span>
+    <div class="topbar-left">
+      <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">
+        <i data-lucide="menu"></i>
+      </button>
+      <span class="topbar-title" id="topbarTitle">Dashboard</span>
+    </div>
     <div class="topbar-actions" id="topbarActions"></div>
   </div>
   <div class="content">
@@ -216,6 +224,20 @@
       .dash-tl-item.passado { opacity:0.72; }
       .dash-tl-item.passado .dash-tl-data .dia { color:var(--cinza,#8b909b); }
       .dash-tl-item.aviso .dash-tl-corpo .n { color:var(--texto-2,#c2c6cf); font-style:italic; font-weight:500; }
+
+      /* Mobile */
+      @media (max-width: 768px) {
+        .dash-hero { padding:1.2rem 1.3rem; gap:1rem; }
+        .dash-avatar { width:72px; height:72px; font-size:1.9rem; }
+        .dash-hero .indicadores { flex-wrap:wrap; gap:1.2rem 1.8rem; }
+        .dash-mini-row { grid-template-columns:1fr 1fr; gap:0.75rem; }
+        .dash-painel { padding:1.1rem 1.2rem; }
+      }
+      @media (max-width: 480px) {
+        .dash-hero { flex-direction:column; align-items:flex-start; text-align:left; }
+        .dash-hero .indicadores { width:100%; justify-content:space-between; gap:1rem; }
+        .dash-mini-row { grid-template-columns:1fr; }
+      }
     </style>
 
     <style>
@@ -262,6 +284,15 @@
       }
       .rank-row .col-pts { font-weight:700; color:#f5c469; font-size:0.9rem; }
       .rank-vazio { color:var(--cinza,#8b909b); font-size:0.9rem; padding:1rem 0; }
+
+      /* Mobile */
+      @media (max-width: 768px) {
+        .rank-eu { flex-wrap:wrap; }
+        .rank-toggle { flex-wrap:wrap; }
+      }
+      @media (max-width: 480px) {
+        .rank-row { flex-wrap:wrap; }
+      }
     </style>
 
     <style>
@@ -304,6 +335,15 @@
         background:rgba(96,165,250,0.16); color:#93c5fd;
       }
       .conq-vazio { color:var(--cinza,#8b909b); font-size:0.88rem; padding:0.6rem 0; }
+
+      /* Mobile */
+      @media (max-width: 768px) {
+        .conq-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+        .conq-resumo { flex-wrap: wrap; }
+      }
+      @media (max-width: 480px) {
+        .conq-grid { grid-template-columns: 1fr 1fr; }
+      }
     </style>
 
     <style>
@@ -353,6 +393,12 @@
         margin:0.6rem 0 0.4rem 1.6rem;
       }
       .traj-vazio { color:var(--cinza,#8b909b); font-size:0.9rem; padding:1rem 0; }
+
+      /* Mobile */
+      @media (max-width: 768px) {
+        .traj-resumo { flex-wrap: wrap; }
+        .traj-painel { padding: 1.1rem 1.2rem; }
+      }
     </style>
 
   </div>
