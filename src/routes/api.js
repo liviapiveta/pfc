@@ -33,6 +33,14 @@ router.put('/preferencias', auth, suapController.updatePreferencias);
 // ── Administração ─────────────────────────────────────────────
 router.post('/admin/login', adminController.login);
 router.post('/admin/logout', adminController.logout);
+router.get('/admin/me', adminAuth, adminController.me);
+
+// Contas do painel (apenas desenvolvedor pode gerenciar)
+router.get('/admin/contas', adminAuth, adminAuth.apenasDev, adminController.getContas);
+router.post('/admin/contas', adminAuth, adminAuth.apenasDev, adminController.criarConta);
+router.put('/admin/contas/:id', adminAuth, adminAuth.apenasDev, adminController.atualizarConta);
+router.put('/admin/contas/:id/senha', adminAuth, adminAuth.apenasDev, adminController.redefinirSenha);
+router.delete('/admin/contas/:id', adminAuth, adminAuth.apenasDev, adminController.deletarConta);
 
 // Estatísticas
 router.get('/admin/stats', adminAuth, adminController.stats);

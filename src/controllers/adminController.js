@@ -4,50 +4,164 @@ const Projeto = require('../models/Projeto');
 const Evento = require('../models/Evento');
 const Solicitacao = require('../models/Solicitacao');
 const ProjetoSuapCache = require('../models/ProjetoSuapCache');
+const Admin = require('../models/Admin');
 const conquistaEngine = require('../services/conquistaEngine');
-
-/**
- * Credenciais do administrador.
- * Por padrão usuário = "admin" e senha = "admin".
- * Em produção, defina ADMIN_USER e ADMIN_PASS no arquivo .env.
- */
-const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'admin';
 
 // ── Autenticação ──────────────────────────────────────────────
 
 /** POST /api/admin/login */
-const login = (req, res) => {
+const login = async (req, res) => {
   const { usuario, senha } = req.body;
+  const email = String(usuario || '').trim().toLowerCase();
 
-  if (!usuario || !senha) {
-    return res.status(400).json({ erro: 'Usuário e senha são obrigatórios' });
+  if (!email || !senha) {
+    return res.status(400).json({ erro: 'E-mail e senha são obrigatórios' });
   }
 
-  if (usuario !== ADMIN_USER || senha !== ADMIN_PASS) {
-    return res.status(401).json({ erro: 'Credenciais inválidas' });
+  try {
+    const conta = await Admin.findOne({ email, ativo: true });
+    if (!conta) {
+      return res.status(401).json({ erro: 'Credenciais inválidas' });
+    }
+
+    const senhaOk = await conta.verificarSenha(senha);
+    if (!senhaOk) {
+      return res.status(401).json({ erro: 'Credenciais inválidas' });
+    }
+
+    conta.ultimoAcesso = new Date();
+    await conta.save();
+
+    const token = jwt.sign(
+      { admin: true, id: conta._id.toString(), nome: conta.nome, email: conta.email, cargo: conta.cargo },
+      process.env.JWT_SECRET,
+      { expiresIn: '12h' }
+    );
+
+    res.cookie('adminToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 12 * 60 * 60 * 1000,
+    });
+
+    return res.json({ sucesso: true });
+  } catch (err) {
+    console.error('Erro no login admin:', err.message);
+    return res.status(500).json({ erro: 'Erro ao autenticar' });
   }
-
-  const token = jwt.sign(
-    { admin: true, usuario },
-    process.env.JWT_SECRET,
-    { expiresIn: '12h' }
-  );
-
-  res.cookie('adminToken', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 12 * 60 * 60 * 1000,
-  });
-
-  return res.json({ sucesso: true });
 };
 
 /** POST /api/admin/logout */
 const logout = (req, res) => {
   res.clearCookie('adminToken');
   return res.json({ sucesso: true });
+};
+
+/** GET /api/admin/me — retorna os dados do admin logado (nome, email, cargo) */
+const me = (req, res) => {
+  return res.json({
+    id: req.admin.id,
+    nome: req.admin.nome,
+    email: req.admin.email,
+    cargo: req.admin.cargo,
+  });
+};
+
+// ── Gerenciamento de contas (somente desenvolvedor) ────────────
+
+/** GET /api/admin/contas */
+const getContas = async (req, res) => {
+  try {
+    const contas = await Admin.find().select('-senhaHash').sort({ nome: 1 }).lean();
+    return res.json(contas);
+  } catch (err) {
+    console.error('Erro ao listar contas:', err.message);
+    return res.status(500).json({ erro: 'Erro ao listar contas' });
+  }
+};
+
+/** POST /api/admin/contas */
+const criarConta = async (req, res) => {
+  try {
+    const { nome, email, senha, cargo } = req.body;
+    if (!nome || !email || !senha) {
+      return res.status(400).json({ erro: 'Nome, e-mail e senha são obrigatórios' });
+    }
+    if (senha.length < 6) {
+      return res.status(400).json({ erro: 'A senha precisa ter pelo menos 6 caracteres' });
+    }
+    const emailNorm = String(email).trim().toLowerCase();
+    const existente = await Admin.findOne({ email: emailNorm });
+    if (existente) {
+      return res.status(409).json({ erro: 'Já existe uma conta com este e-mail' });
+    }
+
+    const senhaHash = await Admin.gerarHash(senha);
+    const conta = await Admin.create({
+      nome: nome.trim(),
+      email: emailNorm,
+      senhaHash,
+      cargo: cargo === 'desenvolvedor' ? 'desenvolvedor' : 'professor',
+    });
+
+    return res.status(201).json({
+      _id: conta._id, nome: conta.nome, email: conta.email, cargo: conta.cargo, ativo: conta.ativo,
+    });
+  } catch (err) {
+    console.error('Erro ao criar conta:', err.message);
+    return res.status(500).json({ erro: 'Erro ao criar conta' });
+  }
+};
+
+/** PUT /api/admin/contas/:id — edita nome, cargo e/ou status ativo */
+const atualizarConta = async (req, res) => {
+  try {
+    const { nome, cargo, ativo } = req.body;
+    const dados = {};
+    if (nome !== undefined) dados.nome = nome.trim();
+    if (cargo !== undefined) dados.cargo = cargo === 'desenvolvedor' ? 'desenvolvedor' : 'professor';
+    if (ativo !== undefined) dados.ativo = !!ativo;
+
+    const conta = await Admin.findByIdAndUpdate(req.params.id, dados, { new: true }).select('-senhaHash');
+    if (!conta) return res.status(404).json({ erro: 'Conta não encontrada' });
+    return res.json(conta);
+  } catch (err) {
+    console.error('Erro ao atualizar conta:', err.message);
+    return res.status(500).json({ erro: 'Erro ao atualizar conta' });
+  }
+};
+
+/** PUT /api/admin/contas/:id/senha — redefine a senha de uma conta */
+const redefinirSenha = async (req, res) => {
+  try {
+    const { senha } = req.body;
+    if (!senha || senha.length < 6) {
+      return res.status(400).json({ erro: 'A senha precisa ter pelo menos 6 caracteres' });
+    }
+    const senhaHash = await Admin.gerarHash(senha);
+    const conta = await Admin.findByIdAndUpdate(req.params.id, { senhaHash }, { new: true }).select('-senhaHash');
+    if (!conta) return res.status(404).json({ erro: 'Conta não encontrada' });
+    return res.json({ sucesso: true });
+  } catch (err) {
+    console.error('Erro ao redefinir senha:', err.message);
+    return res.status(500).json({ erro: 'Erro ao redefinir senha' });
+  }
+};
+
+/** DELETE /api/admin/contas/:id */
+const deletarConta = async (req, res) => {
+  try {
+    if (req.params.id === req.admin.id) {
+      return res.status(400).json({ erro: 'Você não pode excluir a própria conta' });
+    }
+    const conta = await Admin.findByIdAndDelete(req.params.id);
+    if (!conta) return res.status(404).json({ erro: 'Conta não encontrada' });
+    return res.json({ sucesso: true });
+  } catch (err) {
+    console.error('Erro ao excluir conta:', err.message);
+    return res.status(500).json({ erro: 'Erro ao excluir conta' });
+  }
 };
 
 // ── Estatísticas ──────────────────────────────────────────────
@@ -307,6 +421,12 @@ const getProjetosSuap = async (req, res) => {
 module.exports = {
   login,
   logout,
+  me,
+  getContas,
+  criarConta,
+  atualizarConta,
+  redefinirSenha,
+  deletarConta,
   stats,
   getProjetos,
   criarProjeto,

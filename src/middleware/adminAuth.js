@@ -35,4 +35,17 @@ const adminAuth = (req, res, next) => {
   }
 };
 
+/**
+ * Middleware extra: usar DEPOIS de adminAuth nas rotas que só o cargo
+ * "desenvolvedor" pode acessar (gerenciamento de contas do painel).
+ */
+const apenasDev = (req, res, next) => {
+  if (req.admin?.cargo !== 'desenvolvedor') {
+    return res.status(403).json({ erro: 'Apenas desenvolvedores podem acessar esta área' });
+  }
+  next();
+};
+
+adminAuth.apenasDev = apenasDev;
+
 module.exports = adminAuth;

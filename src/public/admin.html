@@ -672,6 +672,9 @@
     <div class="nav-item" data-section="conquistas">
       <span class="nav-icon"><i data-lucide="trophy"></i></span> Conquistas
     </div>
+    <div class="nav-item" data-section="contas" id="navItemContas" style="display:none">
+      <span class="nav-icon"><i data-lucide="users"></i></span> Contas do Painel
+    </div>
   </nav>
   <div class="sidebar-footer">
     <button class="btn-logout" onclick="fazerLogout()"><i data-lucide="log-out"></i> Sair do painel</button>
@@ -690,7 +693,7 @@
       </button>
       <span class="topbar-title" id="topbarTitle">Visão Geral</span>
     </div>
-    <span class="topbar-badge"><i data-lucide="lock"></i> Administrador</span>
+    <span class="topbar-badge" id="topbarAdminBadge"><i data-lucide="lock"></i> Administrador</span>
   </div>
 
   <div class="content">
@@ -795,6 +798,24 @@
       </div>
     </section>
 
+    <!-- CONTAS DO PAINEL (somente desenvolvedor) -->
+    <section class="section" id="section-contas">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Contas do Painel Administrativo</span>
+          <button class="btn-add" onclick="abrirModal('conta')">+ Nova conta</button>
+        </div>
+        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
+          Gerencie quem pode acessar este painel. Contas com cargo <strong>Desenvolvedor(a)</strong>
+          também podem gerenciar outras contas; contas <strong>Professor(a)</strong> têm acesso
+          normal ao restante do painel.
+        </p>
+        <div id="contasList">
+          <div class="loading"><div class="spinner"></div> Carregando…</div>
+        </div>
+      </div>
+    </section>
+
   </div>
 </main>
 
@@ -890,6 +911,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
       eventos:  'Eventos do Calendário',
       solicitacoes: 'Solicitações de Participação',
       conquistas: 'Conquistas',
+      contas: 'Contas do Painel',
     };
     document.getElementById('topbarTitle').textContent = titles[sec] || '';
     state.secaoAtiva = sec;
@@ -902,6 +924,21 @@ document.querySelectorAll('.nav-item').forEach(item => {
 // Init
 // ─────────────────────────────────────────────────────
 (async () => {
+  try {
+    const me = await apiJSON('/api/admin/me');
+    if (me) {
+      state.cargoAtual = me.cargo;
+      state.contaId = me.id;
+      const cargoLabel = me.cargo === 'desenvolvedor' ? 'Desenvolvedor(a)' : 'Professor(a)';
+      document.getElementById('topbarAdminBadge').innerHTML =
+        `<i data-lucide="lock"></i> ${esc(me.nome)} · ${cargoLabel}`;
+      if (me.cargo === 'desenvolvedor') {
+        document.getElementById('navItemContas').style.display = 'flex';
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+  } catch (e) { /* segue com o rótulo padrão do topbar */ }
+
   try {
     const stats = await apiJSON('/api/admin/stats');
     if (!stats) return;
@@ -933,6 +970,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
 const carregarLista = async (tipo) => {
   if (tipo === 'conquistas') return carregarConquistas();
   if (tipo === 'projetos')   return carregarProjetosAdminSec();
+  if (tipo === 'contas')     return carregarContas();
 
   const elMap = { eventos: 'eventosList', solicitacoes: 'solicitacoesList' };
   const el = document.getElementById(elMap[tipo]);
@@ -1267,6 +1305,8 @@ const abrirModal = (tipo, dados = {}) => {
     evento:   dados._id ? 'Editar evento'              : 'Novo evento',
     conquista: dados._id ? 'Editar conquista'          : 'Nova conquista',
     conceder: 'Conceder conquista a um aluno',
+    conta: dados._id ? 'Editar conta' : 'Nova conta',
+    contaSenha: 'Redefinir senha',
   };
   document.getElementById('modalTitle').textContent = titulos[tipo] || 'Novo item';
 
@@ -1274,6 +1314,8 @@ const abrirModal = (tipo, dados = {}) => {
   if (tipo === 'evento')          corpo = formsEvento(dados);
   else if (tipo === 'conquista')  corpo = formsConquista(dados);
   else if (tipo === 'conceder')   corpo = formsConceder(dados);
+  else if (tipo === 'conta')      corpo = formsConta(dados);
+  else if (tipo === 'contaSenha') corpo = formsContaSenha(dados);
   else                            corpo = formsProjeto(dados);
 
   document.getElementById('modalBody').innerHTML = corpo;
@@ -1318,6 +1360,64 @@ const salvarItem = async () => {
         'sucesso'
       );
       fecharModal();
+      return;
+    }
+
+    // ── Contas do painel ──
+    if (tipo === 'contaSenha') {
+      const novaSenha = document.getElementById('f_nova_senha_conta').value;
+      if (!novaSenha || novaSenha.length < 6) {
+        mostrarToast('A senha precisa ter pelo menos 6 caracteres.', 'erro'); return;
+      }
+      await apiJSON(`/api/admin/contas/${state.editandoId}/senha`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senha: novaSenha }),
+      });
+      mostrarToast('Senha redefinida com sucesso!', 'sucesso');
+      fecharModal();
+      return;
+    }
+
+    if (tipo === 'conta') {
+      const isEditConta = !!state.editandoId;
+      const cargo = document.getElementById('f_cargo_conta').value;
+
+      if (isEditConta) {
+        const bodyConta = {
+          nome: document.getElementById('f_nome_conta').value.trim(),
+          cargo,
+          ativo: document.getElementById('f_ativo_conta').value === 'true',
+        };
+        if (!bodyConta.nome) { mostrarToast('O nome é obrigatório.', 'erro'); return; }
+        await apiJSON(`/api/admin/contas/${state.editandoId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bodyConta),
+        });
+        mostrarToast('Conta atualizada!', 'sucesso');
+      } else {
+        const bodyConta = {
+          nome: document.getElementById('f_nome_conta').value.trim(),
+          email: document.getElementById('f_email_conta').value.trim(),
+          senha: document.getElementById('f_senha_conta').value,
+          cargo,
+        };
+        if (!bodyConta.nome || !bodyConta.email || !bodyConta.senha) {
+          mostrarToast('Preencha nome, e-mail e senha.', 'erro'); return;
+        }
+        if (bodyConta.senha.length < 6) {
+          mostrarToast('A senha precisa ter pelo menos 6 caracteres.', 'erro'); return;
+        }
+        await apiJSON('/api/admin/contas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bodyConta),
+        });
+        mostrarToast('Conta criada!', 'sucesso');
+      }
+      fecharModal();
+      await carregarContas();
       return;
     }
 
@@ -1539,6 +1639,125 @@ const carregarConquistas = async () => {
 const catLabel = (c) => ({
   academico: 'Acadêmico', projeto: 'Projeto', evento: 'Evento', especial: 'Especial',
 }[c] || 'Especial');
+
+// ─────────────────────────────────────────────────────
+// Contas do painel (somente desenvolvedor)
+// ─────────────────────────────────────────────────────
+let _contasCache = [];
+const carregarContas = async () => {
+  const el = document.getElementById('contasList');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+  try {
+    const dados = await apiJSON('/api/admin/contas');
+    if (!dados) return;
+    _contasCache = dados;
+    if (!dados.length) {
+      el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="users"></i></div><p>Nenhuma conta cadastrada ainda.</p></div>`;
+      return;
+    }
+    el.innerHTML = renderTabelaContas(dados);
+  } catch(e) {
+    el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+  }
+};
+
+const cargoLabel = (c) => c === 'desenvolvedor' ? 'Desenvolvedor(a)' : 'Professor(a)';
+
+const renderTabelaContas = (dados) => {
+  const rows = dados.map(c => {
+    const cargoBadge = c.cargo === 'desenvolvedor'
+      ? `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(96,165,250,0.16);color:#93c5fd">Desenvolvedor(a)</span>`
+      : `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(68,216,131,0.16);color:#5fe39a">Professor(a)</span>`;
+    const statusBadge = c.ativo
+      ? `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(68,216,131,0.16);color:#5fe39a">Ativa</span>`
+      : `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(139,144,155,0.18);color:#aab">Inativa</span>`;
+    const vocEMesma = c._id === state.contaId;
+
+    return `
+    <tr>
+      <td data-label="Nome">${esc(c.nome)}${vocEMesma ? ' <span style="color:var(--cinza);font-size:0.76rem">(você)</span>' : ''}</td>
+      <td data-label="E-mail" style="font-size:0.8rem;color:var(--cinza)">${esc(c.email)}</td>
+      <td data-label="Cargo">${cargoBadge}</td>
+      <td data-label="Status">${statusBadge}</td>
+      <td data-label="Ações" class="td-acoes">
+        <button class="btn-edit" onclick="editarConta('${c._id}')"><i data-lucide="pencil"></i> Editar</button>
+        <button class="btn-edit" onclick="abrirRedefinirSenha('${c._id}')"><i data-lucide="key"></i> Senha</button>
+        ${vocEMesma ? '' : `<button class="btn-del" onclick="excluirConta('${c._id}')"><i data-lucide="trash-2"></i> Excluir</button>`}
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="table-wrap">
+    <table class="items-table">
+      <thead>
+        <tr><th>Nome</th><th>E-mail</th><th>Cargo</th><th>Status</th><th>Ações</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+};
+
+const editarConta = (id) => {
+  const dados = _contasCache.find(c => c._id === id);
+  if (dados) abrirModal('conta', dados);
+};
+
+const abrirRedefinirSenha = (id) => {
+  abrirModal('contaSenha', { _id: id });
+};
+
+const excluirConta = async (id) => {
+  if (!confirm('Tem certeza que deseja excluir esta conta? A pessoa perderá o acesso ao painel imediatamente.')) return;
+  try {
+    await apiJSON(`/api/admin/contas/${id}`, { method: 'DELETE' });
+    mostrarToast('Conta excluída.', 'sucesso');
+    await carregarContas();
+  } catch (e) {
+    mostrarToast(`Erro: ${e.message}`, 'erro');
+  }
+};
+
+const formsConta = (dados = {}) => `
+  <div class="form-grid">
+    <div class="field full">
+      <label>Nome *</label>
+      <input type="text" id="f_nome_conta" value="${esc(dados.nome || '')}" placeholder="Nome completo" required />
+    </div>
+    <div class="field full">
+      <label>E-mail *</label>
+      <input type="email" id="f_email_conta" value="${esc(dados.email || '')}" placeholder="nome@ifpr.edu.br" ${dados._id ? 'disabled' : ''} required />
+      ${dados._id ? '<p style="color:var(--cinza);font-size:0.76rem;margin-top:0.3rem;">O e-mail não pode ser alterado depois de criada a conta.</p>' : ''}
+    </div>
+    ${!dados._id ? `
+    <div class="field full">
+      <label>Senha *</label>
+      <input type="password" id="f_senha_conta" placeholder="Mínimo 6 caracteres" minlength="6" required />
+    </div>` : ''}
+    <div class="field">
+      <label>Cargo</label>
+      <select id="f_cargo_conta">
+        <option value="professor" ${dados.cargo !== 'desenvolvedor' ? 'selected' : ''}>Professor(a)</option>
+        <option value="desenvolvedor" ${dados.cargo === 'desenvolvedor' ? 'selected' : ''}>Desenvolvedor(a)</option>
+      </select>
+    </div>
+    ${dados._id ? `
+    <div class="field">
+      <label>Status</label>
+      <select id="f_ativo_conta">
+        <option value="true" ${dados.ativo !== false ? 'selected' : ''}>Ativa</option>
+        <option value="false" ${dados.ativo === false ? 'selected' : ''}>Inativa</option>
+      </select>
+    </div>` : ''}
+  </div>`;
+
+const formsContaSenha = () => `
+  <div class="form-grid">
+    <div class="field full">
+      <label>Nova senha *</label>
+      <input type="password" id="f_nova_senha_conta" placeholder="Mínimo 6 caracteres" minlength="6" required />
+    </div>
+  </div>`;
 
 const renderTabelaConquistas = (dados) => {
   const rows = dados.map(c => {
