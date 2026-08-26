@@ -9,7 +9,7 @@ const authMiddleware = async (req, res, next) => {
       req.headers.authorization?.split(' ')[1];
 
     if (!token) {
-      if (req.path.startsWith('/api/')) {
+      if (req.originalUrl.startsWith('/api/')) {
         return res.status(401).json({ erro: 'Não autenticado' });
       }
       return res.redirect('/login');
@@ -20,7 +20,7 @@ const authMiddleware = async (req, res, next) => {
 
     if (!user) {
       res.clearCookie('authToken');
-      if (req.path.startsWith('/api/')) {
+      if (req.originalUrl.startsWith('/api/')) {
         return res.status(401).json({ erro: 'Usuário não encontrado' });
       }
       return res.redirect('/login');
@@ -59,7 +59,7 @@ const authMiddleware = async (req, res, next) => {
     next();
   } catch (err) {
     res.clearCookie('authToken');
-    if (req.path.startsWith('/api/')) {
+    if (req.originalUrl.startsWith('/api/')) {
       return res.status(401).json({ erro: 'Token inválido ou expirado' });
     }
     return res.redirect('/login');
