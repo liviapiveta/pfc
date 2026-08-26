@@ -422,13 +422,19 @@ const getRanking = async (req, res) => {
       posicao: u.posicao,
       nome: u.nomeUsuario || 'Aluno',
       pontos: u.pontosReais || 0,
+      nivel: calcularNivel(u.pontosReais || 0),
       isMe: u.matricula === me.matricula,
     }));
 
     return res.json({
       escopo,
       curso: escopo === 'curso' ? me.curso : null,
-      eu: { posicao: minhaPosicao, nome: me.nomeUsuario, pontos: meusPontos },
+      eu: {
+        posicao: minhaPosicao,
+        nome: me.nomeUsuario,
+        pontos: meusPontos,
+        nivel: calcularNivel(meusPontos),
+      },
       total: todos.length,
       ranking,
     });

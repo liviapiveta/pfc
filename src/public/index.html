@@ -278,7 +278,14 @@
       .rank-row .col-pos.ouro   { background:rgba(245,196,105,0.18); color:#f5c469; }
       .rank-row .col-pos.prata  { background:rgba(203,213,225,0.18); color:#cbd5e1; }
       .rank-row .col-pos.bronze { background:rgba(205,127,80,0.18);  color:#e0a06a; }
-      .rank-row .col-nome { flex:1; font-weight:500; color:var(--texto,#f4f5f7); font-size:0.92rem; }
+      .rank-row .col-nome { flex:1; font-weight:500; color:var(--texto,#f4f5f7); font-size:0.92rem; display:flex; flex-direction:column; gap:0.15rem; }
+      .rank-row .col-nome-linha { display:flex; align-items:center; gap:0.5rem; }
+      .col-nivel {
+        font-size:0.72rem; font-weight:600; color:var(--verde,#44d883);
+        background:rgba(68,216,131,0.12); border:1px solid rgba(68,216,131,0.3);
+        padding:0.08rem 0.5rem; border-radius:99px; width:fit-content;
+      }
+      .rank-eu .meta .n { display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; }
       .rank-row .col-nome .vc {
         margin-left:0.4rem; font-size:0.7rem; font-weight:700; color:var(--verde,#44d883);
       }

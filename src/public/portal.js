@@ -1184,11 +1184,12 @@ const renderRanking = async () => {
       pos === 1 ? '<i data-lucide="medal"></i>' : pos === 2 ? '<i data-lucide="medal"></i>' : pos === 3 ? '<i data-lucide="medal"></i>' : pos;
 
     const eu = dados.eu || {};
+    const nivelEu = eu.nivel ? `<span class="col-nivel">Nível ${eu.nivel.nivel} · ${esc(eu.nivel.nome)}</span>` : '';
     const cabecalhoEu = `
       <div class="rank-eu">
         <div class="pos">${eu.posicao ? `${eu.posicao}º` : '—'}</div>
         <div class="meta">
-          <div class="n">${esc(eu.nome || 'Você')}</div>
+          <div class="n">${esc(eu.nome || 'Você')}${nivelEu}</div>
           <div class="s">Sua posição ${dados.escopo === 'curso' ? 'no curso' : 'geral'} · entre ${dados.total} aluno(s)</div>
         </div>
         <div class="pts"><i data-lucide="star"></i> ${eu.pontos || 0}</div>
@@ -1201,7 +1202,10 @@ const renderRanking = async () => {
       lista = `<div class="rank-lista">` + dados.ranking.map(r => `
         <div class="rank-row ${r.isMe ? 'eu' : ''}">
           <div class="col-pos ${medalha(r.posicao)}">${simbolo(r.posicao)}</div>
-          <div class="col-nome">${esc(r.nome)}${r.isMe ? '<span class="vc">VOCÊ</span>' : ''}</div>
+          <div class="col-nome">
+            <span class="col-nome-linha">${esc(r.nome)}${r.isMe ? '<span class="vc">VOCÊ</span>' : ''}</span>
+            ${r.nivel ? `<span class="col-nivel">Nível ${r.nivel.nivel} · ${esc(r.nivel.nome)}</span>` : ''}
+          </div>
           <div class="col-pts"><i data-lucide="star"></i> ${r.pontos}</div>
         </div>`).join('') + `</div>`;
     }

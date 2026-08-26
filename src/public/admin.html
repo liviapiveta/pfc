@@ -837,6 +837,35 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<!-- TROCA OBRIGATÓRIA DE SENHA (primeiro acesso / após redefinição) -->
+<div class="modal-overlay" id="trocaSenhaOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title"><i data-lucide="key-round"></i> Defina sua senha</span>
+    </div>
+    <div style="padding:0 0.2rem 0.4rem;">
+      <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1.1rem;">
+        Você está usando uma senha temporária. Por segurança, escolha uma senha
+        só sua antes de continuar.
+      </p>
+      <div class="form-grid">
+        <div class="field full">
+          <label>Nova senha *</label>
+          <input type="password" id="trocaSenhaNova" placeholder="Mínimo 6 caracteres" minlength="6" />
+        </div>
+        <div class="field full">
+          <label>Confirmar nova senha *</label>
+          <input type="password" id="trocaSenhaConfirmar" placeholder="Repita a senha" minlength="6" />
+        </div>
+      </div>
+      <div class="erro-msg" id="trocaSenhaErro" style="display:none;color:#ff8585;font-size:0.83rem;margin-top:0.7rem;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" id="btnTrocaSenha" onclick="confirmarTrocaSenhaObrigatoria()" style="width:100%;">Definir senha e entrar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ─────────────────────────────────────────────────────
 // Estado
@@ -934,6 +963,9 @@ document.querySelectorAll('.nav-item').forEach(item => {
         `<i data-lucide="lock"></i> ${esc(me.nome)} · ${cargoLabel}`;
       if (me.cargo === 'desenvolvedor') {
         document.getElementById('navItemContas').style.display = 'flex';
+      }
+      if (me.precisaTrocarSenha) {
+        document.getElementById('trocaSenhaOverlay').classList.add('open');
       }
       if (window.lucide) lucide.createIcons();
     }
@@ -1326,6 +1358,14 @@ const fecharModal = () => {
   document.getElementById('modalOverlay').classList.remove('open');
   state.modalTipo = null;
   state.editandoId = null;
+  // Restaura o rodapé padrão do modal, caso tenha sido trocado (ex.: pela
+  // tela de "senha temporária gerada", que usa um único botão "Concluído").
+  const footer = document.querySelector('#modalOverlay .modal-footer');
+  if (footer) {
+    footer.innerHTML = `
+      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-primary" id="btnSalvar" onclick="salvarItem()">Salvar</button>`;
+  }
 };
 
 const fecharModalSeOverlay = (e) => {
@@ -1365,17 +1405,14 @@ const salvarItem = async () => {
 
     // ── Contas do painel ──
     if (tipo === 'contaSenha') {
-      const novaSenha = document.getElementById('f_nova_senha_conta').value;
-      if (!novaSenha || novaSenha.length < 6) {
-        mostrarToast('A senha precisa ter pelo menos 6 caracteres.', 'erro'); return;
-      }
-      await apiJSON(`/api/admin/contas/${state.editandoId}/senha`, {
+      const resp = await apiJSON(`/api/admin/contas/${state.editandoId}/senha`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ senha: novaSenha }),
+        body: JSON.stringify({}),
       });
-      mostrarToast('Senha redefinida com sucesso!', 'sucesso');
-      fecharModal();
+      await carregarContas();
+      const conta = _contasCache.find(c => c._id === state.editandoId);
+      mostrarCredenciaisGeradas(conta?.nome || 'a conta', conta?.email || '', resp.senhaTemporaria);
       return;
     }
 
@@ -1396,28 +1433,25 @@ const salvarItem = async () => {
           body: JSON.stringify(bodyConta),
         });
         mostrarToast('Conta atualizada!', 'sucesso');
+        fecharModal();
+        await carregarContas();
       } else {
         const bodyConta = {
           nome: document.getElementById('f_nome_conta').value.trim(),
           email: document.getElementById('f_email_conta').value.trim(),
-          senha: document.getElementById('f_senha_conta').value,
           cargo,
         };
-        if (!bodyConta.nome || !bodyConta.email || !bodyConta.senha) {
-          mostrarToast('Preencha nome, e-mail e senha.', 'erro'); return;
+        if (!bodyConta.nome || !bodyConta.email) {
+          mostrarToast('Preencha nome e e-mail.', 'erro'); return;
         }
-        if (bodyConta.senha.length < 6) {
-          mostrarToast('A senha precisa ter pelo menos 6 caracteres.', 'erro'); return;
-        }
-        await apiJSON('/api/admin/contas', {
+        const resp = await apiJSON('/api/admin/contas', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(bodyConta),
         });
-        mostrarToast('Conta criada!', 'sucesso');
+        await carregarContas();
+        mostrarCredenciaisGeradas(bodyConta.nome, bodyConta.email, resp.senhaTemporaria);
       }
-      fecharModal();
-      await carregarContas();
       return;
     }
 
@@ -1704,7 +1738,8 @@ const editarConta = (id) => {
 };
 
 const abrirRedefinirSenha = (id) => {
-  abrirModal('contaSenha', { _id: id });
+  const dados = _contasCache.find(c => c._id === id);
+  abrirModal('contaSenha', { _id: id, nome: dados?.nome, email: dados?.email });
 };
 
 const excluirConta = async (id) => {
@@ -1731,8 +1766,10 @@ const formsConta = (dados = {}) => `
     </div>
     ${!dados._id ? `
     <div class="field full">
-      <label>Senha *</label>
-      <input type="password" id="f_senha_conta" placeholder="Mínimo 6 caracteres" minlength="6" required />
+      <p style="color:var(--cinza);font-size:0.8rem;background:rgba(255,255,255,0.04);border:1px solid var(--borda);border-radius:8px;padding:0.6rem 0.8rem;">
+        <i data-lucide="key"></i> Uma senha temporária será gerada automaticamente e mostrada
+        na próxima tela — repasse-a à pessoa. Ela será obrigada a trocá-la no primeiro acesso.
+      </p>
     </div>` : ''}
     <div class="field">
       <label>Cargo</label>
@@ -1751,13 +1788,92 @@ const formsConta = (dados = {}) => `
     </div>` : ''}
   </div>`;
 
-const formsContaSenha = () => `
+const formsContaSenha = (dados = {}) => `
   <div class="form-grid">
     <div class="field full">
-      <label>Nova senha *</label>
-      <input type="password" id="f_nova_senha_conta" placeholder="Mínimo 6 caracteres" minlength="6" required />
+      <p style="color:var(--texto-2);font-size:0.85rem;">
+        Uma nova senha temporária aleatória será gerada para <strong>${esc(dados.nome || 'esta conta')}</strong>.
+        A senha atual dela deixa de funcionar assim que você confirmar.
+      </p>
     </div>
   </div>`;
+
+// Mostra, dentro do próprio modal, a senha temporária recém-gerada (na
+// criação de conta ou na redefinição), com botão de copiar. Só aparece
+// nesta tela — não fica visível de novo em nenhum outro lugar do painel.
+const mostrarCredenciaisGeradas = (nome, email, senha) => {
+  document.getElementById('modalTitle').textContent = 'Senha temporária gerada';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-grid">
+      <div class="field full">
+        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:0.9rem;">
+          Copie e repasse esta senha para <strong>${esc(nome)}</strong>${email ? ` (${esc(email)})` : ''}.
+          Ela só aparece agora — se perder, gere uma nova pelo botão "Senha" na lista de contas.
+          A pessoa será obrigada a trocá-la assim que entrar.
+        </p>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <input type="text" id="senhaGeradaTexto" value="${esc(senha)}" readonly
+            style="flex:1;font-family:monospace;font-size:1rem;padding:0.7rem 0.9rem;border-radius:8px;border:1.5px solid var(--borda);background:var(--input-bg,#1f1f24);color:var(--texto);" />
+          <button type="button" class="btn-edit" onclick="copiarSenhaGerada()"><i data-lucide="copy"></i> Copiar</button>
+        </div>
+      </div>
+    </div>`;
+
+  const footer = document.querySelector('#modalOverlay .modal-footer');
+  if (footer) {
+    footer.innerHTML = `<button class="btn-primary" onclick="fecharModal()">Concluído</button>`;
+  }
+  document.getElementById('modalOverlay').classList.add('open');
+  if (window.lucide) lucide.createIcons();
+};
+
+const copiarSenhaGerada = () => {
+  const input = document.getElementById('senhaGeradaTexto');
+  if (!input) return;
+  input.select();
+  navigator.clipboard?.writeText(input.value)
+    .then(() => mostrarToast('Senha copiada!', 'sucesso'))
+    .catch(() => {});
+};
+
+// ── Troca obrigatória de senha (primeiro acesso) ────────────────
+const confirmarTrocaSenhaObrigatoria = async () => {
+  const nova = document.getElementById('trocaSenhaNova').value;
+  const confirmar = document.getElementById('trocaSenhaConfirmar').value;
+  const erroEl = document.getElementById('trocaSenhaErro');
+  erroEl.style.display = 'none';
+
+  if (!nova || nova.length < 6) {
+    erroEl.textContent = 'A senha precisa ter pelo menos 6 caracteres.';
+    erroEl.style.display = 'block';
+    return;
+  }
+  if (nova !== confirmar) {
+    erroEl.textContent = 'As senhas não coincidem.';
+    erroEl.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('btnTrocaSenha');
+  btn.disabled = true;
+  btn.textContent = 'Salvando…';
+
+  try {
+    await apiJSON('/api/admin/me/senha', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ novaSenha: nova }),
+    });
+    document.getElementById('trocaSenhaOverlay').classList.remove('open');
+    mostrarToast('Senha definida com sucesso!', 'sucesso');
+  } catch (e) {
+    erroEl.textContent = `Erro: ${e.message}`;
+    erroEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Definir senha e entrar';
+  }
+};
 
 const renderTabelaConquistas = (dados) => {
   const rows = dados.map(c => {
