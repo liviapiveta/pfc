@@ -36,8 +36,8 @@ const verificarConquistasBoletim = async (token, matricula) => {
  */
 const login = async (req, res) => {
   try {
-    const { matricula, senha } = req.body;
-
+    const { matricula.toUpperCase(), senha } = req.body;
+    
     if (!matricula || !senha) {
       return res.status(400).json({ erro: 'Matrícula e senha são obrigatórios' });
     }
@@ -45,7 +45,7 @@ const login = async (req, res) => {
     // ── 1. Autentica no SUAP ─────────────────────────────────────
     let authData;
     try {
-      authData = await suapService.autenticar(matricula.toUpperCase(), senha);
+      authData = await suapService.autenticar(matricula, senha);
     } catch (err) {
       const status = err.response?.status;
       console.error('Erro autenticação SUAP:', status, err.response?.data || err.message);
