@@ -45,7 +45,7 @@ const login = async (req, res) => {
     // ── 1. Autentica no SUAP ─────────────────────────────────────
     let authData;
     try {
-      authData = await suapService.autenticar(matricula, senha);
+      authData = await suapService.autenticar(matricula.toUpperCase(), senha);
     } catch (err) {
       const status = err.response?.status;
       console.error('Erro autenticação SUAP:', status, err.response?.data || err.message);
