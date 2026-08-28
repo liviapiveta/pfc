@@ -36,7 +36,8 @@ const verificarConquistasBoletim = async (token, matricula) => {
  */
 const login = async (req, res) => {
   try {
-    const { matricula, senha } = req.body;
+    let { matricula, senha } = req.body;
+    matricula = matricula.toUpperCase();
     
     if (!matricula || !senha) {
       return res.status(400).json({ erro: 'Matrícula e senha são obrigatórios' });
