@@ -219,6 +219,18 @@
     }
 
     svg.lucide { width: 1em; height: 1em; display: inline-block; vertical-align: -0.125em; flex-shrink: 0; stroke-width: 2; }
+
+    /* Mostrar / ocultar senha */
+    .campo-senha { position: relative; }
+    .campo-senha input { padding-right: 3.1rem !important; }
+    .ver-senha {
+      position: absolute; top: 50%; right: 0.4rem; transform: translateY(-50%);
+      width: 2.4rem; height: 2.4rem; border-radius: 9px; border: none; background: transparent;
+      color: var(--cinza); cursor: pointer; display: grid; place-items: center; font-size: 1.1rem;
+    }
+    .ver-senha:hover { color: var(--texto); background: rgba(255,255,255,0.06); }
+    .ver-senha:focus-visible { outline: 2px solid var(--cor, var(--verde, #44d883)); outline-offset: 1px; color: var(--texto); }
+    .campo-senha input::-ms-reveal, .campo-senha input::-ms-clear { display: none; } /* Edge: evita 2 olhos */
   </style>
 </head>
 <body>
@@ -249,7 +261,10 @@
         </div>
         <div class="field">
           <label for="senhaAluno">Senha</label>
-          <input type="password" id="senhaAluno" placeholder="Sua senha do SUAP" autocomplete="current-password" />
+          <div class="campo-senha">
+            <input type="password" id="senhaAluno" placeholder="Sua senha do SUAP" autocomplete="current-password" />
+            <button type="button" class="ver-senha" aria-controls="senhaAluno" aria-pressed="false" aria-label="Mostrar senha" title="Mostrar senha"><i data-lucide="eye"></i></button>
+          </div>
         </div>
         <button class="btn" type="submit" id="btnAluno"><i data-lucide="log-in"></i> <span>Entrar no portal</span></button>
         <div class="erro-msg" id="erroAluno" role="alert"></div>
@@ -290,7 +305,10 @@
           </div>
           <div class="field">
             <label for="senhaAdmin">Senha</label>
-            <input type="password" id="senhaAdmin" placeholder="••••••••" autocomplete="current-password" />
+            <div class="campo-senha">
+              <input type="password" id="senhaAdmin" placeholder="••••••••" autocomplete="current-password" />
+              <button type="button" class="ver-senha" aria-controls="senhaAdmin" aria-pressed="false" aria-label="Mostrar senha" title="Mostrar senha"><i data-lucide="eye"></i></button>
+            </div>
           </div>
           <button class="btn" type="submit" id="btnEntrarAdmin"><i data-lucide="lock-open"></i> <span>Entrar no painel</span></button>
           <div class="acoes-extra">
@@ -317,6 +335,28 @@
 <footer class="rodape">Instituto Federal do Paraná · Campus Assis Chateaubriand</footer>
 
 <script>
+
+  // ── Mostrar / ocultar senha ───────────────────────────────────
+  function configurarVerSenha() {
+    document.querySelectorAll('.ver-senha').forEach(function (btn) {
+      if (btn.dataset.pronto) return;
+      btn.dataset.pronto = '1';
+      btn.addEventListener('click', function () {
+        var input = document.getElementById(btn.getAttribute('aria-controls'));
+        var mostrar = input.type === 'password';
+        input.type = mostrar ? 'text' : 'password';
+        btn.setAttribute('aria-pressed', mostrar ? 'true' : 'false');
+        btn.setAttribute('aria-label', mostrar ? 'Ocultar senha' : 'Mostrar senha');
+        btn.title = mostrar ? 'Ocultar senha' : 'Mostrar senha';
+        btn.innerHTML = '<i data-lucide="' + (mostrar ? 'eye-off' : 'eye') + '"></i>';
+      });
+    });
+  }
+  // Volta a esconder (ex.: ao trocar de etapa ou depois de enviar)
+  function esconderSenhas() {
+    document.querySelectorAll('.ver-senha[aria-pressed="true"]').forEach(function (b) { b.click(); });
+  }
+  configurarVerSenha();
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 
@@ -376,7 +416,7 @@
     $({ email: 'etapaEmail', senha: 'etapaSenha', enviado: 'etapaEnviado' }[etapa]).classList.add('ativa');
     esconderErro(erroAdmin);
     if (etapa === 'email') $('email').focus();
-    if (etapa === 'senha') { $('emailMostrado').textContent = emailAtual; $('senhaAdmin').value = ''; $('senhaAdmin').focus(); }
+    if (etapa === 'senha') { esconderSenhas(); $('emailMostrado').textContent = emailAtual; $('senhaAdmin').value = ''; $('senhaAdmin').focus(); }
   }
 
   function mostrarEnviado(html) { $('msgEnviado').innerHTML = html; irPara('enviado'); }
