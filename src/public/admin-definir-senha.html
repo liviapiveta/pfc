@@ -201,13 +201,13 @@
         Este link é inválido, já foi usado ou expirou (validade de 48 horas).<br><br>
         Volte à tela de login e digite seu e-mail novamente para receber um novo link.
       </div>
-      <a class="btn-login" href="/admin/login" style="display:block;text-align:center;text-decoration:none;margin-top:1rem;">Ir para o login</a>
+      <a class="btn-login" href="/login?admin" style="display:block;text-align:center;text-decoration:none;margin-top:1rem;">Ir para o login</a>
     </div>
 
     <div class="erro-msg" id="erroMsg"></div>
   </div>
 
-  <a class="back-link" href="/admin/login"><i data-lucide="arrow-left"></i> Voltar ao login</a>
+  <a class="back-link" href="/login?admin"><i data-lucide="arrow-left"></i> Voltar ao login</a>
 </div>
 
 <script>
@@ -268,7 +268,7 @@
   document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && $('etapaForm').classList.contains('ativa')) salvar(); });
 </script>
 <!-- Ícones (Lucide) -->
-<script src="https://unpkg.com/lucide@0.330.0/dist/umd/lucide.min.js"></script>
+<script src="/lucide.min.js"></script>
 <script>
   (function () {
     let agendado = false;

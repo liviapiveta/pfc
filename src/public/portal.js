@@ -27,9 +27,16 @@ const SUAP_PROJETO_PATH = 'projetos/projeto';
 // a partir do id do projeto.
 // (O `tipo` só é informado para projetos vindos do SUAP — projetos locais
 //  da administração só geram link se o admin tiver preenchido link_suap.)
+// Só aceita links http(s) — evita "javascript:" vindo de dados cadastrados.
+const urlSegura = (u) => {
+  if (!u) return null;
+  try { return ['http:', 'https:'].includes(new URL(u, location.origin).protocol) ? u : null; }
+  catch (e) { return null; }
+};
+
 const linkProjetoSuap = (p, tipo) => {
-  const explicito =
-    p.link_suap || p.url_publica || p.pagina || p.link_projeto || p.link || p.url;
+  const explicito = urlSegura(
+    p.link_suap || p.url_publica || p.pagina || p.link_projeto || p.link || p.url);
   if (explicito) return explicito;
 
   // Só constrói link para projetos do SUAP (tipo informado + id numérico).
@@ -104,7 +111,10 @@ const fmtNota = (v) => {
 
 const formatarData = (d) => {
   if (!d) return '—';
-  const dt = new Date(d + 'T12:00:00');
+  // Aceita "AAAA-MM-DD" e também datas ISO com horário (antes virava NaN/NaN/NaN)
+  const ymd = String(d).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const dt = ymd ? new Date(+ymd[1], +ymd[2] - 1, +ymd[3], 12) : new Date(d);
+  if (isNaN(dt)) return '—';
   return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
 };
 
@@ -133,6 +143,8 @@ const dadoItem = (label, valor) =>
     document.getElementById('userAvatar').textContent = (me.nome || 'A')[0].toUpperCase();
     document.getElementById('userName').textContent   = me.nome;
     document.getElementById('userMat').textContent    = me.matricula;
+    const topAv = document.getElementById('topbarAvatar');
+    if (topAv) topAv.textContent = (me.nome || 'A')[0].toUpperCase();
 
     const periodos = await api('/api/periodos');
     if (periodos && periodos.length > 0) {
@@ -147,6 +159,9 @@ const dadoItem = (label, valor) =>
     }
 
     carregarSecao('dashboard');
+    // Pré-carrega as Configurações (dados do SUAP) para abrirem na hora
+    // e para mostrar o campus na barra lateral.
+    carregarDados();
   } catch(e) {
     console.error('Erro na inicialização:', e);
   }
@@ -184,7 +199,6 @@ document.querySelectorAll('.nav-item').forEach(item => {
 
     const titles = {
       dashboard: 'Dashboard',
-      dados:     'Dados Pessoais',
       projetos:  'Projetos',
       calendario:'Calendário Acadêmico',
       conquistas:'Conquistas',
@@ -202,7 +216,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
 
 // Seções cujos dados mudam com o tempo (pontos, ranking, conquistas,
 // trajetória) devem ser SEMPRE recarregadas ao entrar — senão exibem
-// valores congelados da primeira visita. As demais (dados, projetos,
+// valores congelados da primeira visita. As demais (projetos,
 // calendário) podem manter o cache de "já carregado".
 const SECOES_DINAMICAS = new Set(['dashboard', 'conquistas', 'ranking', 'trajetoria']);
 
@@ -211,7 +225,6 @@ const carregarSecao = (sec) => {
   if (state.loaded[sec]) return;
   switch(sec) {
     case 'dashboard':  carregarDashboard();  break;
-    case 'dados':      carregarDados();      break;
     case 'projetos':   carregarProjetos();   break;
     case 'calendario': carregarCalendario(); break;
     case 'conquistas': carregarConquistas(); break;
@@ -254,6 +267,7 @@ const renderPeriodoSelect = () => {
 
 // ── DADOS PESSOAIS ─────────────────────────────────────────────
 const carregarDados = async () => {
+  if (state.loaded['dados']) return;
   state.loaded['dados'] = true;
   try {
     const d = await api('/api/dados-pessoais');
@@ -274,53 +288,102 @@ const carregarDados = async () => {
     }
 
     document.getElementById('dadosContent').innerHTML = `
-      <div class="card">
-        <div class="perfil-hero">
-          <div class="perfil-avatar">${inicial}</div>
-          <div class="perfil-info">
-            <h2>Olá, <span>${esc(primeiroNome)}</span>!</h2>
-            <p>${esc(vinculo.curso || d.tipo_usuario || '')}</p>
-            <span class="status-badge">${esc(vinculo.situacao || 'Ativo')}</span>
-          </div>
-        </div>
-        <div class="dados-grid">
-          ${dadoItem('Matrícula',          vinculo.matricula || state.usuario?.matricula)}
-          ${dadoItem('Nome Completo',      d.nome)}
-          ${dadoItem('CPF',                d.cpf)}
-          ${dadoItem('E-mail',             d.email)}
-          ${dadoItem('E-mail Acadêmico',   d.email_academico || d.email_google_classroom)}
-          ${dadoItem('Campus',             vinculo.campus || d.campus)}
-          ${dadoItem('Curso',              vinculo.curso)}
-          ${dadoItem('Situação',           vinculo.situacao)}
-          ${dadoItem('Tipo de Vínculo',    d.tipo_vinculo)}
-          ${dadoItem('Período de Refer.',  vinculo.periodo_de_referencia != null ? vinculo.periodo_de_referencia + 'º' : null)}
-          ${dadoItem('Data de Nascimento', formatarData(d.data_nascimento))}
-          ${dadoItem('Cota SISTEC',        vinculo.cota_sistec)}
+      <div class="config-perfil">
+        <div class="perfil-avatar">${esc(inicial)}</div>
+        <div>
+          <h3>${esc(d.nome_usual || d.nome || primeiroNome)}</h3>
+          <p>${esc(vinculo.curso || d.tipo_usuario || '')}</p>
+          <span class="status-badge">${esc(vinculo.situacao || 'Ativo')}</span>
         </div>
       </div>
 
-      <div class="card pref-card">
-        <div class="card-header">
-          <span class="card-title"><i data-lucide="settings"></i> Configurações do perfil</span>
-        </div>
-        <div class="pref-row">
-          <div class="pref-text">
-            <h4>Aparência</h4>
-            <p>Escolha entre o tema claro e o tema escuro do portal.</p>
+      <div class="config-secao">
+        <div class="config-secao-titulo"><i data-lucide="palette"></i> Aparência</div>
+        <div class="config-bloco">
+          <div class="pref-row">
+            <div class="pref-text">
+              <h4>Tema</h4>
+              <p>Escolha entre o tema claro e o escuro.</p>
+            </div>
+            <div class="seg-toggle" role="group" aria-label="Tema">
+              <button type="button" class="seg-option ${temaAtual === 'light' ? 'active' : ''}"
+                      data-tema="light" onclick="aplicarTema('light')"><i data-lucide="sun"></i> Claro</button>
+              <button type="button" class="seg-option ${temaAtual === 'dark' ? 'active' : ''}"
+                      data-tema="dark" onclick="aplicarTema('dark')"><i data-lucide="moon"></i> Escuro</button>
+            </div>
           </div>
-          <div class="seg-toggle" role="group" aria-label="Tema">
-            <button type="button" class="seg-option ${temaAtual === 'light' ? 'active' : ''}"
-                    data-tema="light" onclick="aplicarTema('light')"><i data-lucide="sun"></i> Claro</button>
-            <button type="button" class="seg-option ${temaAtual === 'dark' ? 'active' : ''}"
-                    data-tema="dark" onclick="aplicarTema('dark')"><i data-lucide="moon"></i> Escuro</button>
+        </div>
+      </div>
+
+      <div class="config-secao">
+        <div class="config-secao-titulo"><i data-lucide="graduation-cap"></i> Dados acadêmicos</div>
+        <div class="config-bloco">
+          <div class="dados-grid">
+            ${dadoItem('Matrícula',          vinculo.matricula || state.usuario?.matricula)}
+            ${dadoItem('Curso',              vinculo.curso)}
+            ${dadoItem('Campus',             vinculo.campus || d.campus)}
+            ${dadoItem('Situação',           vinculo.situacao)}
+            ${dadoItem('Tipo de Vínculo',    d.tipo_vinculo)}
+            ${dadoItem('Período de Refer.',  vinculo.periodo_de_referencia != null ? vinculo.periodo_de_referencia + 'º' : null)}
+            ${dadoItem('Cota SISTEC',        vinculo.cota_sistec)}
           </div>
         </div>
+      </div>
+
+      <div class="config-secao">
+        <div class="config-secao-titulo"><i data-lucide="user"></i> Dados pessoais</div>
+        <div class="config-bloco">
+          <div class="dados-grid">
+            ${dadoItem('Nome Completo',      d.nome)}
+            ${dadoItem('CPF',                d.cpf)}
+            ${dadoItem('E-mail',             d.email)}
+            ${dadoItem('E-mail Acadêmico',   d.email_academico || d.email_google_classroom)}
+            ${dadoItem('Data de Nascimento', d.data_nascimento ? formatarData(d.data_nascimento) : null)}
+          </div>
+          <p class="config-nota"><i data-lucide="info"></i> Esses dados vêm do SUAP e só podem ser alterados lá.</p>
+        </div>
+      </div>
+
+      <div class="config-secao">
+        <div class="config-secao-titulo"><i data-lucide="log-out"></i> Conta</div>
+        <button type="button" class="btn-sair-config" onclick="logout()"><i data-lucide="log-out"></i> Sair do IFPlenus</button>
       </div>`;
   } catch(e) {
     document.getElementById('dadosContent').innerHTML =
-      '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar dados pessoais.</p></div>';
+      '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar seus dados.</p></div>';
+    state.loaded['dados'] = false; // tenta de novo na próxima abertura
   }
 };
+
+// ── CONFIGURAÇÕES (painel lateral) ─────────────────────────────
+let _focoAntesConfig = null;
+
+const abrirConfig = () => {
+  const drawer = document.getElementById('configDrawer');
+  if (!drawer) return;
+  _focoAntesConfig = document.activeElement;
+  fecharSidebar();
+  if (!state.loaded['dados']) carregarDados();
+  drawer.classList.add('open');
+  drawer.setAttribute('aria-hidden', 'false');
+  document.getElementById('configOverlay')?.classList.add('open');
+  document.body.classList.add('config-aberta');
+  setTimeout(() => drawer.querySelector('.config-fechar')?.focus(), 50);
+};
+
+const fecharConfig = () => {
+  const drawer = document.getElementById('configDrawer');
+  if (!drawer || !drawer.classList.contains('open')) return;
+  drawer.classList.remove('open');
+  drawer.setAttribute('aria-hidden', 'true');
+  document.getElementById('configOverlay')?.classList.remove('open');
+  document.body.classList.remove('config-aberta');
+  _focoAntesConfig?.focus?.();
+};
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') fecharConfig();
+});
 
 // ── BOLETIM ────────────────────────────────────────────────────
 
@@ -918,8 +981,8 @@ const carregarCalendario = async () => {
           <div class="dia">${dt ? dt.getDate() : '—'}</div>
         </div>
         <div class="evento-info">
-          <h4>${ev.link_suap
-            ? `<a href="${esc(ev.link_suap)}" target="_blank" rel="noopener">${esc(ev.nome || ev.titulo || 'Evento')}</a>`
+          <h4>${urlSegura(ev.link_suap)
+            ? `<a href="${esc(urlSegura(ev.link_suap))}" target="_blank" rel="noopener">${esc(ev.nome || ev.titulo || 'Evento')}</a>`
             : esc(ev.nome || ev.titulo || 'Evento')}</h4>
           <p>${esc(
             [ev.periodo_formatado, ev.local || ev.localizacao, ev.campus]
@@ -1091,7 +1154,7 @@ const carregarDashboard = async () => {
         </div>
         <div class="indicadores">
           <div class="indicador"><div class="ic"><i data-lucide="star"></i></div><div class="v">${dash.pontos}</div><div class="l">Pontos</div></div>
-          <div class="indicador"><div class="ic"><i data-lucide="trophy"></i></div><div class="v">${dash.posicaoGeral}º</div><div class="l">Lugar<br>Ranking Geral</div></div>
+          <div class="indicador"><div class="ic"><i data-lucide="trophy"></i></div><div class="v">${dash.posicaoGeral != null ? dash.posicaoGeral + "º" : "—"}</div><div class="l">Lugar<br>Ranking Geral</div></div>
         </div>
       </div>
 
@@ -1101,13 +1164,13 @@ const carregarDashboard = async () => {
             <div class="dash-mini" onclick="irParaSecao('ranking')">
               <span class="seta"><i data-lucide="arrow-right"></i></span>
               <div class="ic"><i data-lucide="trophy"></i></div>
-              <div class="v">${dash.posicaoGeral}º</div>
+              <div class="v">${dash.posicaoGeral != null ? dash.posicaoGeral + "º" : "—"}</div>
               <div class="l">Lugar<br>Ranking Geral</div>
             </div>
             <div class="dash-mini" onclick="irParaSecao('conquistas')">
               <span class="seta"><i data-lucide="arrow-right"></i></span>
               <div class="ic"><i data-lucide="medal"></i></div>
-              <div class="v">${dash.totalConquistas}</div>
+              <div class="v">${dash.totalConquistas ?? 0}</div>
               <div class="l">Conquistas<br>Desbloqueadas</div>
             </div>
           </div>
@@ -1305,6 +1368,7 @@ const carregarTrajetoria = async () => {
 
 // ── Logout ─────────────────────────────────────────────────────
 const logout = async () => {
-  await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+  try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); }
+  catch (e) { /* sai mesmo sem resposta */ }
   window.location.href = '/login';
 };

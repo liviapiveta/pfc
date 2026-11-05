@@ -169,7 +169,7 @@ const criarConquista = async (req, res) => {
 const atualizarConquista = async (req, res) => {
   try {
     const c = await Conquista.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
     if (!c) return res.status(404).json({ erro: 'Conquista não encontrada' });

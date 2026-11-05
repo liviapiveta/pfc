@@ -19,7 +19,14 @@ const PORT = process.env.PORT || 3000;
 const NA_VERCEL = !!process.env.VERCEL;
 
 // ── Middlewares globais ───────────────────────────────────────
-app.use(cors({ origin: true, credentials: true }));
+// O site e a API são servidos pelo mesmo domínio, então não precisamos
+// liberar outras origens. Antes, `origin: true` + credentials permitia que
+// QUALQUER site fizesse requisições autenticadas em nome do usuário.
+const ORIGENS_PERMITIDAS = (process.env.APP_URL || '').split(',').map(s => s.trim()).filter(Boolean);
+app.use(cors({
+  origin: (origin, cb) => cb(null, !origin || ORIGENS_PERMITIDAS.includes(origin)),
+  credentials: true,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -51,9 +58,8 @@ app.get('/login', (req, res) => {
 });
 
 // ── Painel administrativo ─────────────────────────────────────
-app.get('/admin/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'src', 'public', 'admin-login.html'));
-});
+// O login de servidores agora fica na tela dividida do /login
+app.get('/admin/login', (req, res) => res.redirect('/login?admin'));
 
 app.get('/admin/definir-senha', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'public', 'admin-definir-senha.html'));

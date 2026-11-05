@@ -11,8 +11,24 @@ const { importarServidores: importarListaServidores } = require('../services/con
 
 // ── Helpers ───────────────────────────────────────────────────
 
+/** Aceita só links http(s) — bloqueia "javascript:" e afins em link_suap */
+const linkSeguro = (v) => {
+  const s = String(v || '').trim();
+  if (!s) return '';
+  try { return ['http:', 'https:'].includes(new URL(s).protocol) ? s : ''; } catch { return ''; }
+};
+
 const INTERVALO_REENVIO_MS = 60 * 1000; // evita spam: 1 e-mail por minuto por conta
 const SENHA_MIN = 8;
+const MAX_TENTATIVAS = 5;
+const BLOQUEIO_MS = 15 * 60 * 1000;
+
+const comLinkSeguro = (body = {}) => {
+  const b = { ...body };
+  delete b._id;
+  if ('link_suap' in b) b.link_suap = linkSeguro(b.link_suap);
+  return b;
+};
 
 const normEmail = (e) => String(e || '').trim().toLowerCase();
 
@@ -114,10 +130,25 @@ const login = async (req, res) => {
 
   try {
     const conta = await Admin.findOne({ email, ativo: true });
-    if (!conta || !(await conta.verificarSenha(senha))) {
+    if (!conta) return res.status(401).json({ erro: 'E-mail ou senha incorretos' });
+
+    if (conta.bloqueadoAte && conta.bloqueadoAte > new Date()) {
+      const min = Math.ceil((conta.bloqueadoAte - Date.now()) / 60000);
+      return res.status(429).json({ erro: `Muitas tentativas. Tente novamente em ${min} min ou use "Esqueci minha senha".` });
+    }
+
+    if (!(await conta.verificarSenha(String(senha)))) {
+      conta.tentativasFalhas = (conta.tentativasFalhas || 0) + 1;
+      if (conta.tentativasFalhas >= MAX_TENTATIVAS) {
+        conta.bloqueadoAte = new Date(Date.now() + BLOQUEIO_MS);
+        conta.tentativasFalhas = 0;
+      }
+      await conta.save();
       return res.status(401).json({ erro: 'E-mail ou senha incorretos' });
     }
 
+    conta.tentativasFalhas = 0;
+    conta.bloqueadoAte = null;
     conta.ultimoAcesso = new Date();
     await conta.save();
     iniciarSessao(res, conta);
@@ -198,6 +229,8 @@ const definirSenha = async (req, res) => {
     conta.senhaHash = await Admin.gerarHash(String(senha));
     conta.tokenSenhaHash = null;
     conta.tokenSenhaExpira = null;
+    conta.tentativasFalhas = 0;
+    conta.bloqueadoAte = null;
     conta.ultimoAcesso = new Date();
     await conta.save();
 
@@ -276,7 +309,7 @@ const atualizarConta = async (req, res) => {
       dados.ativo = !!ativo;
     }
 
-    const conta = await Admin.findByIdAndUpdate(req.params.id, dados, { new: true }).lean();
+    const conta = await Admin.findByIdAndUpdate(req.params.id, dados, { returnDocument: 'after' }).lean();
     if (!conta) return res.status(404).json({ erro: 'Conta não encontrada' });
     return res.json(contaPublica(conta));
   } catch (err) {
@@ -385,7 +418,7 @@ const criarProjeto = async (req, res) => {
       return res.status(400).json({ erro: 'O título é obrigatório' });
     }
 
-    const proj = await Projeto.create(req.body);
+    const proj = await Projeto.create(comLinkSeguro(req.body));
     return res.status(201).json(proj);
   } catch (err) {
     console.error('Erro ao criar projeto:', err.message);
@@ -396,8 +429,8 @@ const criarProjeto = async (req, res) => {
 /** PUT /api/admin/projetos/:id */
 const atualizarProjeto = async (req, res) => {
   try {
-    const proj = await Projeto.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
+    const proj = await Projeto.findByIdAndUpdate(req.params.id, comLinkSeguro(req.body), {
+      returnDocument: 'after',
       runValidators: true,
     });
     if (!proj) return res.status(404).json({ erro: 'Projeto não encontrado' });
@@ -458,7 +491,7 @@ const criarEvento = async (req, res) => {
     if (!data_inicio) {
       return res.status(400).json({ erro: 'A data de início é obrigatória' });
     }
-    const ev = await Evento.create(req.body);
+    const ev = await Evento.create(comLinkSeguro(req.body));
     return res.status(201).json(ev);
   } catch (err) {
     console.error('Erro ao criar evento:', err.message);
@@ -469,8 +502,8 @@ const criarEvento = async (req, res) => {
 /** PUT /api/admin/eventos/:id */
 const atualizarEvento = async (req, res) => {
   try {
-    const ev = await Evento.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
+    const ev = await Evento.findByIdAndUpdate(req.params.id, comLinkSeguro(req.body), {
+      returnDocument: 'after',
       runValidators: true,
     });
     if (!ev) return res.status(404).json({ erro: 'Evento não encontrado' });
@@ -537,7 +570,7 @@ const decidirSolicitacao = async (req, res) => {
       req.params.id,
       // Carimba a data da decisão quando aceita; limpa se sair de aceita.
       { status, decididoEm: status === 'aceito' ? new Date() : null },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
     if (!sol) return res.status(404).json({ erro: 'Solicitação não encontrada' });
 

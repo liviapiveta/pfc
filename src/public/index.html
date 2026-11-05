@@ -39,14 +39,14 @@
       <div class="user-name" id="userName">Carregando…</div>
       <div class="user-mat"  id="userMat"></div>
     </div>
+    <button type="button" class="btn-config-side" onclick="abrirConfig()" aria-label="Configurações" title="Configurações">
+      <i data-lucide="settings"></i>
+    </button>
   </div>
 
   <nav>
     <div class="nav-item active" data-section="dashboard">
       <span class="nav-icon"><i data-lucide="home"></i></span> Dashboard
-    </div>
-    <div class="nav-item" data-section="dados">
-      <span class="nav-icon"><i data-lucide="user"></i></span> Dados &amp; Perfil
     </div>
     <div class="nav-item" data-section="projetos">
       <span class="nav-icon"><i data-lucide="folder"></i></span> Projetos
@@ -66,6 +66,7 @@
   </nav>
 
   <div class="sidebar-footer">
+    <button class="btn-config-nav" onclick="abrirConfig()"><i data-lucide="settings"></i> Configurações</button>
     <button class="btn-logout" onclick="logout()"><i data-lucide="log-out"></i> Sair</button>
   </div>
 </aside>
@@ -82,19 +83,19 @@
       </button>
       <span class="topbar-title" id="topbarTitle">Dashboard</span>
     </div>
-    <div class="topbar-actions" id="topbarActions"></div>
+    <div class="topbar-right">
+      <div class="topbar-actions" id="topbarActions"></div>
+      <button type="button" class="topbar-config" onclick="abrirConfig()" aria-label="Configurações" title="Configurações">
+        <span class="topbar-config-av" id="topbarAvatar">?</span>
+        <i data-lucide="settings"></i>
+      </button>
+    </div>
   </div>
   <div class="content">
 
     <section class="section active" id="section-dashboard">
       <div id="dashboardContent">
         <div class="loading"><div class="spinner"></div> Carregando painel…</div>
-      </div>
-    </section>
-
-    <section class="section" id="section-dados">
-      <div id="dadosContent">
-        <div class="loading"><div class="spinner"></div> Buscando dados…</div>
       </div>
     </section>
 
@@ -425,7 +426,7 @@
       <div class="footer-col">
         <h4>Acadêmico</h4>
         <ul>
-          <li><a href="#" data-section="dados">Dados &amp; Perfil</a></li>
+          <li><a href="#" data-config>Configurações</a></li>
           <li><a href="#" data-section="projetos">Projetos</a></li>
           <li><a href="#" data-section="calendario">Calendário</a></li>
         </ul>
@@ -443,15 +444,26 @@
 
     <div class="footer-bottom">
       <span>© <span id="footerYear"></span> IFPlenus · IFPR — Instituto Federal do Paraná</span>
-      <a class="footer-admin-link" href="/admin/login"><i data-lucide="lock"></i> Acesso administrativo</a>
     </div>
   </footer>
 </main>
 
+<!-- CONFIGURAÇÕES (painel lateral: perfil, dados do SUAP e aparência) -->
+<div class="config-overlay" id="configOverlay" onclick="fecharConfig()"></div>
+<aside class="config-drawer" id="configDrawer" role="dialog" aria-modal="true" aria-labelledby="configTitulo" aria-hidden="true">
+  <div class="config-head">
+    <h2 id="configTitulo"><i data-lucide="settings"></i> Configurações</h2>
+    <button type="button" class="config-fechar" onclick="fecharConfig()" aria-label="Fechar"><i data-lucide="x"></i></button>
+  </div>
+  <div class="config-body" id="dadosContent">
+    <div class="loading"><div class="spinner"></div> Buscando dados…</div>
+  </div>
+</aside>
+
 <script src="/portal.js"></script>
 <!-- Ícones (Lucide): converte os <i data-lucide> em SVG e re-renderiza
      quando o conteúdo dinâmico muda (dashboard, ranking, conquistas…). -->
-<script src="https://unpkg.com/lucide@0.330.0/dist/umd/lucide.min.js"></script>
+<script src="/lucide.min.js"></script>
 <script>
   (function () {
     let agendado = false;
@@ -478,6 +490,9 @@
   document.getElementById('footerYear').textContent = new Date().getFullYear();
 
   // Links do rodapé que apontam para seções acionam a navegação da sidebar
+  document.querySelectorAll('.site-footer [data-config]').forEach(a => {
+    a.addEventListener('click', (e) => { e.preventDefault(); abrirConfig(); });
+  });
   document.querySelectorAll('.site-footer [data-section]').forEach(a => {
     a.addEventListener('click', (e) => {
       e.preventDefault();

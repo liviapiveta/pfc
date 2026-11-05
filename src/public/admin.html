@@ -877,7 +877,7 @@ const esc = s => String(s ?? '')
 // ─────────────────────────────────────────────────────
 const api = async (url, opts = {}) => {
   const res = await fetch(url, { credentials: 'include', ...opts });
-  if (res.status === 401) { window.location.href = '/admin/login'; return null; }
+  if (res.status === 401) { window.location.href = '/login?admin'; return null; }
   return res;
 };
 
@@ -2012,11 +2012,11 @@ const abrirConceder = (id) => {
 // ─────────────────────────────────────────────────────
 const fazerLogout = async () => {
   await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' });
-  window.location.href = '/admin/login';
+  window.location.href = '/login?admin';
 };
 </script>
 <!-- Ícones (Lucide) -->
-<script src="https://unpkg.com/lucide@0.330.0/dist/umd/lucide.min.js"></script>
+<script src="/lucide.min.js"></script>
 <script>
   (function () {
     let agendado = false;

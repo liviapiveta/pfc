@@ -31,6 +31,10 @@ const adminSchema = new mongoose.Schema(
     tokenSenhaHash: { type: String, default: null },
     tokenSenhaExpira: { type: Date, default: null },
     ultimoEnvioEmail: { type: Date, default: null },
+
+    // Proteção contra força bruta: 5 senhas erradas → bloqueia 15 min
+    tentativasFalhas: { type: Number, default: 0 },
+    bloqueadoAte: { type: Date, default: null },
   },
   { timestamps: true }
 );

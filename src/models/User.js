@@ -67,9 +67,9 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ pontos: -1 });
 
 // Atualiza ultimoAcesso ao salvar
-userSchema.pre('save', function (next) {
+// (Mongoose 9 não passa mais o callback `next` para middlewares)
+userSchema.pre('save', function () {
     this.ultimoAcesso = new Date();
-    next();
 });
 
 module.exports = mongoose.model('User', userSchema);
