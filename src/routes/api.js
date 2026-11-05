@@ -99,4 +99,31 @@ router.get('/dashboard', auth, conquistaController.getDashboard);
 // ── Minha Trajetória (aluno) ──────────────────────────────────
 router.get('/trajetoria', auth, conquistaController.getTrajetoria);
 
+// ── Diagnóstico: o servidor consegue falar com o SUAP? ─────────
+// Envia um login falso. 401 = SUAP acessível (só recusou a senha falsa).
+// 403/405/timeout = o SUAP está bloqueando o IP deste servidor.
+router.get('/diagnostico-suap', async (req, res) => {
+  const axios = require('axios');
+  require('../services/suapService'); // aplica os headers de navegador
+  const base = (process.env.SUAP_BASE_URL || 'https://suap.ifpr.edu.br/api').replace(/\/+$/, '');
+  const inicio = Date.now();
+  try {
+    const r = await axios.post(`${base}/token/pair`, { username: 'diagnostico', password: 'x' }, {
+      timeout: 10000, validateStatus: () => true,
+    });
+    const status = r.status;
+    return res.json({
+      status,
+      acessivel: status === 401 || status === 400,
+      veredito: status === 401 || status === 400
+        ? 'OK: o SUAP responde a este servidor.'
+        : 'BLOQUEADO: o SUAP recusou este servidor (IP/firewall).',
+      ms: Date.now() - inicio,
+      trecho: String(typeof r.data === 'string' ? r.data : JSON.stringify(r.data)).slice(0, 200),
+    });
+  } catch (e) {
+    return res.json({ acessivel: false, veredito: 'Sem resposta do SUAP', erro: e.code || e.message, ms: Date.now() - inicio });
+  }
+});
+
 module.exports = router;
