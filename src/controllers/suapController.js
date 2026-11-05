@@ -51,10 +51,16 @@ const getProjetosExtensao = (req, res) =>
 
 const getCalendario = async (req, res) => {
   try {
-    const [eventosSuap, eventosLocais] = await Promise.all([
-      suapService.getEventosDoCampus(req.user.suapToken),
+    // Se o SUAP falhar, ainda mostramos os eventos cadastrados no painel
+    // (antes, qualquer erro do SUAP fazia o calendário inteiro dar 500).
+    const [suap, eventosLocais] = await Promise.all([
+      suapService.getEventosDoCampus(req.user.suapToken).then(
+        (v) => ({ ok: true, v }),
+        (e) => { console.warn('Calendário: SUAP indisponível:', e.response?.status || e.message); return { ok: false, v: [] }; }
+      ),
       Evento.find().sort({ data_inicio: 1 }).lean(),
     ]);
+    const eventosSuap = suap.v;
 
     return res.json([
       ...(Array.isArray(eventosSuap) ? eventosSuap : []),

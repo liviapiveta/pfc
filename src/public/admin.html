@@ -191,8 +191,8 @@
 
     .topbar-badge {
       background: var(--amarelo-claro);
-      border: 1px solid #fde68a;
-      color: #92400e;
+      border: 1px solid rgba(245,185,66,0.45);
+      color: #f5c469;
       font-size: 0.72rem;
       font-weight: 600;
       padding: 0.2rem 0.65rem;
@@ -565,7 +565,9 @@
       .menu-toggle { display: inline-flex; }
       .topbar-title { font-size: 1rem; }
       .topbar { padding: 0.85rem 1rem; }
-      .topbar-badge { font-size: 0.64rem; padding: 0.18rem 0.5rem; }
+      .topbar-badge { font-size: 0.64rem; padding: 0.18rem 0.5rem; flex-shrink: 1; min-width: 0; max-width: 48%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .topbar-badge .badge-cargo { display: none; }
+      .topbar-title { flex-shrink: 0; }
 
       .card { padding: 1.1rem; }
       .card-header { flex-direction: column; align-items: stretch; }
@@ -621,9 +623,19 @@
         padding-top: 0.1rem;
       }
       .items-table td:first-child { color: var(--texto); }
-      .items-table td.td-acoes { flex-direction: column; align-items: stretch; gap: 0.4rem; }
-      .items-table td.td-acoes::before { padding-top: 0; margin-bottom: 0.1rem; }
-      .items-table td.td-acoes button { width: 100%; justify-content: center; margin-right: 0; }
+      .items-table td.td-acoes { flex-wrap: wrap; justify-content: flex-end; gap: 0.4rem; padding-top: 0.6rem; }
+      .items-table td.td-acoes::before { display: none; }
+      .items-table td.td-acoes button { flex: 1 1 0; min-width: 0; justify-content: center; margin-right: 0; }
+
+      /* Contas: card compacto (nome, e-mail, selos e ações) — 78 contas
+         em cards altos viravam uma página enorme no celular */
+      .tabela-contas tr { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.4rem; padding: 0.75rem 0.85rem; }
+      .tabela-contas td { display: block; border: none; padding: 0; text-align: left; }
+      .tabela-contas td::before { display: none; }
+      .tabela-contas td.c-nome, .tabela-contas td.c-email { flex: 1 1 100%; }
+      .tabela-contas td.c-nome { font-weight: 600; }
+      .tabela-contas td.c-email { margin-bottom: 0.15rem; overflow-wrap: anywhere; }
+      .tabela-contas td.td-acoes { display: flex; flex: 1 1 100%; padding-top: 0.45rem; }
     }
 
     @media (max-width: 480px) {
@@ -948,8 +960,10 @@ document.querySelectorAll('.nav-item').forEach(item => {
       state.cargoAtual = me.cargo;
       state.contaId = me.id;
       const cargoLabel = ({ desenvolvedor: 'Desenvolvedor(a)', substituto: 'Substituto(a)' })[me.cargo] || 'Docente';
+      const primeiroNome = String(me.nome || '').trim().split(/\s+/)[0] || 'Admin';
       document.getElementById('topbarAdminBadge').innerHTML =
-        `<i data-lucide="lock"></i> ${esc(me.nome)} · ${cargoLabel}`;
+        `<i data-lucide="lock"></i> <span>${esc(primeiroNome)}</span><span class="badge-cargo"> · ${cargoLabel}</span>`;
+      document.getElementById('topbarAdminBadge').title = `${me.nome} · ${cargoLabel}`;
       if (me.cargo === 'desenvolvedor') {
         document.getElementById('navItemContas').style.display = 'flex';
       }
@@ -1708,9 +1722,9 @@ const renderTabelaContas = (dados) => {
 
     return `
     <tr>
-      <td data-label="Nome">${esc(c.nome)}${vocEMesma ? ' <span style="color:var(--cinza);font-size:0.76rem">(você)</span>' : ''}
+      <td data-label="Nome" class="c-nome">${esc(c.nome)}${vocEMesma ? ' <span style="color:var(--cinza);font-size:0.76rem">(você)</span>' : ''}
         ${c.area ? `<div style="color:var(--cinza);font-size:0.74rem">${esc(c.area)}</div>` : ''}</td>
-      <td data-label="E-mail" style="font-size:0.8rem;color:var(--cinza)">${esc(c.email)}</td>
+      <td data-label="E-mail" class="c-email" style="font-size:0.8rem;color:var(--cinza)">${esc(c.email)}</td>
       <td data-label="Cargo">${pill(info.label, info.bg, info.cor)}</td>
       <td data-label="Status">${statusConta(c)}</td>
       <td data-label="Ações" class="td-acoes">
@@ -1722,7 +1736,7 @@ const renderTabelaContas = (dados) => {
   }).join('');
 
   return `<div class="table-wrap">
-    <table class="items-table">
+    <table class="items-table tabela-contas">
       <thead>
         <tr><th>Nome</th><th>E-mail</th><th>Cargo</th><th>Status</th><th>Ações</th></tr>
       </thead>

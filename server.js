@@ -107,7 +107,7 @@ if (NA_VERCEL) {
       await seedAdmin();
       app.listen(PORT, () => {
         console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
-        console.log(`📡 API SUAP: ${process.env.SUAP_BASE_URL}`);
+        console.log(`📡 API SUAP: ${process.env.SUAP_BASE_URL || 'https://suap.ifpr.edu.br/api (padrão)'}`);
       });
     } catch (err) {
       console.error('❌ Falha ao iniciar o servidor:', err.message);

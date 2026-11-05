@@ -913,7 +913,8 @@ nav { flex: 1; padding: 1rem 0.75rem; }
   .perfil-hero { flex-direction: column; text-align: center; }
   .site-footer { padding: 2rem 1rem 1.2rem; }
   .footer-cols { flex-direction: column; gap: 1.6rem; }
-  .footer-col.footer-about { max-width: none; }
+  .footer-col.footer-about,
+  .footer-col:not(.footer-about) { flex: 0 0 auto; max-width: none; min-width: 0; }
   .footer-bottom { flex-direction: column; align-items: flex-start; }
   .menu-toggle { display: inline-flex; }
   .topbar-title { font-size: 1.02rem; }
@@ -974,24 +975,8 @@ svg.lucide {
 
 /* ===========================================================
    CONFIGURAÇÕES — painel lateral (substitui a aba "Dados & Perfil")
+   Único ponto de acesso: o botão com o avatar no topo da página.
    =========================================================== */
-.sidebar-user { position: relative; }
-.user-meta { flex: 1; }
-.btn-config-side {
-  width: 32px; height: 32px; flex-shrink: 0; border-radius: 9px;
-  display: grid; place-items: center; cursor: pointer;
-  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.6); font-size: 0.95rem; transition: all .15s;
-}
-.btn-config-side:hover { color: var(--verde); border-color: var(--verde); transform: rotate(30deg); }
-
-.sidebar-footer { display: flex; flex-direction: column; gap: 0.75rem; }
-.btn-config-nav {
-  display: flex; align-items: center; gap: 0.5rem; background: none; border: none;
-  font-family: inherit; font-size: 0.84rem; font-weight: 600; cursor: pointer;
-  color: rgba(255,255,255,0.62); transition: color .15s;
-}
-.btn-config-nav:hover { color: #fff; }
 
 .topbar-right { display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; }
 .topbar-config {
@@ -1071,8 +1056,7 @@ svg.lucide {
 body.config-aberta { overflow: hidden; }
 
 @media (max-width: 768px) {
-  .topbar-config { padding: 0.2rem; }
-  .topbar-config > svg, .topbar-config > i { display: none; }
+  .topbar-config { padding: 0.2rem 0.55rem 0.2rem 0.2rem; }
 }
 @media (max-width: 420px) {
   .config-bloco .dados-grid { grid-template-columns: 1fr; }

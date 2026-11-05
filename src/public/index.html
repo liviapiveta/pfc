@@ -39,9 +39,6 @@
       <div class="user-name" id="userName">Carregando…</div>
       <div class="user-mat"  id="userMat"></div>
     </div>
-    <button type="button" class="btn-config-side" onclick="abrirConfig()" aria-label="Configurações" title="Configurações">
-      <i data-lucide="settings"></i>
-    </button>
   </div>
 
   <nav>
@@ -66,7 +63,6 @@
   </nav>
 
   <div class="sidebar-footer">
-    <button class="btn-config-nav" onclick="abrirConfig()"><i data-lucide="settings"></i> Configurações</button>
     <button class="btn-logout" onclick="logout()"><i data-lucide="log-out"></i> Sair</button>
   </div>
 </aside>
@@ -352,6 +348,9 @@
       @media (max-width: 480px) {
         .conq-grid { grid-template-columns: 1fr 1fr; }
       }
+      @media (max-width: 420px) {
+        .conq-grid { grid-template-columns: 1fr; }
+      }
     </style>
 
     <style>
@@ -426,7 +425,6 @@
       <div class="footer-col">
         <h4>Acadêmico</h4>
         <ul>
-          <li><a href="#" data-config>Configurações</a></li>
           <li><a href="#" data-section="projetos">Projetos</a></li>
           <li><a href="#" data-section="calendario">Calendário</a></li>
         </ul>
@@ -490,9 +488,6 @@
   document.getElementById('footerYear').textContent = new Date().getFullYear();
 
   // Links do rodapé que apontam para seções acionam a navegação da sidebar
-  document.querySelectorAll('.site-footer [data-config]').forEach(a => {
-    a.addEventListener('click', (e) => { e.preventDefault(); abrirConfig(); });
-  });
   document.querySelectorAll('.site-footer [data-section]').forEach(a => {
     a.addEventListener('click', (e) => {
       e.preventDefault();
