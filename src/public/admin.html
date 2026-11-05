@@ -532,6 +532,48 @@
     .stat-label { font-size: 0.72rem; color: var(--cinza); font-weight: 500; }
     .stat-value { font-family: 'Syne', sans-serif; font-size: 1.7rem; font-weight: 700; color: var(--texto); line-height: 1.2; }
 
+    /* ── Painel do professor / Estatísticas / Histórico ── */
+    .aviso-escopo { display:flex; gap:0.6rem; align-items:flex-start; margin-top:1rem; padding:0.85rem 1rem; border-radius:12px;
+      background:var(--amarelo-claro); border:1px solid rgba(245,185,66,0.4); color:var(--texto-2); font-size:0.85rem; line-height:1.6; }
+    .aviso-escopo > svg { color:#f5c469; flex-shrink:0; margin-top:0.2rem; }
+    .sem-acao { font-size:0.75rem; color:var(--cinza); font-style:italic; }
+    .est-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:1rem; }
+    .est-grid .card { margin-bottom:0; }
+    .est-barras { display:flex; flex-direction:column; gap:0.55rem; }
+    .est-barra-linha { display:grid; grid-template-columns:minmax(0, 1.4fr) 2fr 4ch; gap:0.7rem; align-items:center; font-size:0.82rem; }
+    .est-rotulo { color:var(--texto-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .est-trilho { height:10px; border-radius:99px; background:color-mix(in srgb, var(--texto) 8%, transparent); overflow:hidden; }
+    .est-trilho > span { display:block; height:100%; border-radius:99px; background:var(--amarelo); }
+    .est-valor { font-weight:700; color:var(--texto); min-width:2ch; text-align:right; }
+    .est-colunas { display:flex; align-items:flex-end; gap:0.6rem; height:170px; padding-top:1.4rem; }
+    .est-coluna { flex:1; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:0.3rem; }
+    .est-coluna-barra { width:100%; max-width:42px; border-radius:8px 8px 3px 3px; background:var(--amarelo); }
+    .est-coluna-valor { font-size:0.78rem; font-weight:700; color:var(--texto); }
+    .est-coluna-rotulo { font-size:0.72rem; color:var(--cinza); }
+    .est-pilha { display:flex; height:22px; border-radius:99px; overflow:hidden; gap:2px; margin:0.4rem 0 1rem; }
+    .est-pilha span, .est-legenda li span { display:block; }
+    .est-pilha .pend, .est-legenda .pend { background:#f5b942; }
+    .est-pilha .ok, .est-legenda .ok { background:#44d883; }
+    .est-pilha .rec, .est-legenda .rec { background:#ff7b7b; }
+    .est-legenda { list-style:none; display:flex; flex-wrap:wrap; gap:0.5rem 1.2rem; font-size:0.84rem; color:var(--texto-2); }
+    .est-legenda li { display:flex; align-items:center; gap:0.4rem; }
+    .est-legenda li span { width:12px; height:12px; border-radius:4px; }
+    .est-legenda strong { color:var(--texto); }
+    .est-nota { color:var(--cinza); font-size:0.78rem; margin-top:0.9rem; line-height:1.5; }
+    .est-nota strong { color:var(--texto-2); }
+    .est-vazio { color:var(--cinza); font-size:0.85rem; padding:0.5rem 0; }
+    .hist-filtros { display:flex; gap:0.6rem; flex-wrap:wrap; margin-bottom:1rem; }
+    .hist-lista { list-style:none; display:flex; flex-direction:column; }
+    .hist-item { display:flex; gap:0.8rem; padding:0.75rem 0.2rem; border-bottom:1px solid var(--borda); }
+    .hist-ic { width:32px; height:32px; flex-shrink:0; border-radius:9px; display:grid; place-items:center; background:var(--amarelo-claro); color:#f5c469; }
+    .hist-corpo { min-width:0; font-size:0.86rem; color:var(--texto-2); line-height:1.5; }
+    .hist-corpo strong { color:var(--texto); }
+    .hist-alvo { color:var(--texto); overflow-wrap:anywhere; }
+    .hist-corpo small { color:var(--cinza); font-size:0.75rem; }
+    .hist-paginas { display:flex; align-items:center; justify-content:space-between; gap:0.6rem; flex-wrap:wrap; margin-top:1rem; font-size:0.8rem; color:var(--cinza); }
+    .hist-paginas button:disabled { opacity:0.4; cursor:default; }
+    @media (max-width: 480px) { .est-grid { grid-template-columns:1fr; } .est-barra-linha { grid-template-columns:1fr auto; } .est-barra-linha .est-trilho { grid-column:1 / -1; grid-row:2; } }
+
     /* ── ESQUELETOS DE CARREGAMENTO ── */
     .sk-wrap { display: flex; flex-direction: column; gap: 0.6rem; }
     .skel {
@@ -710,6 +752,12 @@
     <div class="nav-item" data-section="conquistas">
       <span class="nav-icon"><i data-lucide="trophy"></i></span> Conquistas
     </div>
+    <div class="nav-item" data-section="estatisticas">
+      <span class="nav-icon"><i data-lucide="pie-chart"></i></span> Estatísticas
+    </div>
+    <div class="nav-item" data-section="historico" id="navItemHistorico" style="display:none">
+      <span class="nav-icon"><i data-lucide="history"></i></span> Histórico
+    </div>
     <div class="nav-item" data-section="contas" id="navItemContas" style="display:none">
       <span class="nav-icon"><i data-lucide="users"></i></span> Contas do Painel
     </div>
@@ -750,6 +798,12 @@
           e <strong>Eventos do Calendário</strong>.<br><br>
           Estes dados complementam as informações que vêm diretamente do SUAP, preenchendo lacunas
           ou adicionando registros locais.
+        </p>
+        <p id="avisoEscopo" class="aviso-escopo" hidden>
+          <i data-lucide="user-check"></i>
+          <span>Você está no <strong>painel do professor</strong>: vê e gerencia só os <strong>seus projetos</strong>
+          (cadastrados por você ou com o seu e-mail como coordenador) e as <strong>solicitações</strong> deles.
+          Os eventos você pode cadastrar e editar os seus; conquistas você pode conceder aos alunos.</span>
         </p>
       </div>
     </section>
@@ -821,7 +875,7 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Catálogo de Conquistas</span>
-          <button class="btn-add" onclick="abrirModal('conquista')">+ Nova conquista</button>
+          <button class="btn-add" id="btnNovaConquista" onclick="abrirModal('conquista')" hidden>+ Nova conquista</button>
         </div>
         <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
           Cadastre as conquistas que os alunos podem desbloquear. Cada conquista
@@ -832,6 +886,40 @@
         <div id="conquistasList">
           <div data-skel="tabela"></div>
         </div>
+      </div>
+    </section>
+
+    <!-- ESTATÍSTICAS (todos os servidores) -->
+    <section class="section" id="section-estatisticas">
+      <div id="estatisticasConteudo"><div data-skel="stats"></div></div>
+    </section>
+
+    <!-- HISTÓRICO / AUDITORIA (somente desenvolvedor) -->
+    <section class="section" id="section-historico">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Histórico do painel</span>
+        </div>
+        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
+          Tudo o que foi feito no painel: quem concedeu ou removeu conquistas, decidiu solicitações,
+          criou, editou ou excluiu projetos, eventos e contas — e quando.
+        </p>
+        <div class="hist-filtros">
+          <div class="field" style="flex:1;min-width:200px;margin:0;">
+            <input type="search" id="histBusca" aria-label="Buscar no histórico" placeholder="Buscar por pessoa, aluno, projeto…" oninput="agendarHistorico()" />
+          </div>
+          <div class="field" style="margin:0;">
+            <select id="histAcao" aria-label="Filtrar por tipo de ação" onchange="carregarHistorico(1)">
+              <option value="">Todas as ações</option>
+              <option value="conquista">Conquistas</option>
+              <option value="solicitacao">Solicitações</option>
+              <option value="projeto">Projetos</option>
+              <option value="evento">Eventos</option>
+              <option value="conta">Contas</option>
+            </select>
+          </div>
+        </div>
+        <div id="historicoList"><div data-skel="tabela"></div></div>
       </div>
     </section>
 
@@ -989,6 +1077,8 @@ document.querySelectorAll('.nav-item').forEach(item => {
       eventos:  'Eventos do Calendário',
       solicitacoes: 'Solicitações de Participação',
       conquistas: 'Conquistas',
+      estatisticas: 'Estatísticas',
+      historico: 'Histórico',
       contas: 'Contas do Painel',
     };
     document.getElementById('topbarTitle').textContent = titles[sec] || '';
@@ -1012,9 +1102,16 @@ document.querySelectorAll('.nav-item').forEach(item => {
       document.getElementById('topbarAdminBadge').innerHTML =
         `<i data-lucide="lock"></i> <span>${esc(primeiroNome)}</span><span class="badge-cargo"> · ${cargoLabel}</span>`;
       document.getElementById('topbarAdminBadge').title = `${me.nome} · ${cargoLabel}`;
-      if (me.cargo === 'desenvolvedor') {
+      const dev = me.cargo === 'desenvolvedor';
+      if (dev) {
         document.getElementById('navItemContas').style.display = 'flex';
+        document.getElementById('navItemHistorico').style.display = 'flex';
+        document.getElementById('btnNovaConquista').hidden = false;
+      } else {
+        document.getElementById('avisoEscopo').hidden = false;
       }
+      // Se a lista de conquistas já foi desenhada antes do cargo chegar, redesenha
+      if (state.secaoAtiva === 'conquistas') carregarConquistas();
       if (window.lucide) lucide.createIcons();
     }
   } catch (e) { /* segue com o rótulo padrão do topbar */ }
@@ -1024,11 +1121,11 @@ document.querySelectorAll('.nav-item').forEach(item => {
     if (!stats) return;
     document.getElementById('statsRow').innerHTML = `
       <div class="stat-card">
-        <div class="stat-label">Proj. Pesquisa</div>
+        <div class="stat-label">${stats.escopo === 'meus' ? 'Meus proj. de pesquisa' : 'Proj. Pesquisa'}</div>
         <div class="stat-value">${stats.pesquisa ?? 0}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Proj. Extensão</div>
+        <div class="stat-label">${stats.escopo === 'meus' ? 'Meus proj. de extensão' : 'Proj. Extensão'}</div>
         <div class="stat-value">${stats.extensao ?? 0}</div>
       </div>
       <div class="stat-card">
@@ -1036,7 +1133,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
         <div class="stat-value">${stats.eventos ?? 0}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Solicitações pendentes</div>
+        <div class="stat-label">${stats.escopo === 'meus' ? 'Pendentes nos meus projetos' : 'Solicitações pendentes'}</div>
         <div class="stat-value">${stats.solicitacoes ?? 0}</div>
       </div>`;
   } catch(e) {
@@ -1051,6 +1148,8 @@ const carregarLista = async (tipo) => {
   if (tipo === 'conquistas') return carregarConquistas();
   if (tipo === 'projetos')   return carregarProjetosAdminSec();
   if (tipo === 'contas')     return carregarContas();
+  if (tipo === 'estatisticas') return carregarEstatisticas();
+  if (tipo === 'historico')  return carregarHistorico(1);
 
   const elMap = { eventos: 'eventosList', solicitacoes: 'solicitacoesList' };
   const el = document.getElementById(elMap[tipo]);
@@ -1188,8 +1287,9 @@ const renderTabelaProjetos = (dados, tipo) => {
       <td data-label="Situação" style="font-size:0.8rem">${esc(p.situacao || '—')}</td>
       <td data-label="Link" style="font-size:0.8rem">${link}</td>
       <td data-label="Ações" class="td-acoes">
+        ${p.podeEditar === false ? '<span class="sem-acao">Somente leitura</span>' : `
         <button class="btn-edit" onclick="editarProjeto('${tipo}', '${p._id}')"><i data-lucide="pencil"></i> Editar</button>
-        <button class="btn-del" onclick="deletarItem('${tipo}', '${p._id}')"><i data-lucide="trash-2"></i> Excluir</button>
+        <button class="btn-del" onclick="deletarItem('${tipo}', '${p._id}')"><i data-lucide="trash-2"></i> Excluir</button>`}
       </td>
     </tr>`;
   }).join('');
@@ -1210,12 +1310,13 @@ const renderTabelaEventos = (dados) => {
   const rows = dados.map(ev => `
     <tr>
       <td data-label="Nome">${esc(ev.nome)}</td>
-      <td data-label="Data Início" style="font-size:0.8rem">${esc(ev.data_inicio || '—')}</td>
-      <td data-label="Data Fim" style="font-size:0.8rem">${esc(ev.data_fim || '—')}</td>
+      <td data-label="Data Início" style="font-size:0.8rem">${esc(dataBR(ev.data_inicio))}</td>
+      <td data-label="Data Fim" style="font-size:0.8rem">${esc(dataBR(ev.data_fim))}</td>
       <td data-label="Local" style="font-size:0.8rem;color:var(--cinza)">${esc(ev.local || '—')}</td>
       <td data-label="Ações" class="td-acoes">
+        ${ev.podeEditar === false ? '<span class="sem-acao" title="Só quem cadastrou (ou a desenvolvedora) pode editar">Cadastrado por outra pessoa</span>' : `
         <button class="btn-edit" onclick="editarEvento('${ev._id}')"><i data-lucide="pencil"></i> Editar</button>
-        <button class="btn-del" onclick="deletarItem('evento', '${ev._id}')"><i data-lucide="trash-2"></i> Excluir</button>
+        <button class="btn-del" onclick="deletarItem('evento', '${ev._id}')"><i data-lucide="trash-2"></i> Excluir</button>`}
       </td>
     </tr>`).join('');
 
@@ -1229,6 +1330,149 @@ const renderTabelaEventos = (dados) => {
       <tbody>${rows}</tbody>
     </table>
   </div>`;
+};
+
+
+// "2026-08-17" → "17/08/2026"
+const dataBR = (v) => {
+  const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : (v || '—');
+};
+
+// ─────────────────────────────────────────────────────
+// Estatísticas (coordenação)
+// ─────────────────────────────────────────────────────
+const barras = (itens, rotulo, valor, sufixo = '') => {
+  const max = Math.max(1, ...itens.map(valor));
+  return `<div class="est-barras">${itens.map(i => `
+    <div class="est-barra-linha">
+      <span class="est-rotulo" title="${esc(rotulo(i))}">${esc(rotulo(i))}</span>
+      <span class="est-trilho"><span style="width:${Math.max(2, Math.round(valor(i) / max * 100))}%"></span></span>
+      <span class="est-valor">${valor(i)}${sufixo}</span>
+    </div>`).join('')}</div>`;
+};
+
+const carregarEstatisticas = async () => {
+  const el = document.getElementById('estatisticasConteudo');
+  el.innerHTML = esqueletoAdmin('stats') + esqueletoAdmin('tabela', 4);
+  try {
+    const d = await apiJSON('/api/admin/estatisticas');
+    if (!d) return;
+    const t = d.totais || {};
+    const sol = t.solicitacoes || {};
+    const totalSol = (sol.pendente || 0) + (sol.aceito || 0) + (sol.recusado || 0);
+    const vazio = (msg) => `<p class="est-vazio">${msg}</p>`;
+    const maxEvo = Math.max(1, ...d.evolucao.map(m => m.conquistas));
+
+    el.innerHTML = `
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label">Alunos no IFPlenus</div><div class="stat-value">${t.alunos ?? 0}</div></div>
+        <div class="stat-card"><div class="stat-label">Ativos (7 dias)</div><div class="stat-value">${t.ativos7 ?? 0}</div></div>
+        <div class="stat-card"><div class="stat-label">Ativos (30 dias)</div><div class="stat-value">${t.ativos30 ?? 0}</div></div>
+        <div class="stat-card"><div class="stat-label">Conquistas concedidas</div><div class="stat-value">${t.concessoes ?? 0}</div></div>
+      </div>
+
+      <div class="est-grid">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Conquistas por mês</span></div>
+          <div class="est-colunas" role="img" aria-label="Conquistas concedidas nos últimos 6 meses: ${d.evolucao.map(m => `${m.rotulo} ${m.conquistas}`).join(', ')}">
+            ${d.evolucao.map(m => `
+              <div class="est-coluna">
+                <span class="est-coluna-valor">${m.conquistas}</span>
+                <span class="est-coluna-barra" style="height:${Math.max(3, Math.round(m.conquistas / maxEvo * 100))}%"></span>
+                <span class="est-coluna-rotulo">${esc(m.rotulo)}</span>
+              </div>`).join('')}
+          </div>
+          <p class="est-nota">Pontos distribuídos no período: <strong>${d.evolucao.reduce((a, m) => a + m.pontos, 0)}</strong></p>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Solicitações de participação</span></div>
+          ${totalSol ? `
+            <div class="est-pilha" role="img" aria-label="Pendentes ${sol.pendente || 0}, aceitas ${sol.aceito || 0}, recusadas ${sol.recusado || 0}">
+              <span class="pend" style="flex:${sol.pendente || 0}"></span>
+              <span class="ok" style="flex:${sol.aceito || 0}"></span>
+              <span class="rec" style="flex:${sol.recusado || 0}"></span>
+            </div>
+            <ul class="est-legenda">
+              <li><span class="pend"></span> Pendentes <strong>${sol.pendente || 0}</strong></li>
+              <li><span class="ok"></span> Aceitas <strong>${sol.aceito || 0}</strong></li>
+              <li><span class="rec"></span> Recusadas <strong>${sol.recusado || 0}</strong></li>
+            </ul>` : vazio('Nenhuma solicitação ainda.')}
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Alunos por curso</span></div>
+          ${d.porCurso.length ? barras(d.porCurso, c => c.curso, c => c.alunos) : vazio('Nenhum aluno ainda.')}
+          ${d.porCurso.length ? `<p class="est-nota">Média de pontos: ${d.porCurso.slice(0, 4).map(c => `${esc(c.curso.split(' ').slice(0, 4).join(' '))} <strong>${c.pontosMedios}</strong>`).join(' · ')}</p>` : ''}
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Projetos com mais procura</span></div>
+          ${d.topProjetos.length ? barras(d.topProjetos, p => p.titulo, p => p.total) : vazio('Nenhum projeto recebeu solicitação ainda.')}
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Conquistas mais desbloqueadas</span></div>
+          ${d.topConquistas.length ? barras(d.topConquistas, c => c.nome, c => c.total) : vazio('Nenhuma conquista concedida ainda.')}
+        </div>
+      </div>`;
+  } catch (e) {
+    el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+  }
+};
+
+// ─────────────────────────────────────────────────────
+// Histórico (auditoria) — só desenvolvedor
+// ─────────────────────────────────────────────────────
+const ACOES_LABEL = {
+  'conquista.criar': ['Criou a conquista', 'plus'], 'conquista.editar': ['Editou a conquista', 'pencil'],
+  'conquista.excluir': ['Excluiu a conquista', 'trash-2'], 'conquista.conceder': ['Concedeu', 'medal'],
+  'conquista.revogar': ['Removeu a conquista', 'undo-2'],
+  'solicitacao.aceito': ['Aceitou a participação', 'check'], 'solicitacao.recusado': ['Recusou a participação', 'x'],
+  'solicitacao.pendente': ['Voltou para pendente', 'rotate-ccw'],
+  'projeto.criar': ['Criou o projeto', 'plus'], 'projeto.editar': ['Editou o projeto', 'pencil'], 'projeto.excluir': ['Excluiu o projeto', 'trash-2'],
+  'evento.criar': ['Criou o evento', 'plus'], 'evento.editar': ['Editou o evento', 'pencil'], 'evento.excluir': ['Excluiu o evento', 'trash-2'],
+  'conta.criar': ['Criou a conta', 'user-plus'], 'conta.editar': ['Editou a conta', 'user-cog'], 'conta.excluir': ['Excluiu a conta', 'user-x'],
+  'conta.convite': ['Enviou convite para', 'mail'], 'conta.importar': ['Importou a', 'download'],
+};
+let _histTimer = null;
+const agendarHistorico = () => { clearTimeout(_histTimer); _histTimer = setTimeout(() => carregarHistorico(1), 300); };
+
+const carregarHistorico = async (pagina = 1) => {
+  const el = document.getElementById('historicoList');
+  el.innerHTML = esqueletoAdmin('tabela', 5);
+  try {
+    const q = encodeURIComponent(document.getElementById('histBusca')?.value || '');
+    const acao = encodeURIComponent(document.getElementById('histAcao')?.value || '');
+    const d = await apiJSON(`/api/admin/historico?pagina=${pagina}&q=${q}&acao=${acao}`);
+    if (!d) return;
+    if (!d.itens.length) {
+      el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="history"></i></div><p>Nada registrado${q || acao ? ' com esses filtros' : ' ainda'}.</p></div>`;
+      return;
+    }
+    const quando = (iso) => new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    el.innerHTML = `
+      <ol class="hist-lista">${d.itens.map(i => {
+        const [rotulo, icone] = ACOES_LABEL[i.acao] || [i.acao, 'dot'];
+        return `
+        <li class="hist-item">
+          <span class="hist-ic"><i data-lucide="${icone}"></i></span>
+          <div class="hist-corpo">
+            <div><strong>${esc(i.adminNome || i.adminEmail || 'Alguém')}</strong> ${esc(rotulo)} <span class="hist-alvo">${esc(i.alvo || '')}</span></div>
+            <small>${esc(quando(i.createdAt))}${i.adminEmail ? ` · ${esc(i.adminEmail)}` : ''}</small>
+          </div>
+        </li>`; }).join('')}
+      </ol>
+      ${d.paginas > 1 ? `
+        <div class="hist-paginas">
+          <button class="btn-edit" ${d.pagina <= 1 ? 'disabled' : ''} onclick="carregarHistorico(${d.pagina - 1})"><i data-lucide="chevron-left"></i> Anteriores</button>
+          <span>Página ${d.pagina} de ${d.paginas} · ${d.total} registro(s)</span>
+          <button class="btn-edit" ${d.pagina >= d.paginas ? 'disabled' : ''} onclick="carregarHistorico(${d.pagina + 1})">Próximos <i data-lucide="chevron-right"></i></button>
+        </div>` : `<p class="est-nota">${d.total} registro(s)</p>`}`;
+  } catch (e) {
+    el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+  }
 };
 
 // ─────────────────────────────────────────────────────
@@ -1657,11 +1901,11 @@ const deletarItem = async (tipo, id) => {
 const atualizarStats = (stats) => {
   document.getElementById('statsRow').innerHTML = `
     <div class="stat-card">
-      <div class="stat-label">Proj. Pesquisa</div>
+      <div class="stat-label">${stats.escopo === 'meus' ? 'Meus proj. de pesquisa' : 'Proj. Pesquisa'}</div>
       <div class="stat-value">${stats.pesquisa ?? 0}</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Proj. Extensão</div>
+      <div class="stat-label">${stats.escopo === 'meus' ? 'Meus proj. de extensão' : 'Proj. Extensão'}</div>
       <div class="stat-value">${stats.extensao ?? 0}</div>
     </div>
     <div class="stat-card">
@@ -1669,7 +1913,7 @@ const atualizarStats = (stats) => {
       <div class="stat-value">${stats.eventos ?? 0}</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Solicitações pendentes</div>
+      <div class="stat-label">${stats.escopo === 'meus' ? 'Pendentes nos meus projetos' : 'Solicitações pendentes'}</div>
       <div class="stat-value">${stats.solicitacoes ?? 0}</div>
     </div>`;
 };
@@ -1900,8 +2144,9 @@ const renderTabelaConquistas = (dados) => {
         ${c.origem === 'automatica'
           ? ''
           : `<button class="btn-add" onclick="abrirConceder('${c._id}')"><i data-lucide="medal"></i> Conceder</button>`}
+        ${state.cargoAtual === 'desenvolvedor' ? `
         <button class="btn-edit" onclick="editarConquista('${c._id}')"><i data-lucide="pencil"></i> Editar</button>
-        <button class="btn-del" onclick="deletarItem('conquista', '${c._id}')"><i data-lucide="trash-2"></i> Excluir</button>
+        <button class="btn-del" onclick="deletarItem('conquista', '${c._id}')"><i data-lucide="trash-2"></i> Excluir</button>` : ''}
       </td>
     </tr>`;
   }).join('');

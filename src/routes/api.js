@@ -82,12 +82,16 @@ router.put('/admin/solicitacoes/:id', adminAuth, adminController.decidirSolicita
 // Catálogo de projetos do SUAP (espelho local, somente leitura)
 router.get('/admin/projetos-suap/:tipo', adminAuth, adminController.getProjetosSuap);
 
+// Histórico (auditoria) — só desenvolvedor; Estatísticas — todos os servidores
+router.get('/admin/historico', adminAuth, adminAuth.apenasDev, adminController.getHistorico);
+router.get('/admin/estatisticas', adminAuth, adminController.getEstatisticas);
+
 // ── Conquistas (gamificação) — catálogo e concessão (admin) ───
 router.get('/admin/conquistas', adminAuth, conquistaController.getConquistas);
 router.get('/admin/conquistas/:id', adminAuth, conquistaController.getConquista);
-router.post('/admin/conquistas', adminAuth, conquistaController.criarConquista);
-router.put('/admin/conquistas/:id', adminAuth, conquistaController.atualizarConquista);
-router.delete('/admin/conquistas/:id', adminAuth, conquistaController.deletarConquista);
+router.post('/admin/conquistas', adminAuth, adminAuth.apenasDev, conquistaController.criarConquista);
+router.put('/admin/conquistas/:id', adminAuth, adminAuth.apenasDev, conquistaController.atualizarConquista);
+router.delete('/admin/conquistas/:id', adminAuth, adminAuth.apenasDev, conquistaController.deletarConquista);
 
 // Concessão manual a um aluno
 router.post('/admin/conquistas/:id/conceder', adminAuth, conquistaController.concederConquista);
@@ -105,6 +109,10 @@ router.get('/dashboard', auth, conquistaController.getDashboard);
 
 // ── Minha Trajetória (aluno) ──────────────────────────────────
 router.get('/trajetoria', auth, conquistaController.getTrajetoria);
+
+// Novidades (aviso com confetes de conquista nova / subiu de nível)
+router.get('/novidades', auth, conquistaController.getNovidades);
+router.post('/novidades/vistas', auth, conquistaController.marcarNovidadesVistas);
 
 // ── Diagnóstico: o servidor consegue falar com o SUAP? ─────────
 // Envia um login falso. 401 = SUAP acessível (só recusou a senha falsa).

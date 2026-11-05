@@ -19,15 +19,11 @@ const textoSimples = (v) => (typeof v === 'string' ? v : undefined);
  *  - É barato na escala de um campus.
  * Toda operação que concede ou revoga conquista chama isto no final.
  */
-const recalcularPontosAluno = async (matricula) => {
-  const r = await ConquistaUsuario.aggregate([
-    { $match: { matricula, status: 'confirmada' } },
-    { $group: { _id: null, total: { $sum: '$pontos' } } },
-  ]);
-  const total = r[0]?.total || 0;
-  await User.updateOne({ matricula }, { $set: { pontos: total } });
-  return total;
-};
+// Uma única implementação (no motor), que também avisa o aluno por e-mail
+// quando ele sobe de nível. Antes havia duas cópias desta função.
+const { recalcularPontosAluno } = require('../services/conquistaEngine');
+const { notificarAluno } = require('../services/notificacoes');
+const { registrar } = require('../services/auditoria');
 
 /**
  * _rankearAlunos — monta o ranking a partir da FONTE DA VERDADE.
@@ -99,6 +95,7 @@ const _rankearAlunos = async (filtroUser = {}) => {
         curso: 1,
         pontosReais: 1,
         ultimaConquistaEm: 1,
+        privacidadeRanking: 1,
       },
     },
   ]);
@@ -163,6 +160,7 @@ const criarConquista = async (req, res) => {
     }
 
     const c = await Conquista.create(req.body);
+    registrar(req, 'conquista.criar', c.nome, { pontos: c.pontos, origem: c.origem });
     return res.status(201).json(c);
   } catch (err) {
     console.error('Erro ao criar conquista:', err.message);
@@ -187,6 +185,7 @@ const atualizarConquista = async (req, res) => {
       runValidators: true,
     });
     if (!c) return res.status(404).json({ erro: 'Conquista não encontrada' });
+    registrar(req, 'conquista.editar', c.nome, { pontos: c.pontos, ativa: c.ativa });
 
     // Se os pontos da conquista mudaram, os registros JÁ concedidos guardam
     // o "retrato" antigo de propósito (não mexemos no que o aluno já ganhou).
@@ -225,7 +224,8 @@ const deletarConquista = async (req, res) => {
     await ConquistaUsuario.deleteMany({ conquista: req.params.id });
 
     // 4. Recalcula os pontos de cada aluno que tinha a conquista
-    await Promise.all(matriculasAfetadas.map(m => recalcularPontosAluno(m)));
+    await Promise.all(matriculasAfetadas.map(m => recalcularPontosAluno(m, { notificar: false })));
+    registrar(req, 'conquista.excluir', c.nome, { alunosAfetados: matriculasAfetadas.length });
 
     return res.json({ sucesso: true, alunosAfetados: matriculasAfetadas.length });
   } catch (err) {
@@ -283,6 +283,8 @@ const concederConquista = async (req, res) => {
       throw err;
     }
 
+    registrar(req, 'conquista.conceder', `${conquista.nome} → ${matricula}`, { matricula, pontos: conquista.pontos });
+    await notificarAluno(matricula, 'conquista', { nome: conquista.nome, pontos: conquista.pontos });
     const pontos = await recalcularPontosAluno(matricula);
     return res.status(201).json({ sucesso: true, pontosAluno: pontos });
   } catch (err) {
@@ -321,9 +323,15 @@ const revogarConcessao = async (req, res) => {
     const reg = await ConquistaUsuario.findById(req.params.registroId);
     if (!reg) return res.status(404).json({ erro: 'Registro não encontrado' });
 
+    // Professor só revoga o que ELE concedeu; desenvolvedor revoga qualquer uma
+    if (req.admin?.cargo !== 'desenvolvedor' && reg.concedidoPor !== req.admin?.email) {
+      return res.status(403).json({ erro: 'Você só pode remover conquistas que você mesmo concedeu.' });
+    }
+
     const matricula = reg.matricula;
     await reg.deleteOne();
-    const pontos = await recalcularPontosAluno(matricula);
+    registrar(req, 'conquista.revogar', `${reg.nomeConquista} → ${matricula}`, { matricula, pontos: reg.pontos, origem: reg.origem });
+    const pontos = await recalcularPontosAluno(matricula, { notificar: false });
 
     return res.json({ sucesso: true, pontosAluno: pontos });
   } catch (err) {
@@ -407,54 +415,74 @@ const getMinhasConquistas = async (req, res) => {
  * não do cache User.pontos — assim a colocação fica correta mesmo que
  * o cache esteja desatualizado.
  */
+/**
+ * Aplica a privacidade escolhida por cada aluno:
+ *   oculto  → sai da lista (e não ocupa posição); o próprio aluno vê "oculto"
+ *   anonimo → aparece como "Aluno anônimo" para os outros
+ * As posições são renumeradas só entre quem aparece.
+ */
+const _rankingVisivel = (todos, meuId) => {
+  const visiveis = todos.filter(u => u.privacidadeRanking !== 'oculto');
+  visiveis.forEach((u, i) => { u.posicao = i + 1; });
+  const nomeExibido = (u) =>
+    (u.privacidadeRanking === 'anonimo' && String(u._id) !== meuId) ? 'Aluno anônimo' : (u.nomeUsuario || 'Aluno');
+  return { visiveis, nomeExibido };
+};
+
 const getRanking = async (req, res) => {
   try {
     const escopo = req.query.escopo === 'curso' ? 'curso' : 'geral';
     const me = req.user;
+    const meuId = String(me._id);
 
-    // Filtro do escopo
     const filtro = {};
     if (escopo === 'curso') {
       if (!me.curso) {
-        // Aluno sem curso registrado (ex.: logou antes de capturarmos o curso)
         return res.json({
-          escopo,
-          curso: null,
-          semCurso: true,
+          escopo, curso: null, semCurso: true,
           eu: { posicao: null, nome: me.nomeUsuario, pontos: me.pontos || 0, nivel: calcularNivel(me.pontos || 0) },
-          total: 0,
-          ranking: [],
+          total: 0, ranking: [],
         });
       }
       filtro.curso = me.curso;
     }
 
     const todos = await _rankearAlunos(filtro);
+    const meuReg = todos.find(u => String(u._id) === meuId);
+    const meusPontos = meuReg ? meuReg.pontosReais : 0;
+    const { visiveis, nomeExibido } = _rankingVisivel(todos, meuId);
+    const meu = visiveis.find(u => String(u._id) === meuId);
 
-    const meu = todos.find(u => u.matricula === me.matricula);
-    const meusPontos = meu ? meu.pontosReais : 0;
-    const minhaPosicao = meu ? meu.posicao : null;
-
-    const TOP = 50;
-    const ranking = todos.slice(0, TOP).map(u => ({
+    const linha = (u) => ({
       posicao: u.posicao,
-      nome: u.nomeUsuario || 'Aluno',
+      nome: nomeExibido(u),
       pontos: u.pontosReais || 0,
       nivel: calcularNivel(u.pontosReais || 0),
-      isMe: u.matricula === me.matricula,
-    }));
+      isMe: String(u._id) === meuId,
+    });
+
+    const TOP = 50;
+    const ranking = visiveis.slice(0, TOP).map(linha);
+
+    // "Ver onde estou": se o aluno está fora do top, manda quem está ao redor dele
+    const vizinhos = (meu && meu.posicao > TOP)
+      ? visiveis.slice(Math.max(TOP, meu.posicao - 3), meu.posicao + 2).map(linha)
+      : [];
 
     return res.json({
       escopo,
       curso: escopo === 'curso' ? me.curso : null,
       eu: {
-        posicao: minhaPosicao,
+        posicao: meu ? meu.posicao : null,
+        oculto: me.privacidadeRanking === 'oculto',
+        anonimo: me.privacidadeRanking === 'anonimo',
         nome: me.nomeUsuario,
         pontos: meusPontos,
         nivel: calcularNivel(meusPontos),
       },
-      total: todos.length,
+      total: visiveis.length,
       ranking,
+      vizinhos,
     });
   } catch (err) {
     console.error('Erro ao montar ranking:', err.message);
@@ -464,27 +492,17 @@ const getRanking = async (req, res) => {
 
 // ── Dashboard (resumo agregado do aluno) ──────────────────────
 
-/**
- * GET /api/dashboard   (aluno logado)
- * Reúne, numa resposta só, o que o painel inicial precisa:
- * pontos, nível (com progresso), posição no ranking geral,
- * total de conquistas e dados básicos do aluno.
- * Os "próximos eventos" o front busca via /api/calendario (já existente).
- *
- * Pontos e posição vêm da FONTE DA VERDADE (ConquistaUsuario), pelos
- * mesmos motivos do ranking — evita todo aluno aparecer em 1º quando o
- * cache User.pontos está zerado/desatualizado.
- */
+/** GET /api/dashboard — pontos, nível, posição, conquistas (fonte da verdade). */
 const getDashboard = async (req, res) => {
   try {
     const me = req.user;
+    const meuId = String(me._id);
 
-    const todos = await _rankearAlunos({}); // ranking geral, fonte da verdade
-    const meu = todos.find(u => u.matricula === me.matricula);
-
-    const pontos = meu ? meu.pontosReais : 0;
-    const posicaoGeral = meu ? meu.posicao : todos.length + 1;
-    const totalAlunos = todos.length;
+    const todos = await _rankearAlunos({});
+    const meuReg = todos.find(u => String(u._id) === meuId);
+    const pontos = meuReg ? meuReg.pontosReais : 0;
+    const { visiveis } = _rankingVisivel(todos, meuId);
+    const meu = visiveis.find(u => String(u._id) === meuId);
 
     const totalConquistas = await ConquistaUsuario.countDocuments({
       matricula: me.matricula,
@@ -495,15 +513,71 @@ const getDashboard = async (req, res) => {
       nome: me.nomeUsuario,
       curso: me.curso || '',
       pontos,
-      nivel: calcularNivel(pontos),       // { nivel, nome, progresso, faltamParaProximo, ... }
-      niveis: NIVEIS,                     // escala completa (janela "Ver níveis")
-      posicaoGeral,
-      totalAlunos,
+      nivel: calcularNivel(pontos),
+      niveis: NIVEIS,
+      posicaoGeral: meu ? meu.posicao : null,   // null = aluno escolheu ficar oculto
+      rankingOculto: me.privacidadeRanking === 'oculto',
+      totalAlunos: visiveis.length,
       totalConquistas,
     });
   } catch (err) {
     console.error('Erro ao montar dashboard:', err.message);
     return res.status(500).json({ erro: 'Erro ao buscar dashboard' });
+  }
+};
+
+// ── Novidades (aviso com confetes) ─────────────────────────────
+
+/**
+ * GET /api/novidades — conquistas novas e subida de nível desde a última visita.
+ * Na PRIMEIRA vez (aluno antigo, campos vazios) só marca o ponto de partida,
+ * para não "disparar" de uma vez tudo o que ele já tinha.
+ */
+const getNovidades = async (req, res) => {
+  try {
+    const me = req.user;
+    const total = await ConquistaUsuario.aggregate([
+      { $match: { matricula: me.matricula, status: 'confirmada' } },
+      { $group: { _id: null, total: { $sum: '$pontos' } } },
+    ]);
+    const nivelAtual = calcularNivel(total[0]?.total || 0);
+
+    if (!me.conquistasVistasEm) {
+      await User.updateOne({ _id: me._id }, { $set: { conquistasVistasEm: new Date(), nivelVisto: nivelAtual.nivel } });
+      return res.json({ conquistas: [], subiuNivel: null });
+    }
+
+    const novas = await ConquistaUsuario.find({
+      matricula: me.matricula, status: 'confirmada', createdAt: { $gt: me.conquistasVistasEm },
+    }).populate('conquista', 'icone').sort({ createdAt: 1 }).lean();
+
+    const subiuNivel = (me.nivelVisto != null && nivelAtual.nivel > me.nivelVisto)
+      ? { de: me.nivelVisto, para: nivelAtual.nivel, nome: nivelAtual.nome }
+      : null;
+
+    return res.json({
+      conquistas: novas.map(c => ({ nome: c.nomeConquista, pontos: c.pontos, icone: c.conquista?.icone || '🏆' })),
+      subiuNivel,
+    });
+  } catch (err) {
+    console.error('Erro ao buscar novidades:', err.message);
+    return res.status(500).json({ erro: 'Erro ao buscar novidades' });
+  }
+};
+
+/** POST /api/novidades/vistas — o aluno já viu o aviso */
+const marcarNovidadesVistas = async (req, res) => {
+  try {
+    const total = await ConquistaUsuario.aggregate([
+      { $match: { matricula: req.user.matricula, status: 'confirmada' } },
+      { $group: { _id: null, total: { $sum: '$pontos' } } },
+    ]);
+    await User.updateOne({ _id: req.user._id }, {
+      $set: { conquistasVistasEm: new Date(), nivelVisto: calcularNivel(total[0]?.total || 0).nivel },
+    });
+    return res.json({ sucesso: true });
+  } catch (err) {
+    return res.status(500).json({ erro: 'Erro ao salvar' });
   }
 };
 
@@ -583,4 +657,6 @@ module.exports = {
   getRanking,
   getDashboard,
   getTrajetoria,
+  getNovidades,
+  marcarNovidadesVistas,
 };

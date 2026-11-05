@@ -72,6 +72,10 @@ const login = async (req, res) => {
     }
 
     const nomeUsuario = dadosSuap.nome_usual || dadosSuap.nome || matricula;
+    // E-mail para as notificações (institucional primeiro)
+    const emailAluno = String(
+      dadosSuap.email_academico || dadosSuap.email_google_classroom || dadosSuap.email || ''
+    ).trim().toLowerCase();
 
     // ── 2b. Busca o curso do aluno (para o ranking por curso) ────
     // Endpoint separado do SUAP. Se falhar, não quebra o login —
@@ -88,12 +92,18 @@ const login = async (req, res) => {
     const user = await User.findOneAndUpdate(
       { matricula },
       {
-        matricula,
-        suapToken: accessToken,
-        suapRefreshToken: refreshToken,
-        nomeUsuario,
-        curso,
-        ultimoAcesso: new Date(),
+        $set: {
+          matricula,
+          suapToken: accessToken,
+          suapRefreshToken: refreshToken,
+          nomeUsuario,
+          curso,
+          ...(emailAluno ? { email: emailAluno } : {}),
+          ultimoAcesso: new Date(),
+        },
+        // Aluno NOVO: marca o ponto de partida das "novidades" já na criação,
+        // para que uma conquista ganha logo no primeiro login apareça com confetes.
+        $setOnInsert: { conquistasVistasEm: new Date(Date.now() - 1000), nivelVisto: 1 },
       },
       { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
@@ -155,6 +165,9 @@ const me = async (req, res) => {
       nome: req.user.nomeUsuario,
       ultimoAcesso: req.user.ultimoAcesso,
       preferencias: req.user.preferencias || {},
+      email: req.user.email || '',
+      notificarEmail: req.user.notificarEmail !== false,
+      privacidadeRanking: req.user.privacidadeRanking || 'nome',
     });
   } catch (err) {
     console.error(err.message);

@@ -60,6 +60,25 @@ const userSchema = new mongoose.Schema(
             type: Date,
             default: Date.now,
         },
+
+        // E-mail do aluno (vem do SUAP no login) — usado só para as
+        // notificações, e só se `notificarEmail` estiver ligado.
+        email: { type: String, default: '', trim: true, lowercase: true },
+        notificarEmail: { type: Boolean, default: true },
+
+        // Como o aluno aparece no ranking para os OUTROS:
+        //   nome    → nome normal
+        //   anonimo → "Aluno anônimo" (continua contando posição)
+        //   oculto  → não aparece no ranking (nem ocupa posição)
+        privacidadeRanking: {
+            type: String,
+            enum: ['nome', 'anonimo', 'oculto'],
+            default: 'nome',
+        },
+
+        // "Novidades" (aviso com confetes): até quando o aluno já viu
+        conquistasVistasEm: { type: Date, default: null },
+        nivelVisto: { type: Number, default: null },
     },
     {
         timestamps: true,

@@ -1419,3 +1419,78 @@ button.rodape-link { font: inherit; background: none; border: none; border-top: 
   :root[data-texto] .nv-item > .nv-tag { flex-basis: 100%; padding-left: calc(36px + 0.85rem); }
   :root[data-texto] .topbar-config-av + svg, :root[data-texto] .topbar-config > i { display: none; }
 }
+
+/* ===========================================================
+   PROJETOS — busca e filtros
+   =========================================================== */
+.proj-filtros { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-bottom: 1.2rem; }
+.proj-busca {
+  flex: 1 1 260px; display: flex; align-items: center; gap: 0.5rem;
+  background: var(--input-bg); border: 1.5px solid var(--borda); border-radius: 11px; padding: 0 0.8rem;
+  color: var(--cinza);
+}
+.proj-busca:focus-within { border-color: var(--verde); }
+.proj-busca input { flex: 1; min-width: 0; border: none; background: none; outline: none; color: var(--texto); font: inherit; font-size: 0.9rem; padding: 0.65rem 0; }
+.proj-filtros select {
+  background: var(--input-bg); color: var(--texto); border: 1.5px solid var(--borda); border-radius: 11px;
+  padding: 0.62rem 0.8rem; font: inherit; font-size: 0.86rem; max-width: 100%;
+}
+.proj-filtros select:focus { border-color: var(--verde); outline: none; }
+.proj-contagem { color: var(--cinza); font-size: 0.8rem; }
+.projeto-card[hidden], .proj-fonte[hidden], .proj-sem-resultado[hidden] { display: none !important; }
+@media (max-width: 600px) { .proj-filtros select { flex: 1 1 45%; } }
+
+/* ===========================================================
+   RANKING — "Ver onde estou" e vizinhança
+   =========================================================== */
+.rank-onde {
+  display: inline-flex; align-items: center; gap: 0.35rem; flex-shrink: 0;
+  background: var(--card); color: var(--verde); border: 1px solid color-mix(in srgb, var(--verde) 50%, transparent);
+  border-radius: 99px; padding: 0.4rem 0.8rem; font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+}
+.rank-onde:hover { background: var(--verde-claro); }
+.rank-separador { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0.6rem 0; }
+.rank-separador span { width: 5px; height: 5px; border-radius: 50%; background: var(--cinza); }
+.rank-row.piscar { animation: rank-piscar 1.6s ease; }
+@keyframes rank-piscar {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  25%, 60% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--verde) 55%, transparent); }
+}
+.rank-row:focus { outline: none; }
+@media (max-width: 600px) { .rank-onde { width: 100%; justify-content: center; } }
+
+/* ===========================================================
+   CONFIGURAÇÕES — privacidade e aviso de SUAP indisponível
+   =========================================================== */
+.acess-opcao { display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.7rem 0; border-bottom: 1px solid var(--borda); cursor: pointer; }
+.acess-opcao:last-child { border-bottom: none; }
+.acess-opcao input { margin-top: 0.2rem; width: 18px; height: 18px; accent-color: var(--verde); flex-shrink: 0; }
+.acess-opcao span { display: flex; flex-direction: column; gap: 0.15rem; }
+.acess-opcao strong { font-size: 0.88rem; color: var(--texto); }
+.acess-opcao small { color: var(--cinza); font-size: 0.75rem; line-height: 1.4; }
+.acess-chave input:disabled + .acess-switch { opacity: 0.45; }
+.acess-chave small strong { color: var(--texto-2); }
+.config-aviso { display: flex; gap: 0.7rem; align-items: flex-start; color: var(--texto-2); font-size: 0.85rem; }
+.config-aviso > svg { color: var(--pontos); flex-shrink: 0; margin-top: 0.15rem; }
+.link-acao { display: block; margin-top: 0.35rem; background: none; border: none; padding: 0; color: var(--verde); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; }
+
+/* ===========================================================
+   NOVIDADES — janela de parabéns + confetes
+   =========================================================== */
+.confetes { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 2000; }
+.novidade-dialog { padding: 1.8rem 1.5rem 1.4rem; text-align: center; align-items: center; max-width: 420px; }
+.nov-emoji { font-size: 3.2rem; line-height: 1; margin-bottom: 0.6rem; animation: nov-pulo .7s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes nov-pulo { from { transform: scale(0.3) rotate(-20deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.novidade-dialog h2 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; color: var(--texto); margin-bottom: 0.4rem; }
+.nov-nivel { color: var(--texto-2); margin-bottom: 0.8rem; }
+.nov-nivel strong { color: var(--verde); }
+.nov-lista { list-style: none; width: 100%; display: flex; flex-direction: column; gap: 0.45rem; margin: 0.6rem 0; text-align: left; }
+.nov-lista li { display: flex; align-items: center; gap: 0.6rem; background: var(--card); border: 1px solid var(--borda); border-radius: 12px; padding: 0.55rem 0.75rem; }
+.nov-lista li span:nth-child(2) { flex: 1; color: var(--texto); font-weight: 600; font-size: 0.9rem; }
+.nov-lista li strong { color: var(--pontos); font-family: 'Syne', sans-serif; }
+.nov-mais { color: var(--cinza); font-size: 0.8rem; }
+.nov-total { color: var(--pontos); font-family: 'Syne', sans-serif; font-weight: 700; display: flex; align-items: center; gap: 0.35rem; justify-content: center; margin: 0.3rem 0 0.4rem; }
+.nov-acoes { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; margin-top: 0.6rem; }
+.nov-acoes .nv-cta { margin-top: 0; }
+.nov-acoes .acess-restaurar { align-self: stretch; justify-content: center; margin-top: 0; }
+@media (max-width: 480px) { .novidade-overlay { place-items: center; padding: 1rem; } .novidade-dialog { border-radius: 20px; } }

@@ -1,4 +1,5 @@
 const suapService = require('../services/suapService');
+const User = require('../models/User');
 const Projeto = require('../models/Projeto');
 const Evento = require('../models/Evento');
 const Solicitacao = require('../models/Solicitacao');
@@ -69,16 +70,25 @@ const getCalendario = async (req, res) => {
   } catch (err) { return handleError(res, err, 'eventos'); }
 };
 
+/**
+ * PUT /api/preferencias — { notificarEmail?: boolean, privacidadeRanking?: 'nome'|'anonimo'|'oculto' }
+ * (tema/acessibilidade ficam só no navegador — ver portal.js)
+ */
 const updatePreferencias = async (req, res) => {
   try {
-    const { anoLetivoAtual, periodoLetivoAtual, temaEscuro } = req.body;
-    const pref = req.user.preferencias || {};
-    if (anoLetivoAtual !== undefined) pref.anoLetivoAtual = anoLetivoAtual;
-    if (periodoLetivoAtual !== undefined) pref.periodoLetivoAtual = periodoLetivoAtual;
-    if (temaEscuro !== undefined) pref.temaEscuro = temaEscuro;
-    req.user.preferencias = pref;
-    await req.user.save();
-    return res.json({ sucesso: true, preferencias: pref });
+    const { notificarEmail, privacidadeRanking } = req.body || {};
+    const dados = {};
+    if (notificarEmail !== undefined) {
+      if (typeof notificarEmail !== 'boolean') return res.status(400).json({ erro: 'notificarEmail deve ser verdadeiro ou falso' });
+      dados.notificarEmail = notificarEmail;
+    }
+    if (privacidadeRanking !== undefined) {
+      if (!['nome', 'anonimo', 'oculto'].includes(privacidadeRanking)) return res.status(400).json({ erro: 'Opção de privacidade inválida' });
+      dados.privacidadeRanking = privacidadeRanking;
+    }
+    if (!Object.keys(dados).length) return res.status(400).json({ erro: 'Nada para salvar' });
+    await User.updateOne({ _id: req.user._id }, { $set: dados });
+    return res.json({ sucesso: true, ...dados });
   } catch (err) {
     return res.status(500).json({ erro: 'Erro ao salvar preferências' });
   }
