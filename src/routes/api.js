@@ -8,6 +8,13 @@ const adminAuth = require('../middleware/adminAuth');
 const conquistaController = require('../controllers/conquistaController');
 
 // ── Autenticação (sem middleware) ──────────────────────────────
+// IDs do MongoDB inválidos na URL → 400 (antes estouravam CastError → 500)
+const mongoose = require('mongoose');
+const validarId = (req, res, next, valor) =>
+  mongoose.isValidObjectId(valor) ? next() : res.status(400).json({ erro: 'ID inválido' });
+router.param('id', validarId);
+router.param('registroId', validarId);
+
 router.post('/auth/login', authController.login);
 router.post('/auth/logout', auth, authController.logout);
 router.get('/auth/me', auth, authController.me);

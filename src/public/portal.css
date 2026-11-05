@@ -1065,3 +1065,66 @@ body.config-aberta { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .config-drawer, .config-overlay { transition: none; }
 }
+
+/* ===========================================================
+   ESQUELETOS DE CARREGAMENTO (substituem o "Carregando…")
+   Cor derivada de --texto: funciona no tema claro e no escuro.
+   =========================================================== */
+.sk-wrap { display: flex; flex-direction: column; gap: 1.1rem; }
+.skel {
+  display: block; border-radius: 8px;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--texto) 8%, transparent) 25%,
+    color-mix(in srgb, var(--texto) 15%, transparent) 40%,
+    color-mix(in srgb, var(--texto) 8%, transparent) 60%);
+  background-size: 300% 100%;
+  animation: skel-brilho 1.3s ease-in-out infinite;
+}
+@keyframes skel-brilho { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
+.sk-card {
+  background: var(--card); border: 1px solid var(--borda); border-radius: 16px;
+  padding: 1.25rem 1.4rem; display: flex; flex-direction: column; gap: 0.7rem;
+}
+.sk-card.sk-compacto { padding: 0.8rem 1rem; border-radius: 12px; }
+.sk-wrap > .sk-card.sk-compacto + .sk-card.sk-compacto { margin-top: -0.6rem; }
+.sk-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.55rem; }
+.sk-linha { height: 0.75rem; }
+.sk-titulo { height: 1.15rem; border-radius: 9px; }
+.sk-barra { height: 9px; border-radius: 99px; }
+.sk-circulo { border-radius: 50%; flex-shrink: 0; }
+.sk-icone { width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0; }
+.sk-quadrado { width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; }
+.sk-data { width: 42px; height: 40px; border-radius: 10px; flex-shrink: 0; }
+.sk-bloco { width: 64px; height: 54px; border-radius: 10px; }
+.sk-pilula { width: 96px; height: 34px; border-radius: 99px; }
+.sk-pilulas { display: flex; gap: 0.5rem; }
+.sk-linha-item { display: flex; align-items: center; gap: 0.9rem; }
+.sk-tl + .sk-tl { padding-top: 0.9rem; border-top: 1px solid var(--borda); }
+
+.sk-hero { flex-direction: row; align-items: center; gap: 1.5rem; flex-wrap: wrap; padding: 1.5rem 1.8rem; }
+.sk-hero .sk-col { min-width: 200px; }
+.sk-indicadores { display: flex; gap: 1.5rem; }
+
+.sk-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; align-items: start; }
+.sk-grid-2 > div { display: flex; flex-direction: column; gap: 1.1rem; }
+.sk-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.9rem; }
+.sk-grade-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.sk-grade-2 > div { display: flex; flex-direction: column; gap: 0.45rem; }
+
+.config-body .sk-wrap { gap: 0; }
+.config-body .sk-card { border-radius: 14px; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+@media (max-width: 900px) { .sk-grid-2 { grid-template-columns: 1fr; } .sk-grid-2 .sk-grid-2 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) {
+  .sk-hero { flex-direction: column; align-items: flex-start; }
+  .sk-hero .sk-col { min-width: 0; width: 100%; }
+  .sk-grade { grid-template-columns: 1fr; }
+  .sk-grade-2 { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .skel { animation: none; } }

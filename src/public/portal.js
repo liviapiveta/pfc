@@ -120,6 +120,62 @@ const dadoItem = (label, valor) =>
     <p>${esc(valor)}</p>
   </div>`;
 
+// ── Esqueletos de carregamento ─────────────────────────────────
+// Blocos cinza animados com o FORMATO do conteúdo que vai chegar
+// (em vez de um "Carregando…"). Uso: el.innerHTML = esqueleto('lista').
+const _sk = (cls = '', estilo = '') => `<span class="skel ${cls}" style="${estilo}"></span>`;
+const _skLinhas = (larguras) => larguras.map(w => _sk('sk-linha', `width:${w}`)).join('');
+const _skCard = (conteudo, extra = '') => `<div class="sk-card ${extra}">${conteudo}</div>`;
+
+const esqueleto = (tipo = 'lista', qtd) => {
+  let html = '';
+  switch (tipo) {
+    case 'dashboard':
+      html = `
+        <div class="sk-card sk-hero">
+          ${_sk('sk-circulo', 'width:96px;height:96px')}
+          <div class="sk-col">${_sk('sk-titulo', 'width:40%')}${_skLinhas(['30%'])}${_sk('sk-barra', 'width:70%')}</div>
+          <div class="sk-indicadores">${_sk('sk-bloco')}${_sk('sk-bloco')}</div>
+        </div>
+        <div class="sk-grid-2">
+          <div>
+            <div class="sk-grid-2">${_skCard(_sk('sk-icone') + _sk('sk-titulo', 'width:40%') + _skLinhas(['60%']))}${_skCard(_sk('sk-icone') + _sk('sk-titulo', 'width:40%') + _skLinhas(['60%']))}</div>
+            ${_skCard(_sk('sk-titulo', 'width:35%') + [1, 2, 3].map(() => `<div class="sk-linha-item">${_sk('sk-quadrado')}${_sk('sk-linha', 'flex:1')}${_sk('sk-linha', 'width:48px')}</div>`).join(''))}
+          </div>
+          ${_skCard(_sk('sk-titulo', 'width:45%') + [1, 2, 3].map(() => `<div class="sk-linha-item">${_sk('sk-quadrado')}<div class="sk-col">${_skLinhas(['75%', '45%'])}</div></div>`).join(''))}
+        </div>`;
+      break;
+    case 'grade': // conquistas
+      html = _skCard(`<div class="sk-linha-item">${_sk('sk-icone')}<div class="sk-col">${_sk('sk-titulo', 'width:25%')}${_skLinhas(['40%'])}</div></div>`)
+        + _sk('sk-titulo', 'width:160px;margin:1.4rem 0 0.8rem')
+        + `<div class="sk-grade">${Array.from({ length: qtd || 6 }, () =>
+            _skCard(`<div class="sk-linha-item">${_sk('sk-icone')}<div class="sk-col">${_skLinhas(['80%', '95%', '35%'])}</div></div>`)).join('')}</div>`;
+      break;
+    case 'ranking':
+      html = `<div class="sk-pilulas">${_sk('sk-pilula')}${_sk('sk-pilula')}</div>`
+        + _skCard(`<div class="sk-linha-item">${_sk('sk-titulo', 'width:48px;height:32px')}<div class="sk-col">${_skLinhas(['40%', '60%'])}</div>${_sk('sk-linha', 'width:56px')}</div>`)
+        + Array.from({ length: qtd || 6 }, () =>
+            _skCard(`<div class="sk-linha-item">${_sk('sk-quadrado')}<div class="sk-col">${_skLinhas(['45%', '25%'])}</div>${_sk('sk-linha', 'width:48px')}</div>`, 'sk-compacto')).join('');
+      break;
+    case 'timeline': // calendário / trajetória
+      html = _skCard(Array.from({ length: qtd || 5 }, () =>
+        `<div class="sk-linha-item sk-tl">${_sk('sk-data')}<div class="sk-col">${_skLinhas(['60%', '35%'])}</div></div>`).join(''));
+      break;
+    case 'config':
+      html = _skCard(`<div class="sk-linha-item">${_sk('sk-circulo', 'width:64px;height:64px')}<div class="sk-col">${_sk('sk-titulo', 'width:50%')}${_skLinhas(['70%', '25%'])}</div></div>`)
+        + [4, 6, 4].map(k => _sk('sk-linha', 'width:120px;margin:1.2rem 0 0.6rem') +
+            _skCard(`<div class="sk-grade-2">${Array.from({ length: k }, () => `<div>${_skLinhas(['45%', '80%'])}</div>`).join('')}</div>`)).join('');
+      break;
+    default: // 'lista' — cards (projetos etc.)
+      html = Array.from({ length: qtd || 3 }, () =>
+        _skCard(_sk('sk-pilula', 'width:80px') + _sk('sk-titulo', 'width:70%') + _skLinhas(['90%', '55%']))).join('');
+  }
+  return `<div class="sk-wrap" role="status" aria-busy="true" aria-live="polite"><span class="sr-only">Carregando…</span>${html}</div>`;
+};
+
+// Preenche os marcadores estáticos do HTML (data-skel="tipo")
+document.querySelectorAll('[data-skel]').forEach(el => { el.innerHTML = esqueleto(el.dataset.skel); });
+
 // ── Inicialização ──────────────────────────────────────────────
 (async () => {
   try {
@@ -361,7 +417,7 @@ const renderProjetosShell = () => {
       ${aba('pesquisa', 'Pesquisa')}
       ${aba('extensao', 'Extensão')}
     </div>
-    <div id="projetosArea"><div class="loading"><div class="spinner"></div> Buscando projetos…</div></div>`;
+    <div id="projetosArea">${esqueleto('lista')}</div>`;
 };
 
 // Troca a área selecionada e re-renderiza.
@@ -386,16 +442,21 @@ const renderAreaProjetos = async (area) => {
   const cont = document.getElementById('projetosArea');
   if (!cont) return;
   const meta = _projMeta[area];
+  const pedido = (state.projPedido = (state.projPedido || 0) + 1);
   try {
     const [suap, internos] = await Promise.all([
-      api(`/api/projetos/${area}`),
+      api(`/api/projetos/${area}`).catch(() => 'erro'),
       api(`/api/projetos-internos/${area}`).catch(() => []),
     ]);
     if (suap === null) return; // 401 já redirecionou
+    // Se o usuário trocou de área enquanto carregava, descarta esta resposta
+    if (pedido !== state.projPedido) return;
 
-    const suapCards = (Array.isArray(suap) && suap.length)
-      ? suap.map(p => renderProjetoSuap(p, area, meta)).join('')
-      : `<div class="proj-vazio">Nenhum projeto de ${meta.label.toLowerCase()} encontrado no sistema (SUAP).</div>`;
+    const suapCards = suap === 'erro'
+      ? `<div class="proj-vazio"><i data-lucide="cloud-off"></i> Não foi possível buscar os projetos do SUAP agora. Tente de novo em instantes.</div>`
+      : (Array.isArray(suap) && suap.length)
+        ? suap.map(p => renderProjetoSuap(p, area, meta)).join('')
+        : `<div class="proj-vazio">Nenhum projeto de ${meta.label.toLowerCase()} encontrado no sistema (SUAP).</div>`;
 
     const adminCards = (Array.isArray(internos) && internos.length)
       ? internos.map(p => renderProjetoInterno(p, area, meta.class, meta.label)).join('')
@@ -802,7 +863,7 @@ const trocarEscopoRanking = (escopo) => {
 
 const renderRanking = async () => {
   const el = document.getElementById('rankingContent');
-  el.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando ranking…</div>';
+  el.innerHTML = esqueleto('ranking');
   try {
     const dados = await api(`/api/ranking?escopo=${_rankEscopo}`);
     if (!dados) return;

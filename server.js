@@ -3,6 +3,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const path = require('path');
+const jwt = require('jsonwebtoken');
 const connectDB = require('./config/database');
 const apiRoutes = require('./src/routes/api');
 const adminAuth = require('./src/middleware/adminAuth');
@@ -31,6 +32,33 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// ── Páginas: decide login × portal ANTES de servir o HTML ─────
+// Sem isso, quem não estava logado via o portal "piscar" e só então era
+// mandado para o /login; e quem já estava logado caía no login de novo.
+const tokenValido = (token, campo) => {
+  if (!token) return false;
+  try { const d = jwt.verify(token, process.env.JWT_SECRET); return campo ? !!d[campo] : true; }
+  catch { return false; }
+};
+app.get('/admin.html', (req, res) => res.redirect('/admin'));
+app.get(['/', '/index.html'], (req, res, next) =>
+  tokenValido(req.cookies?.authToken, 'userId') ? next() : res.redirect('/login'));
+app.get('/login', (req, res, next) =>
+  (!('admin' in req.query) && tokenValido(req.cookies?.authToken, 'userId')) ? res.redirect('/') : next());
+
+// ── Arquivos estáticos (não dependem do banco) ────────────────
+// Ficam ANTES da conexão com o Mongo: CSS, imagens e a tela de login
+// carregam mesmo se o banco estiver lento ou fora do ar.
+app.use(express.static(path.join(__dirname, 'src', 'public'), { index: false }));
+
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'public', 'login.html'));
+});
+app.get('/admin/login', (req, res) => res.redirect('/login?admin'));
+app.get('/admin/definir-senha', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'public', 'admin-definir-senha.html'));
+});
+
 // Na Vercel não há um "start" único que conecta ao banco antes de ligar
 // o servidor — cada requisição pode ser uma invocação nova da função.
 // Este middleware garante que o Mongo está conectado antes de seguir;
@@ -46,32 +74,26 @@ app.use(async (req, res, next) => {
   }
 });
 
-// ── Arquivos estáticos ───────────────────────────────────────
-app.use(express.static(path.join(__dirname, 'src', 'public')));
 
 // ── Rotas da API ─────────────────────────────────────────────
 app.use('/api', apiRoutes);
 
-// ── Rotas de páginas (SPA-style: tudo vai para o index.html) ──
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'src', 'public', 'login.html'));
-});
+// Rota de API inexistente → 404 em JSON (antes devolvia a página HTML com
+// status 200, o que escondia erros como uma rota que ainda não subiu).
+app.use('/api', (req, res) => res.status(404).json({ erro: 'Rota não encontrada' }));
 
 // ── Painel administrativo ─────────────────────────────────────
-// O login de servidores agora fica na tela dividida do /login
-app.get('/admin/login', (req, res) => res.redirect('/login?admin'));
-
-app.get('/admin/definir-senha', (req, res) => {
-  res.sendFile(path.join(__dirname, 'src', 'public', 'admin-definir-senha.html'));
-});
-
 app.get('/admin', adminAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'public', 'admin.html'));
 });
 
-app.get('*', (req, res) => {
+// ── Portal do aluno (o '/' já passou pela checagem de login lá em cima) ──
+app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'public', 'index.html'));
 });
+
+// Qualquer outro endereço volta para o início
+app.get('*', (req, res) => res.redirect('/'));
 
 // ── Error handler global ──────────────────────────────────────
 app.use((err, req, res, next) => {

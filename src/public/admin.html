@@ -531,6 +531,31 @@
     .stat-label { font-size: 0.72rem; color: var(--cinza); font-weight: 500; }
     .stat-value { font-family: 'Syne', sans-serif; font-size: 1.7rem; font-weight: 700; color: var(--texto); line-height: 1.2; }
 
+    /* ── ESQUELETOS DE CARREGAMENTO ── */
+    .sk-wrap { display: flex; flex-direction: column; gap: 0.6rem; }
+    .skel {
+      display: block; border-radius: 8px;
+      background: linear-gradient(90deg,
+        color-mix(in srgb, var(--texto) 8%, transparent) 25%,
+        color-mix(in srgb, var(--texto) 15%, transparent) 40%,
+        color-mix(in srgb, var(--texto) 8%, transparent) 60%);
+      background-size: 300% 100%;
+      animation: skel-brilho 1.3s ease-in-out infinite;
+    }
+    @keyframes skel-brilho { from { background-position: 100% 0; } to { background-position: 0 0; } }
+    .sk-linha-tab {
+      display: grid; grid-template-columns: 2.2fr 1.6fr 1fr 0.8fr; gap: 1rem; align-items: center;
+      padding: 0.85rem 0.4rem; border-bottom: 1px solid var(--borda);
+    }
+    .sk-linha-tab .skel { height: 0.8rem; }
+    .sk-linha-tab .skel:first-child { height: 0.95rem; }
+    .stat-card.sk-stat { display: flex; flex-direction: column; gap: 0.6rem; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+    @media (max-width: 768px) {
+      .sk-linha-tab { grid-template-columns: 1fr 1fr; border: 1px solid var(--borda); border-radius: 12px; padding: 0.9rem; background: var(--bg-2); }
+    }
+    @media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
+
     /* ── LOADING ── */
     .loading {
       display: flex;
@@ -712,8 +737,7 @@
 
     <!-- OVERVIEW -->
     <section class="section active" id="section-overview">
-      <div class="stats-row" id="statsRow">
-        <div class="loading"><div class="spinner"></div> Carregando…</div>
+      <div class="stats-row" id="statsRow" data-skel="stats">
       </div>
       <div class="card">
         <div class="card-header">
@@ -742,7 +766,7 @@
           <button class="btn-add" onclick="abrirModal(state.projArea)">+ Novo projeto</button>
         </div>
         <div id="projAdminList">
-          <div class="loading"><div class="spinner"></div> Carregando…</div>
+          <div data-skel="tabela"></div>
         </div>
       </div>
 
@@ -757,7 +781,7 @@
           projetos, e os pedidos aparecem em <strong>Solicitações</strong>.
         </p>
         <div id="projSuapList">
-          <div class="loading"><div class="spinner"></div> Carregando…</div>
+          <div data-skel="tabela"></div>
         </div>
       </div>
     </section>
@@ -770,7 +794,7 @@
           <button class="btn-add" onclick="abrirModal('evento')">+ Novo evento</button>
         </div>
         <div id="eventosList">
-          <div class="loading"><div class="spinner"></div> Carregando…</div>
+          <div data-skel="tabela"></div>
         </div>
       </div>
     </section>
@@ -786,7 +810,7 @@
           confirmar a participação ou recuse a solicitação.
         </p>
         <div id="solicitacoesList">
-          <div class="loading"><div class="spinner"></div> Carregando…</div>
+          <div data-skel="tabela"></div>
         </div>
       </div>
     </section>
@@ -805,7 +829,7 @@
           matrícula — os pontos dele são atualizados na hora.
         </p>
         <div id="conquistasList">
-          <div class="loading"><div class="spinner"></div> Carregando…</div>
+          <div data-skel="tabela"></div>
         </div>
       </div>
     </section>
@@ -841,7 +865,7 @@
           <span id="resumoContas" style="color:var(--cinza);font-size:0.8rem;"></span>
         </div>
         <div id="contasList">
-          <div class="loading"><div class="spinner"></div> Carregando…</div>
+          <div data-skel="tabela"></div>
         </div>
       </div>
     </section>
@@ -868,6 +892,22 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ── Esqueletos de carregamento (no lugar do "Carregando…") ──────
+const esqueletoAdmin = (tipo = 'tabela', qtd = 4) => {
+  const sk = (w) => `<span class="skel" style="width:${w}"></span>`;
+  if (tipo === 'stats') {
+    return Array.from({ length: 4 }, () =>
+      `<div class="stat-card sk-stat">${sk('55%')}<span class="skel" style="width:35%;height:1.6rem"></span></div>`).join('');
+  }
+  const larg = [['80%', '70%', '60%', '50%'], ['65%', '85%', '45%', '70%'], ['90%', '60%', '70%', '40%']];
+  return `<div class="sk-wrap" role="status" aria-busy="true"><span class="sr-only">Carregando…</span>${
+    Array.from({ length: qtd }, (_, i) => `<div class="sk-linha-tab">${larg[i % 3].map(sk).join('')}</div>`).join('')
+  }</div>`;
+};
+document.querySelectorAll('[data-skel]').forEach(el => {
+  el.innerHTML = esqueletoAdmin(el.dataset.skel);
+});
+
 // ─────────────────────────────────────────────────────
 // Estado
 // ─────────────────────────────────────────────────────
@@ -1007,7 +1047,7 @@ const carregarLista = async (tipo) => {
   const elMap = { eventos: 'eventosList', solicitacoes: 'solicitacoesList' };
   const el = document.getElementById(elMap[tipo]);
   if (!el) return;
-  el.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+  el.innerHTML = esqueletoAdmin();
 
   try {
     const endpoint =
@@ -1054,8 +1094,8 @@ const carregarProjetosAdminSec = async () => {
   const adminEl = document.getElementById('projAdminList');
   const suapEl  = document.getElementById('projSuapList');
   if (!adminEl || !suapEl) return;
-  adminEl.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
-  suapEl.innerHTML  = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+  adminEl.innerHTML = esqueletoAdmin();
+  suapEl.innerHTML  = esqueletoAdmin();
 
   // 1) Projetos cadastrados pela administração (CRUD)
   try {
@@ -1640,7 +1680,7 @@ let _conquistasCache = [];
 const carregarConquistas = async () => {
   const el = document.getElementById('conquistasList');
   if (!el) return;
-  el.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+  el.innerHTML = esqueletoAdmin();
   try {
     const dados = await apiJSON('/api/admin/conquistas');
     if (!dados) return;
@@ -1666,7 +1706,7 @@ let _contasCache = [];
 const carregarContas = async () => {
   const el = document.getElementById('contasList');
   if (!el) return;
-  el.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+  el.innerHTML = esqueletoAdmin();
   try {
     const dados = await apiJSON('/api/admin/contas');
     if (!dados) return;
@@ -1970,7 +2010,7 @@ const verConquistasDoAluno = async () => {
   const box = document.getElementById('conqDoAluno');
   if (!matricula) { mostrarToast('Digite a matrícula primeiro.', 'erro'); return; }
 
-  box.innerHTML = `<div class="loading"><div class="spinner"></div> Buscando…</div>`;
+  box.innerHTML = esqueletoAdmin('tabela', 2);
   try {
     const lista = await apiJSON(`/api/admin/alunos/${encodeURIComponent(matricula)}/conquistas`);
     if (!lista || !lista.length) {
