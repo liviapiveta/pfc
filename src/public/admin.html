@@ -1,0 +1,2042 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IFPlenus — Painel Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --verde: #44d883;
+      --verde-claro: rgba(68,216,131,0.14);
+      --verde-escuro: #36c172;
+      --azul: #44d883;
+      --azul-claro: rgba(68,216,131,0.12);
+      --bg: #1b1b1f;
+      --bg-2: #242428;
+      --card: #26262b;
+      --texto: #f4f5f7;
+      --texto-2: #c2c6cf;
+      --cinza: #8b909b;
+      --borda: rgba(255,255,255,0.1);
+      --amarelo: #f5b942;
+      --amarelo-claro: rgba(245,185,66,0.14);
+      --vermelho: #ff6b6b;
+      --sidebar-w: 240px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--texto);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: #121f19;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0;
+      z-index: 100;
+    }
+
+    .sidebar-logo {
+      padding: 1.5rem 1.5rem 1.2rem;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .sidebar-logo h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: white;
+      letter-spacing: -0.5px;
+    }
+
+    .sidebar-logo h1 span { color: var(--verde); }
+    .sidebar-logo p { font-size: 0.7rem; color: rgba(255,255,255,0.35); margin-top: 0.2rem; }
+
+    .admin-pill {
+      margin: 0.75rem 1.5rem;
+      background: rgba(245,166,35,0.15);
+      border: 1px solid rgba(245,166,35,0.25);
+      color: var(--amarelo);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 0.3rem 0.75rem;
+      border-radius: 99px;
+      display: inline-block;
+    }
+
+    nav { flex: 1; padding: 0.5rem 0; }
+
+    .nav-section {
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.25);
+      padding: 0.9rem 1.5rem 0.3rem;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.65rem 1.5rem;
+      color: rgba(255,255,255,0.55);
+      cursor: pointer;
+      font-size: 0.86rem;
+      font-weight: 400;
+      transition: all 0.15s;
+      border-left: 3px solid transparent;
+    }
+
+    .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+
+    .nav-item.active {
+      color: white;
+      background: rgba(245,166,35,0.1);
+      border-left-color: var(--amarelo);
+      font-weight: 500;
+    }
+
+    .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+
+    .sidebar-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .btn-logout {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: rgba(255,255,255,0.4);
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: color 0.15s;
+      background: none;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn-logout:hover { color: var(--vermelho); }
+
+    /* ── MAIN ── */
+    .main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      background: var(--card);
+      border-bottom: 1px solid var(--borda);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .topbar-left { display: flex; align-items: center; min-width: 0; }
+
+    .topbar-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--texto);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .menu-toggle {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      color: var(--texto);
+      cursor: pointer;
+      padding: 0.4rem;
+      margin-right: 0.9rem;
+      border-radius: 8px;
+    }
+    .menu-toggle:hover { background: rgba(255,255,255,0.05); }
+    .menu-toggle svg { width: 24px; height: 24px; }
+
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 90;
+    }
+    .sidebar-overlay.open { display: block; }
+
+    .topbar-badge {
+      background: var(--amarelo-claro);
+      border: 1px solid #fde68a;
+      color: #92400e;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.2rem 0.65rem;
+      border-radius: 99px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .content { padding: 2rem; }
+
+    /* ── SEÇÕES ── */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      border: 1px solid var(--borda);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-bottom: 1.2rem;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px solid var(--borda);
+    }
+
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.97rem;
+      color: var(--texto);
+    }
+
+    /* ── FORMULÁRIO ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .form-grid .full { grid-column: 1 / -1; }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .field label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--texto-2);
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .field input,
+    .field textarea,
+    .field select {
+      border: 1.5px solid var(--borda);
+      border-radius: 9px;
+      padding: 0.65rem 0.9rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      color: var(--texto);
+      background: var(--bg-2);
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+
+    .field input:focus,
+    .field textarea:focus,
+    .field select:focus {
+      border-color: var(--amarelo);
+    }
+
+    .field textarea {
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    /* ── BOTÕES ── */
+    .btn-primary {
+      background: var(--verde);
+      color: #06281a;
+      border: none;
+      border-radius: 9px;
+      padding: 0.65rem 1.4rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      letter-spacing: 0.2px;
+    }
+
+    .btn-primary:hover { background: var(--verde-escuro); }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .btn-add {
+      background: var(--verde);
+      color: #06281a;
+      border: none;
+      border-radius: 9px;
+      padding: 0.55rem 1.1rem;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      font-size: 0.84rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .btn-add:hover { background: var(--verde-escuro); }
+
+    .btn-del {
+      background: none;
+      border: 1.5px solid rgba(255,107,107,0.4);
+      color: var(--vermelho);
+      border-radius: 7px;
+      padding: 0.3rem 0.65rem;
+      font-size: 0.78rem;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+
+    .btn-del:hover { background: rgba(255,107,107,0.12); }
+
+    .btn-edit {
+      background: none;
+      border: 1.5px solid var(--borda);
+      color: var(--texto-2);
+      border-radius: 7px;
+      padding: 0.3rem 0.65rem;
+      font-size: 0.78rem;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 500;
+      transition: all 0.15s;
+      margin-right: 0.4rem;
+    }
+
+    .btn-edit:hover { border-color: var(--azul); color: var(--azul); }
+
+    /* ── TABELA DE ITENS ── */
+    .table-wrap { overflow-x: auto; }
+
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .items-table th {
+      background: var(--bg);
+      padding: 0.6rem 0.85rem;
+      text-align: left;
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--cinza);
+      border-bottom: 1px solid var(--borda);
+    }
+
+    .items-table td {
+      padding: 0.75rem 0.85rem;
+      border-bottom: 1px solid var(--borda);
+      color: var(--texto-2);
+      vertical-align: middle;
+    }
+
+    .items-table tr:last-child td { border-bottom: none; }
+    .items-table tr:hover td { background: var(--bg-2); }
+    .items-table td:first-child { color: var(--texto); font-weight: 500; max-width: 260px; }
+    .items-table a { color: var(--verde); font-weight: 600; text-decoration: none; }
+    .items-table a:hover { color: var(--verde-escuro); text-decoration: underline; }
+
+    .empty-table {
+      text-align: center;
+      padding: 2.5rem;
+      color: var(--cinza);
+      font-size: 0.87rem;
+    }
+
+    .empty-table .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+
+    /* ── BADGES ── */
+    .badge-tipo {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 0.18rem 0.55rem;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .badge-pesquisa { background: var(--azul-claro); color: #75e4a6; }
+    .badge-extensao { background: var(--verde-claro); color: #5fe39a; }
+    .badge-evento   { background: var(--azul-claro); color: var(--azul); }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: #2e2e34;
+      color: #f4f5f7;
+      padding: 0.8rem 1.3rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      z-index: 9999;
+      transform: translateY(120%);
+      opacity: 0;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      max-width: 360px;
+    }
+
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.sucesso { background: var(--verde-escuro); }
+    .toast.erro { background: var(--vermelho); }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 500;
+      display: none;
+      place-items: center;
+      padding: 1.5rem;
+    }
+
+    .modal-overlay.open { display: grid; }
+
+    .modal {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 1.8rem;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: slideUp 0.22s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(16px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.4rem;
+    }
+
+    .modal-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--texto);
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      cursor: pointer;
+      color: var(--cinza);
+      padding: 0.2rem;
+      line-height: 1;
+    }
+
+    .modal-close:hover { color: var(--texto); }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.7rem;
+      margin-top: 1.4rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--borda);
+    }
+
+    .btn-cancel {
+      background: none;
+      border: 1.5px solid var(--borda);
+      color: var(--texto-2);
+      border-radius: 9px;
+      padding: 0.6rem 1.1rem;
+      font-family: inherit;
+      font-size: 0.88rem;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .btn-cancel:hover { background: var(--bg); }
+
+    /* ── STATS ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--borda);
+      border-radius: 12px;
+      padding: 1.1rem 1.2rem;
+    }
+
+    .stat-label { font-size: 0.72rem; color: var(--cinza); font-weight: 500; }
+    .stat-value { font-family: 'Syne', sans-serif; font-size: 1.7rem; font-weight: 700; color: var(--texto); line-height: 1.2; }
+
+    /* ── LOADING ── */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem;
+      color: var(--cinza);
+      font-size: 0.88rem;
+      gap: 0.7rem;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2.5px solid var(--borda);
+      border-top-color: var(--amarelo);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ══════════════════════════════════════════════════════════
+       RESPONSIVO
+       ══════════════════════════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); transition: transform 0.3s; z-index: 100; }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; width: 100%; }
+      .content { padding: 1rem; }
+      .form-grid { grid-template-columns: 1fr; }
+      .menu-toggle { display: inline-flex; }
+      .topbar-title { font-size: 1rem; }
+      .topbar { padding: 0.85rem 1rem; }
+      .topbar-badge { font-size: 0.64rem; padding: 0.18rem 0.5rem; }
+
+      .card { padding: 1.1rem; }
+      .card-header { flex-direction: column; align-items: stretch; }
+      .card-header .btn-add { width: 100%; justify-content: center; }
+
+      .stats-row { grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
+      .stat-card { padding: 0.9rem 1rem; }
+      .stat-value { font-size: 1.35rem; }
+
+      .modal-overlay { padding: 0; align-items: flex-end; }
+      .modal { max-width: 100%; width: 100%; border-radius: 18px 18px 0 0; max-height: 92vh; padding: 1.3rem; }
+      .modal-footer { flex-wrap: wrap; }
+      .modal-footer button { flex: 1 1 auto; }
+
+      .toast { left: 1rem; right: 1rem; bottom: 1rem; max-width: none; }
+
+      .proj-area-tabs { flex-wrap: wrap; }
+      .proj-area-tabs button { flex: 1 1 auto; text-align: center; }
+
+      /* Tabelas viram listas de cards no mobile */
+      .table-wrap { overflow-x: visible; }
+      .items-table thead { display: none; }
+      .items-table, .items-table tbody { display: block; width: 100%; }
+      .items-table tr {
+        display: block;
+        background: var(--bg-2);
+        border: 1px solid var(--borda);
+        border-radius: 12px;
+        padding: 0.85rem 0.9rem;
+        margin-bottom: 0.7rem;
+      }
+      .items-table tr:hover td { background: none; }
+      .items-table td {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+        text-align: right;
+        padding: 0.4rem 0;
+        border-bottom: 1px solid var(--borda);
+        max-width: none;
+      }
+      .items-table td:last-child { border-bottom: none; }
+      .items-table td::before {
+        content: attr(data-label);
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--cinza);
+        text-align: left;
+        flex-shrink: 0;
+        padding-top: 0.1rem;
+      }
+      .items-table td:first-child { color: var(--texto); }
+      .items-table td.td-acoes { flex-direction: column; align-items: stretch; gap: 0.4rem; }
+      .items-table td.td-acoes::before { padding-top: 0; margin-bottom: 0.1rem; }
+      .items-table td.td-acoes button { width: 100%; justify-content: center; margin-right: 0; }
+    }
+
+    @media (max-width: 480px) {
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .sidebar-logo h1 { font-size: 1.2rem; }
+      .admin-pill { margin: 0.6rem 1.2rem; }
+      .nav-item { padding: 0.6rem 1.2rem; }
+    }
+
+    /* Ícones (Lucide) — herdam tamanho (1em) e cor (currentColor) do contexto */
+    svg.lucide { width:1em; height:1em; display:inline-block; vertical-align:-0.125em; flex-shrink:0; stroke-width:2; }
+    /* Abas de área (Pesquisa | Extensão) da seção Projetos */
+    .proj-area-tabs { display:flex; gap:0.5rem; margin-bottom:1.4rem; flex-wrap: wrap; }
+    .proj-area-tabs button {
+      flex:0 0 auto; padding:0.5rem 1.3rem; border-radius:99px; cursor:pointer;
+      font-family:'DM Sans',sans-serif; font-size:0.9rem; font-weight:600;
+      background:transparent; color:var(--texto-2); border:1px solid var(--borda); transition:all .15s;
+    }
+    .proj-area-tabs button:hover { border-color:var(--verde); color:#fff; }
+    .proj-area-tabs button.ativo { background:var(--verde); color:#06281a; border-color:var(--verde); }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <img src="/images/if-logo.png" width="34" height="34" alt="Instituto Federal" style="object-fit:contain;display:block;margin-bottom:0.55rem" />
+    <h1>IF<span>Plenus</span></h1>
+    <p>IFPR — Campus Assis Chateaubriand</p>
+  </div>
+  <div class="admin-pill"><i data-lucide="settings"></i> Painel Admin</div>
+  <nav>
+    <div class="nav-item active" data-section="overview">
+      <span class="nav-icon"><i data-lucide="bar-chart-3"></i></span> Visão Geral
+    </div>
+    <div class="nav-item" data-section="projetos">
+      <span class="nav-icon"><i data-lucide="folder"></i></span> Projetos
+    </div>
+    <div class="nav-item" data-section="eventos">
+      <span class="nav-icon"><i data-lucide="calendar"></i></span> Eventos do Calendário
+    </div>
+    <div class="nav-item" data-section="solicitacoes">
+      <span class="nav-icon"><i data-lucide="mail"></i></span> Solicitações
+    </div>
+    <div class="nav-item" data-section="conquistas">
+      <span class="nav-icon"><i data-lucide="trophy"></i></span> Conquistas
+    </div>
+    <div class="nav-item" data-section="contas" id="navItemContas" style="display:none">
+      <span class="nav-icon"><i data-lucide="users"></i></span> Contas do Painel
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="btn-logout" onclick="fazerLogout()"><i data-lucide="log-out"></i> Sair do painel</button>
+  </div>
+</aside>
+
+<!-- Overlay usado para fechar o menu ao tocar fora dele (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">
+        <i data-lucide="menu"></i>
+      </button>
+      <span class="topbar-title" id="topbarTitle">Visão Geral</span>
+    </div>
+    <span class="topbar-badge" id="topbarAdminBadge"><i data-lucide="lock"></i> Administrador</span>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <section class="section active" id="section-overview">
+      <div class="stats-row" id="statsRow">
+        <div class="loading"><div class="spinner"></div> Carregando…</div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Bem-vindo ao Painel Administrativo</span>
+        </div>
+        <p style="color:var(--texto-2);font-size:0.9rem;line-height:1.7;">
+          Aqui você gerencia os dados que são exibidos no portal para os alunos. Use o menu lateral para
+          cadastrar ou editar <strong>Projetos de Pesquisa</strong>, <strong>Projetos de Extensão</strong>
+          e <strong>Eventos do Calendário</strong>.<br><br>
+          Estes dados complementam as informações que vêm diretamente do SUAP, preenchendo lacunas
+          ou adicionando registros locais.
+        </p>
+      </div>
+    </section>
+
+    <!-- PROJETOS (pesquisa + extensão + espelho do SUAP, em uma aba) -->
+    <section class="section" id="section-projetos">
+      <div class="proj-area-tabs" id="projAreaTabs">
+        <button class="ativo" data-area="pesquisa" onclick="trocarAreaAdmin('pesquisa')">Pesquisa</button>
+        <button data-area="extensao" onclick="trocarAreaAdmin('extensao')">Extensão</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Projetos Adicionados pelo Admin · <span id="projAreaLabel1">Pesquisa</span></span>
+          <button class="btn-add" onclick="abrirModal(state.projArea)">+ Novo projeto</button>
+        </div>
+        <div id="projAdminList">
+          <div class="loading"><div class="spinner"></div> Carregando…</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Projetos do Sistema · SUAP · <span id="projAreaLabel2">Pesquisa</span></span>
+        </div>
+        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
+          Espelho dos projetos que vêm do SUAP (somente leitura). A lista é preenchida
+          conforme os alunos abrem a aba <strong>Projetos</strong> no portal — o painel
+          não acessa o SUAP diretamente. Os alunos podem solicitar participação nestes
+          projetos, e os pedidos aparecem em <strong>Solicitações</strong>.
+        </p>
+        <div id="projSuapList">
+          <div class="loading"><div class="spinner"></div> Carregando…</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EVENTOS -->
+    <section class="section" id="section-eventos">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Eventos do Calendário</span>
+          <button class="btn-add" onclick="abrirModal('evento')">+ Novo evento</button>
+        </div>
+        <div id="eventosList">
+          <div class="loading"><div class="spinner"></div> Carregando…</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SOLICITAÇÕES -->
+    <section class="section" id="section-solicitacoes">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Solicitações de Participação</span>
+        </div>
+        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
+          Alunos que pediram para fazer parte dos projetos. Aceite para
+          confirmar a participação ou recuse a solicitação.
+        </p>
+        <div id="solicitacoesList">
+          <div class="loading"><div class="spinner"></div> Carregando…</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONQUISTAS -->
+    <section class="section" id="section-conquistas">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Catálogo de Conquistas</span>
+          <button class="btn-add" onclick="abrirModal('conquista')">+ Nova conquista</button>
+        </div>
+        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
+          Cadastre as conquistas que os alunos podem desbloquear. Cada conquista
+          vale uma quantidade de <strong>estrelas (pontos)</strong>. Use
+          <strong>Conceder</strong> para entregar uma conquista a um aluno pela
+          matrícula — os pontos dele são atualizados na hora.
+        </p>
+        <div id="conquistasList">
+          <div class="loading"><div class="spinner"></div> Carregando…</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTAS DO PAINEL (somente desenvolvedor) -->
+    <section class="section" id="section-contas">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Contas do Painel Administrativo</span>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <button class="btn-edit" onclick="importarServidores()"><i data-lucide="download"></i> Importar lista IFPR</button>
+            <button class="btn-add" onclick="abrirModal('conta')">+ Nova conta</button>
+          </div>
+        </div>
+        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
+          Só podem entrar no painel <strong>docentes</strong>, <strong>substitutos</strong> e a
+          <strong>desenvolvedora</strong>. No primeiro acesso, a pessoa digita o e-mail na tela de login e
+          recebe automaticamente um link <em>"Cadastrar sua senha"</em> (enviado por noreplyifplenus@gmail.com).
+          Você também pode enviar o convite manualmente pelo botão <strong>Convite</strong>.
+        </p>
+        <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;">
+          <div class="field" style="flex:1;min-width:200px;margin:0;">
+            <input type="search" id="buscaContas" placeholder="Buscar por nome, e-mail ou área…" oninput="filtrarContas()" />
+          </div>
+          <div class="field" style="margin:0;">
+            <select id="filtroCargoContas" onchange="filtrarContas()">
+              <option value="">Todos os cargos</option>
+              <option value="professor">Docentes</option>
+              <option value="substituto">Substitutos</option>
+              <option value="desenvolvedor">Desenvolvedor(a)</option>
+            </select>
+          </div>
+          <span id="resumoContas" style="color:var(--cinza);font-size:0.8rem;"></span>
+        </div>
+        <div id="contasList">
+          <div class="loading"><div class="spinner"></div> Carregando…</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="fecharModalSeOverlay(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">Novo item</span>
+      <button class="modal-close" onclick="fecharModal()"><i data-lucide="x"></i></button>
+    </div>
+    <div id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-primary" id="btnSalvar" onclick="salvarItem()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────────────
+// Estado
+// ─────────────────────────────────────────────────────
+const state = {
+  secaoAtiva: 'overview',
+  projArea: 'pesquisa',
+  modalTipo: null,
+  editandoId: null,
+};
+
+const esc = s => String(s ?? '')
+  .replace(/&/g,'&amp;')
+  .replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;')
+  .replace(/"/g,'&quot;');
+
+// ─────────────────────────────────────────────────────
+// API helpers
+// ─────────────────────────────────────────────────────
+const api = async (url, opts = {}) => {
+  const res = await fetch(url, { credentials: 'include', ...opts });
+  if (res.status === 401) { window.location.href = '/admin/login'; return null; }
+  return res;
+};
+
+const apiJSON = async (url, opts = {}) => {
+  const res = await api(url, opts);
+  if (!res) return null;
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.erro || `HTTP ${res.status}`);
+  }
+  return res.json();
+};
+
+// ─────────────────────────────────────────────────────
+// Menu hambúrguer (mobile)
+// ─────────────────────────────────────────────────────
+const sidebarEl = document.getElementById('sidebar');
+const menuToggleEl = document.getElementById('menuToggle');
+const sidebarOverlayEl = document.getElementById('sidebarOverlay');
+
+const abrirSidebar = () => {
+  sidebarEl?.classList.add('open');
+  sidebarOverlayEl?.classList.add('open');
+};
+const fecharSidebar = () => {
+  sidebarEl?.classList.remove('open');
+  sidebarOverlayEl?.classList.remove('open');
+};
+
+menuToggleEl?.addEventListener('click', () => {
+  if (sidebarEl?.classList.contains('open')) fecharSidebar();
+  else abrirSidebar();
+});
+sidebarOverlayEl?.addEventListener('click', fecharSidebar);
+
+// ─────────────────────────────────────────────────────
+// Navegação
+// ─────────────────────────────────────────────────────
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const sec = item.dataset.section;
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById(`section-${sec}`).classList.add('active');
+    const titles = {
+      overview: 'Visão Geral',
+      projetos: 'Projetos',
+      eventos:  'Eventos do Calendário',
+      solicitacoes: 'Solicitações de Participação',
+      conquistas: 'Conquistas',
+      contas: 'Contas do Painel',
+    };
+    document.getElementById('topbarTitle').textContent = titles[sec] || '';
+    state.secaoAtiva = sec;
+    if (sec !== 'overview') carregarLista(sec);
+    fecharSidebar(); // fecha o menu mobile ao trocar de aba
+  });
+});
+
+// ─────────────────────────────────────────────────────
+// Init
+// ─────────────────────────────────────────────────────
+(async () => {
+  try {
+    const me = await apiJSON('/api/admin/me');
+    if (me) {
+      state.cargoAtual = me.cargo;
+      state.contaId = me.id;
+      const cargoLabel = ({ desenvolvedor: 'Desenvolvedor(a)', substituto: 'Substituto(a)' })[me.cargo] || 'Docente';
+      document.getElementById('topbarAdminBadge').innerHTML =
+        `<i data-lucide="lock"></i> ${esc(me.nome)} · ${cargoLabel}`;
+      if (me.cargo === 'desenvolvedor') {
+        document.getElementById('navItemContas').style.display = 'flex';
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+  } catch (e) { /* segue com o rótulo padrão do topbar */ }
+
+  try {
+    const stats = await apiJSON('/api/admin/stats');
+    if (!stats) return;
+    document.getElementById('statsRow').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-label">Proj. Pesquisa</div>
+        <div class="stat-value">${stats.pesquisa ?? 0}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Proj. Extensão</div>
+        <div class="stat-value">${stats.extensao ?? 0}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Eventos</div>
+        <div class="stat-value">${stats.eventos ?? 0}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Solicitações pendentes</div>
+        <div class="stat-value">${stats.solicitacoes ?? 0}</div>
+      </div>`;
+  } catch(e) {
+    document.getElementById('statsRow').innerHTML = '';
+  }
+})();
+
+// ─────────────────────────────────────────────────────
+// Carregar listas
+// ─────────────────────────────────────────────────────
+const carregarLista = async (tipo) => {
+  if (tipo === 'conquistas') return carregarConquistas();
+  if (tipo === 'projetos')   return carregarProjetosAdminSec();
+  if (tipo === 'contas')     return carregarContas();
+
+  const elMap = { eventos: 'eventosList', solicitacoes: 'solicitacoesList' };
+  const el = document.getElementById(elMap[tipo]);
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+
+  try {
+    const endpoint =
+      tipo === 'solicitacoes' ? '/api/admin/solicitacoes'
+      : '/api/admin/eventos';
+    const dados = await apiJSON(endpoint);
+    if (!dados) return;
+
+    if (!dados.length) {
+      const msg = tipo === 'solicitacoes' ? 'Nenhuma solicitação recebida ainda.' : 'Nenhum item cadastrado ainda.';
+      el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>${msg}</p></div>`;
+      return;
+    }
+
+    if (tipo === 'solicitacoes') {
+      el.innerHTML = renderTabelaSolicitacoes(dados);
+    } else {
+      el.innerHTML = renderTabelaEventos(dados);
+    }
+  } catch(e) {
+    el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+  }
+};
+
+// ── Seção Projetos (unificada): área Pesquisa/Extensão × fontes Admin/SUAP ──
+const trocarAreaAdmin = (area) => {
+  if (area !== 'pesquisa' && area !== 'extensao') return;
+  state.projArea = area;
+  carregarProjetosAdminSec();
+};
+
+const carregarProjetosAdminSec = async () => {
+  const area  = (state.projArea === 'extensao') ? 'extensao' : 'pesquisa';
+  const label = area === 'pesquisa' ? 'Pesquisa' : 'Extensão';
+
+  // Marca a aba ativa e atualiza os rótulos dos dois grupos
+  document.querySelectorAll('#projAreaTabs button').forEach(b =>
+    b.classList.toggle('ativo', b.dataset.area === area));
+  const l1 = document.getElementById('projAreaLabel1');
+  const l2 = document.getElementById('projAreaLabel2');
+  if (l1) l1.textContent = label;
+  if (l2) l2.textContent = label;
+
+  const adminEl = document.getElementById('projAdminList');
+  const suapEl  = document.getElementById('projSuapList');
+  if (!adminEl || !suapEl) return;
+  adminEl.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+  suapEl.innerHTML  = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+
+  // 1) Projetos cadastrados pela administração (CRUD)
+  try {
+    const dados = await apiJSON(`/api/admin/projetos/${area}`);
+    if (!dados || !dados.length) {
+      adminEl.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>Nenhum projeto de ${label.toLowerCase()} cadastrado ainda.</p></div>`;
+    } else {
+      adminEl.innerHTML = renderTabelaProjetos(dados, area);
+    }
+  } catch(e) {
+    adminEl.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+  }
+
+  // 2) Espelho do SUAP (somente leitura) — só a área atual
+  try {
+    const suap  = await apiJSON(`/api/admin/projetos-suap/${area}`);
+    const lista = (suap || []).map(p => ({ ...p, tipo: area }));
+    if (!lista.length) {
+      suapEl.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>Nenhum projeto de ${label.toLowerCase()} do SUAP em cache. Peça para um aluno abrir a aba Projetos no portal.</p></div>`;
+    } else {
+      suapEl.innerHTML = renderTabelaProjetosSuap(lista);
+    }
+  } catch(e) {
+    suapEl.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+  }
+};
+
+
+const renderTabelaProjetosSuap = (dados) => {
+  const tipoBadge = (t) => t === 'pesquisa'
+    ? '<span class="badge-tipo badge-pesquisa">Pesquisa</span>'
+    : '<span class="badge-tipo badge-extensao">Extensão</span>';
+
+  const rows = dados.map(p => {
+    const titulo = p.link_suap
+      ? `<a href="${esc(p.link_suap)}" target="_blank" rel="noopener">${esc(p.titulo || '—')}</a>`
+      : esc(p.titulo || '—');
+    const link = p.link_suap
+      ? `<a href="${esc(p.link_suap)}" target="_blank" rel="noopener">Abrir</a>`
+      : '—';
+
+    return `
+    <tr>
+      <td data-label="Título">${titulo}</td>
+      <td data-label="Tipo">${tipoBadge(p.tipo)}</td>
+      <td data-label="Coordenador" style="font-size:0.8rem;color:var(--cinza)">${esc(p.coordenador || '—')}</td>
+      <td data-label="Período" style="font-size:0.8rem">${esc(p.dt_inicio || '—')} – ${esc(p.dt_final || '—')}</td>
+      <td data-label="Situação" style="font-size:0.8rem">${esc(p.situacao || '—')}</td>
+      <td data-label="Link" style="font-size:0.8rem">${link}</td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="table-wrap">
+    <table class="items-table">
+      <thead>
+        <tr><th>Título</th><th>Tipo</th><th>Coordenador</th><th>Período</th><th>Situação</th><th>Link</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+};
+
+const renderTabelaProjetos = (dados, tipo) => {
+  const badge = tipo === 'pesquisa'
+    ? '<span class="badge-tipo badge-pesquisa">Pesquisa</span>'
+    : '<span class="badge-tipo badge-extensao">Extensão</span>';
+
+  const rows = dados.map(p => {
+    const titulo = p.link_suap
+      ? `<a href="${esc(p.link_suap)}" target="_blank" rel="noopener">${esc(p.titulo)}</a>`
+      : esc(p.titulo);
+    const link = p.link_suap
+      ? `<a href="${esc(p.link_suap)}" target="_blank" rel="noopener">Abrir</a>`
+      : '—';
+
+    return `
+    <tr>
+      <td data-label="Título">${titulo}</td>
+      <td data-label="Tipo">${badge}</td>
+      <td data-label="Coordenador" style="font-size:0.8rem;color:var(--cinza)">${esc(p.coordenador || '—')}</td>
+      <td data-label="Período" style="font-size:0.8rem">${esc(p.dt_inicio || '—')} – ${esc(p.dt_final || '—')}</td>
+      <td data-label="Situação" style="font-size:0.8rem">${esc(p.situacao || '—')}</td>
+      <td data-label="Link" style="font-size:0.8rem">${link}</td>
+      <td data-label="Ações" class="td-acoes">
+        <button class="btn-edit" onclick="editarProjeto('${tipo}', '${p._id}')"><i data-lucide="pencil"></i> Editar</button>
+        <button class="btn-del" onclick="deletarItem('${tipo}', '${p._id}')"><i data-lucide="trash-2"></i> Excluir</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="table-wrap">
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Título</th><th>Tipo</th><th>Coordenador</th><th>Período</th><th>Situação</th><th>Link</th><th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+};
+
+const renderTabelaEventos = (dados) => {
+  const rows = dados.map(ev => `
+    <tr>
+      <td data-label="Nome">${esc(ev.nome)}</td>
+      <td data-label="Data Início" style="font-size:0.8rem">${esc(ev.data_inicio || '—')}</td>
+      <td data-label="Data Fim" style="font-size:0.8rem">${esc(ev.data_fim || '—')}</td>
+      <td data-label="Local" style="font-size:0.8rem;color:var(--cinza)">${esc(ev.local || '—')}</td>
+      <td data-label="Ações" class="td-acoes">
+        <button class="btn-edit" onclick="editarEvento('${ev._id}')"><i data-lucide="pencil"></i> Editar</button>
+        <button class="btn-del" onclick="deletarItem('evento', '${ev._id}')"><i data-lucide="trash-2"></i> Excluir</button>
+      </td>
+    </tr>`).join('');
+
+  return `<div class="table-wrap">
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Nome</th><th>Data Início</th><th>Data Fim</th><th>Local</th><th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+};
+
+// ─────────────────────────────────────────────────────
+// Solicitações de participação
+// ─────────────────────────────────────────────────────
+const renderTabelaSolicitacoes = (dados) => {
+  const badge = (s) => {
+    const map = {
+      pendente: ['rgba(245,185,66,0.14)', '#f5c469', 'Pendente'],
+      aceito:   ['rgba(68,216,131,0.16)', '#5fe39a', 'Aceito'],
+      recusado: ['rgba(255,107,107,0.16)', '#ff8585', 'Recusado'],
+    };
+    const [bg, cor, txt] = map[s] || map.pendente;
+    return `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:${bg};color:${cor}">${txt}</span>`;
+  };
+  const tipoTxt = (t) => t === 'pesquisa' ? 'Pesquisa' : t === 'extensao' ? 'Extensão' : '—';
+  const origemBadge = (o) => o === 'suap'
+    ? `<span style="display:inline-block;padding:0.15rem 0.55rem;border-radius:99px;font-size:0.68rem;font-weight:600;background:rgba(96,165,250,0.16);color:#93c5fd">SUAP</span>`
+    : `<span style="display:inline-block;padding:0.15rem 0.55rem;border-radius:99px;font-size:0.68rem;font-weight:600;background:rgba(68,216,131,0.16);color:#5fe39a">Local</span>`;
+
+  const rows = dados.map(s => `
+    <tr>
+      <td data-label="Aluno">${esc(s.nomeAluno || '—')}<br><span style="font-size:0.78rem;color:var(--cinza)">${esc(s.matricula)}</span></td>
+      <td data-label="Projeto">${esc(s.projetoTitulo)}</td>
+      <td data-label="Origem">${origemBadge(s.origem)}</td>
+      <td data-label="Tipo" style="font-size:0.8rem;color:var(--cinza)">${tipoTxt(s.projetoTipo)}</td>
+      <td data-label="Status">${badge(s.status)}</td>
+      <td data-label="Ações" class="td-acoes">
+        ${s.status !== 'aceito'   ? `<button class="btn-edit" onclick="decidirSolicitacao('${s._id}','aceito')"><i data-lucide="check"></i> Aceitar</button>` : ''}
+        ${s.status !== 'recusado' ? `<button class="btn-del" onclick="decidirSolicitacao('${s._id}','recusado')"><i data-lucide="x"></i> Recusar</button>` : ''}
+      </td>
+    </tr>`).join('');
+
+  return `<div class="table-wrap">
+    <table class="items-table">
+      <thead>
+        <tr><th>Aluno</th><th>Projeto</th><th>Origem</th><th>Tipo</th><th>Status</th><th>Ações</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+};
+
+const decidirSolicitacao = async (id, status) => {
+  try {
+    await apiJSON(`/api/admin/solicitacoes/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    mostrarToast(status === 'aceito' ? 'Solicitação aceita!' : 'Solicitação recusada.', 'sucesso');
+    await carregarLista('solicitacoes');
+    const stats = await apiJSON('/api/admin/stats');
+    if (stats) atualizarStats(stats);
+  } catch(e) {
+    mostrarToast(`Erro: ${e.message}`, 'erro');
+  }
+};
+
+// ─────────────────────────────────────────────────────
+// Modal
+// ─────────────────────────────────────────────────────
+const formsProjeto = (dados = {}) => `
+  <div class="form-grid">
+    <div class="field full">
+      <label>Título *</label>
+      <input type="text" id="f_titulo" value="${esc(dados.titulo || '')}" placeholder="Título do projeto" required />
+    </div>
+    <div class="field full">
+      <label>Resumo</label>
+      <textarea id="f_resumo" placeholder="Breve descrição do projeto…">${esc(dados.resumo || '')}</textarea>
+    </div>
+    <div class="field full">
+      <label>Link do projeto no SUAP</label>
+      <input type="url" id="f_link_projeto" value="${esc(dados.link_suap || '')}" placeholder="https://…" />
+    </div>
+    <div class="field">
+      <label>Coordenador</label>
+      <input type="text" id="f_coordenador" value="${esc(dados.coordenador || '')}" placeholder="Nome do coordenador" />
+    </div>
+    <div class="field">
+      <label>E-mail do coordenador</label>
+      <input type="email" id="f_email_coordenador" value="${esc(dados.email_coordenador || '')}" placeholder="email@ifpr.edu.br" />
+    </div>
+    <div class="field">
+      <label>Data de início</label>
+      <input type="date" id="f_dt_inicio" value="${esc(dados.dt_inicio || '')}" />
+    </div>
+    <div class="field">
+      <label>Data de término</label>
+      <input type="date" id="f_dt_final" value="${esc(dados.dt_final || '')}" />
+    </div>
+    <div class="field">
+      <label>Campus</label>
+      <input type="text" id="f_campus" value="${esc(dados.campus_nome || '')}" placeholder="Ex: IFPR Assis Chateaubriand" />
+    </div>
+    <div class="field">
+      <label>Situação</label>
+      <select id="f_situacao">
+        <option value="Em execução"   ${(dados.situacao||'Em execução')==='Em execução'?'selected':''}>Em execução</option>
+        <option value="Concluído"     ${dados.situacao==='Concluído'?'selected':''}>Concluído</option>
+        <option value="Suspenso"      ${dados.situacao==='Suspenso'?'selected':''}>Suspenso</option>
+        <option value="Em análise"    ${dados.situacao==='Em análise'?'selected':''}>Em análise</option>
+      </select>
+    </div>
+  </div>`;
+
+const formsEvento = (dados = {}) => `
+  <div class="form-grid">
+    <div class="field full">
+      <label>Nome do evento *</label>
+      <input type="text" id="f_nome" value="${esc(dados.nome || '')}" placeholder="Nome do evento" required />
+    </div>
+    <div class="field full">
+      <label>Descrição</label>
+      <textarea id="f_apresentacao" placeholder="Detalhes sobre o evento…">${esc(dados.apresentacao || '')}</textarea>
+    </div>
+    <div class="field">
+      <label>Data de início *</label>
+      <input type="date" id="f_data_inicio" value="${esc(dados.data_inicio || '')}" required />
+    </div>
+    <div class="field">
+      <label>Data de fim</label>
+      <input type="date" id="f_data_fim" value="${esc(dados.data_fim || '')}" />
+    </div>
+    <div class="field">
+      <label>Horário início</label>
+      <input type="time" id="f_hora_inicio" value="${esc(dados.hora_inicio || '')}" />
+    </div>
+    <div class="field">
+      <label>Horário fim</label>
+      <input type="time" id="f_hora_fim" value="${esc(dados.hora_fim || '')}" />
+    </div>
+    <div class="field">
+      <label>Local</label>
+      <input type="text" id="f_local" value="${esc(dados.local || '')}" placeholder="Ex: Auditório principal" />
+    </div>
+    <div class="field">
+      <label>Campus</label>
+      <input type="text" id="f_campus_ev" value="${esc(dados.campus || '')}" placeholder="Ex: Assis Chateaubriand" />
+    </div>
+    <div class="field full">
+      <label>Link para mais informações</label>
+      <input type="url" id="f_link" value="${esc(dados.link_suap || '')}" placeholder="https://…" />
+    </div>
+  </div>`;
+
+const abrirModal = (tipo, dados = {}) => {
+  state.modalTipo = tipo;
+  state.editandoId = dados._id || null;
+  const titulos = {
+    pesquisa: dados._id ? 'Editar projeto de pesquisa' : 'Novo projeto de pesquisa',
+    extensao: dados._id ? 'Editar projeto de extensão' : 'Novo projeto de extensão',
+    evento:   dados._id ? 'Editar evento'              : 'Novo evento',
+    conquista: dados._id ? 'Editar conquista'          : 'Nova conquista',
+    conceder: 'Conceder conquista a um aluno',
+    conta: dados._id ? 'Editar conta' : 'Nova conta',
+  };
+  document.getElementById('modalTitle').textContent = titulos[tipo] || 'Novo item';
+
+  let corpo;
+  if (tipo === 'evento')          corpo = formsEvento(dados);
+  else if (tipo === 'conquista')  corpo = formsConquista(dados);
+  else if (tipo === 'conceder')   corpo = formsConceder(dados);
+  else if (tipo === 'conta')      corpo = formsConta(dados);
+  else                            corpo = formsProjeto(dados);
+
+  document.getElementById('modalBody').innerHTML = corpo;
+  document.getElementById('modalOverlay').classList.add('open');
+};
+
+const fecharModal = () => {
+  document.getElementById('modalOverlay').classList.remove('open');
+  state.modalTipo = null;
+  state.editandoId = null;
+  // Restaura o rodapé padrão do modal, caso tenha sido trocado (ex.: pela
+  // tela de "senha temporária gerada", que usa um único botão "Concluído").
+  const footer = document.querySelector('#modalOverlay .modal-footer');
+  if (footer) {
+    footer.innerHTML = `
+      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-primary" id="btnSalvar" onclick="salvarItem()">Salvar</button>`;
+  }
+};
+
+const fecharModalSeOverlay = (e) => {
+  if (e.target === document.getElementById('modalOverlay')) fecharModal();
+};
+
+// ─────────────────────────────────────────────────────
+// Salvar
+// ─────────────────────────────────────────────────────
+const salvarItem = async () => {
+  const btn = document.getElementById('btnSalvar');
+  btn.disabled = true;
+  btn.textContent = 'Salvando…';
+
+  try {
+    const tipo = state.modalTipo;
+    let body;
+
+    // ── Conceder conquista a um aluno (fluxo à parte) ──
+    if (tipo === 'conceder') {
+      const matricula = document.getElementById('f_matricula').value.trim();
+      if (!matricula) { mostrarToast('Informe a matrícula do aluno.', 'erro'); return; }
+
+      const resp = await apiJSON(`/api/admin/conquistas/${state.editandoId}/conceder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matricula }),
+      });
+
+      mostrarToast(
+        resp?.jaConcedida ? 'Este aluno já possuía esta conquista.' : 'Conquista concedida!',
+        'sucesso'
+      );
+      fecharModal();
+      return;
+    }
+
+    // ── Contas do painel ──
+    if (tipo === 'conta') {
+      const isEditConta = !!state.editandoId;
+      const bodyConta = {
+        nome: document.getElementById('f_nome_conta').value.trim(),
+        area: document.getElementById('f_area_conta').value.trim(),
+        cargo: document.getElementById('f_cargo_conta').value,
+      };
+      if (!bodyConta.nome) { mostrarToast('O nome é obrigatório.', 'erro'); return; }
+
+      if (isEditConta) {
+        bodyConta.ativo = document.getElementById('f_ativo_conta').value === 'true';
+        await apiJSON(`/api/admin/contas/${state.editandoId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bodyConta),
+        });
+        mostrarToast('Conta atualizada!', 'sucesso');
+      } else {
+        bodyConta.email = document.getElementById('f_email_conta').value.trim();
+        bodyConta.enviarConvite = document.getElementById('f_convite_conta').checked;
+        if (!bodyConta.email) { mostrarToast('Informe o e-mail.', 'erro'); return; }
+        const resp = await apiJSON('/api/admin/contas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bodyConta),
+        });
+        mostrarToast(
+          bodyConta.enviarConvite
+            ? (resp?.conviteEnviado ? 'Conta criada e convite enviado por e-mail!' : 'Conta criada, mas o e-mail falhou. Tente pelo botão Convite.')
+            : 'Conta criada! A pessoa recebe o link ao digitar o e-mail no login.',
+          resp?.conviteEnviado === false && bodyConta.enviarConvite ? 'erro' : 'sucesso'
+        );
+      }
+      fecharModal();
+      await carregarContas();
+      return;
+    }
+
+    if (tipo === 'conquista') {
+      const origem = document.getElementById('f_origem_c').value;
+      let regra = { tipo: null, valor: null };
+      if (origem === 'automatica') {
+        const rtipo = document.getElementById('f_regra_tipo_c').value;
+        if (rtipo === 'nota') {
+          regra = { tipo: 'nota', valor: document.getElementById('f_regra_valor_nota_c').value };
+        } else if (rtipo === 'projeto_aceito') {
+          regra = { tipo: 'projeto_aceito', valor: document.getElementById('f_regra_valor_proj_c').value || null };
+        }
+      }
+
+      body = {
+        nome:      document.getElementById('f_nome_c').value.trim(),
+        descricao: document.getElementById('f_descricao_c').value.trim(),
+        icone:     document.getElementById('f_icone_c').value.trim() || '🏆',
+        categoria: document.getElementById('f_categoria_c').value,
+        pontos:    Number(document.getElementById('f_pontos_c').value) || 0,
+        ativa:     document.getElementById('f_ativa_c').value === 'true',
+        origem,
+        regra,
+      };
+      if (!body.nome) { mostrarToast('O nome da conquista é obrigatório.', 'erro'); return; }
+      if (body.pontos < 0) { mostrarToast('Pontos não pode ser negativo.', 'erro'); return; }
+
+      const isEditC = !!state.editandoId;
+      await apiJSON(
+        isEditC ? `/api/admin/conquistas/${state.editandoId}` : '/api/admin/conquistas',
+        {
+          method: isEditC ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }
+      );
+      mostrarToast(isEditC ? 'Conquista atualizada!' : 'Conquista criada!', 'sucesso');
+      fecharModal();
+      await carregarConquistas();
+      return;
+    }
+
+    if (tipo === 'evento') {
+      body = {
+        nome:         document.getElementById('f_nome').value.trim(),
+        apresentacao: document.getElementById('f_apresentacao').value.trim(),
+        data_inicio:  document.getElementById('f_data_inicio').value,
+        data_fim:     document.getElementById('f_data_fim').value || null,
+        hora_inicio:  document.getElementById('f_hora_inicio').value || null,
+        hora_fim:     document.getElementById('f_hora_fim').value || null,
+        local:        document.getElementById('f_local').value.trim(),
+        campus:       document.getElementById('f_campus_ev').value.trim(),
+        link_suap:    document.getElementById('f_link').value.trim() || null,
+      };
+      if (!body.nome || !body.data_inicio) { mostrarToast('Preencha os campos obrigatórios.', 'erro'); return; }
+    } else {
+      body = {
+        titulo:             document.getElementById('f_titulo').value.trim(),
+        resumo:             document.getElementById('f_resumo').value.trim(),
+        link_suap:          document.getElementById('f_link_projeto').value.trim() || null,
+        coordenador:        document.getElementById('f_coordenador').value.trim(),
+        email_coordenador:  document.getElementById('f_email_coordenador').value.trim(),
+        dt_inicio:          document.getElementById('f_dt_inicio').value || null,
+        dt_final:           document.getElementById('f_dt_final').value || null,
+        campus_nome:        document.getElementById('f_campus').value.trim(),
+        situacao:           document.getElementById('f_situacao').value,
+        tipo,
+      };
+      if (!body.titulo) { mostrarToast('O título é obrigatório.', 'erro'); return; }
+    }
+
+    const isEdit = !!state.editandoId;
+    const endpoint = tipo === 'evento'
+      ? (isEdit ? `/api/admin/eventos/${state.editandoId}` : '/api/admin/eventos')
+      : (isEdit ? `/api/admin/projetos/${state.editandoId}` : '/api/admin/projetos');
+
+    await apiJSON(endpoint, {
+      method:  isEdit ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(body),
+    });
+
+    mostrarToast(isEdit ? 'Item atualizado com sucesso!' : 'Item criado com sucesso!', 'sucesso');
+    fecharModal();
+
+    // Recarrega a seção ativa. Projetos (pesquisa/extensão) recaem na aba
+    // unificada "Projetos"; garantimos que a área exibida seja a do item salvo.
+    if (tipo === 'pesquisa' || tipo === 'extensao') state.projArea = tipo;
+    const secaoMap = { pesquisa: 'projetos', extensao: 'projetos', evento: 'eventos' };
+    await carregarLista(secaoMap[tipo]);
+
+    // Atualiza stats
+    const stats = await apiJSON('/api/admin/stats');
+    if (stats) atualizarStats(stats);
+
+  } catch(e) {
+    mostrarToast(`Erro: ${e.message}`, 'erro');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salvar';
+  }
+};
+
+// ─────────────────────────────────────────────────────
+// Editar
+// ─────────────────────────────────────────────────────
+const editarProjeto = async (tipo, id) => {
+  try {
+    const dados = await apiJSON(`/api/admin/projetos/${id}`);
+    if (!dados) return;
+    abrirModal(tipo, dados);
+  } catch(e) {
+    mostrarToast('Erro ao carregar dados.', 'erro');
+  }
+};
+
+const editarEvento = async (id) => {
+  try {
+    const dados = await apiJSON(`/api/admin/eventos/${id}`);
+    if (!dados) return;
+    abrirModal('evento', dados);
+  } catch(e) {
+    mostrarToast('Erro ao carregar dados.', 'erro');
+  }
+};
+
+// ─────────────────────────────────────────────────────
+// Deletar
+// ─────────────────────────────────────────────────────
+const deletarItem = async (tipo, id) => {
+  if (!confirm('Tem certeza que deseja excluir este item?')) return;
+
+  try {
+    if (tipo === 'conquista') {
+      await apiJSON(`/api/admin/conquistas/${id}`, { method: 'DELETE' });
+      mostrarToast('Conquista excluída.', 'sucesso');
+      await carregarConquistas();
+      return;
+    }
+
+    const endpoint = (tipo === 'evento')
+      ? `/api/admin/eventos/${id}`
+      : `/api/admin/projetos/${id}`;
+
+    await apiJSON(endpoint, { method: 'DELETE' });
+    mostrarToast('Item excluído.', 'sucesso');
+
+    if (tipo === 'pesquisa' || tipo === 'extensao') state.projArea = tipo;
+    const secaoMap = { pesquisa: 'projetos', extensao: 'projetos', evento: 'eventos' };
+    await carregarLista(secaoMap[tipo]);
+
+    const stats = await apiJSON('/api/admin/stats');
+    if (stats) atualizarStats(stats);
+  } catch(e) {
+    mostrarToast(`Erro: ${e.message}`, 'erro');
+  }
+};
+
+// ─────────────────────────────────────────────────────
+// Stats
+// ─────────────────────────────────────────────────────
+const atualizarStats = (stats) => {
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Proj. Pesquisa</div>
+      <div class="stat-value">${stats.pesquisa ?? 0}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Proj. Extensão</div>
+      <div class="stat-value">${stats.extensao ?? 0}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Eventos</div>
+      <div class="stat-value">${stats.eventos ?? 0}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Solicitações pendentes</div>
+      <div class="stat-value">${stats.solicitacoes ?? 0}</div>
+    </div>`;
+};
+
+// ─────────────────────────────────────────────────────
+// Toast
+// ─────────────────────────────────────────────────────
+let toastTimer;
+const mostrarToast = (msg, tipo = '') => {
+  const el = document.getElementById('toast');
+  el.textContent = tipo === 'sucesso' ? '<i data-lucide="check"></i> ' + msg : tipo === 'erro' ? '<i data-lucide="x"></i> ' + msg : msg;
+  el.className = `toast ${tipo} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+};
+
+// ─────────────────────────────────────────────────────
+// CONQUISTAS (gamificação)
+// ─────────────────────────────────────────────────────
+
+// Carrega e renderiza o catálogo de conquistas
+let _conquistasCache = [];
+const carregarConquistas = async () => {
+  const el = document.getElementById('conquistasList');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+  try {
+    const dados = await apiJSON('/api/admin/conquistas');
+    if (!dados) return;
+    _conquistasCache = dados;
+    if (!dados.length) {
+      el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="trophy"></i></div><p>Nenhuma conquista cadastrada ainda. Clique em “+ Nova conquista”.</p></div>`;
+      return;
+    }
+    el.innerHTML = renderTabelaConquistas(dados);
+  } catch(e) {
+    el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+  }
+};
+
+const catLabel = (c) => ({
+  academico: 'Acadêmico', projeto: 'Projeto', evento: 'Evento', especial: 'Especial',
+}[c] || 'Especial');
+
+// ─────────────────────────────────────────────────────
+// Contas do painel (somente desenvolvedor)
+// ─────────────────────────────────────────────────────
+let _contasCache = [];
+const carregarContas = async () => {
+  const el = document.getElementById('contasList');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+  try {
+    const dados = await apiJSON('/api/admin/contas');
+    if (!dados) return;
+    _contasCache = dados;
+    if (!dados.length) {
+      el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="users"></i></div><p>Nenhuma conta cadastrada ainda.</p></div>`;
+      return;
+    }
+    filtrarContas();
+  } catch(e) {
+    el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+  }
+};
+
+const CARGO_INFO = {
+  professor:     { label: 'Docente',          bg: 'rgba(68,216,131,0.16)', cor: '#5fe39a' },
+  substituto:    { label: 'Substituto(a)',    bg: 'rgba(245,185,66,0.16)', cor: '#f5c469' },
+  desenvolvedor: { label: 'Desenvolvedor(a)', bg: 'rgba(96,165,250,0.16)', cor: '#93c5fd' },
+};
+const pill = (txt, bg, cor) =>
+  `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:${bg};color:${cor};white-space:nowrap">${txt}</span>`;
+
+const statusConta = (c) => {
+  if (!c.ativo) return pill('Inativa', 'rgba(139,144,155,0.18)', '#aab');
+  if (c.temSenha) return pill('Senha cadastrada', 'rgba(68,216,131,0.16)', '#5fe39a');
+  if (c.conviteEnviadoEm) return pill('Convite enviado', 'rgba(96,165,250,0.16)', '#93c5fd');
+  return pill('Aguardando 1º acesso', 'rgba(245,185,66,0.16)', '#f5c469');
+};
+
+const filtrarContas = () => {
+  const el = document.getElementById('contasList');
+  if (!el) return;
+  const termo = (document.getElementById('buscaContas')?.value || '').trim().toLowerCase();
+  const cargo = document.getElementById('filtroCargoContas')?.value || '';
+  const lista = _contasCache.filter(c =>
+    (!cargo || c.cargo === cargo) &&
+    (!termo || `${c.nome} ${c.email} ${c.area || ''}`.toLowerCase().includes(termo))
+  );
+  const comSenha = _contasCache.filter(c => c.temSenha).length;
+  const resumo = document.getElementById('resumoContas');
+  if (resumo) resumo.textContent = `${lista.length} de ${_contasCache.length} contas · ${comSenha} com senha cadastrada`;
+
+  el.innerHTML = lista.length
+    ? renderTabelaContas(lista)
+    : `<div class="empty-table"><div class="icon"><i data-lucide="search"></i></div><p>Nenhuma conta encontrada.</p></div>`;
+};
+
+const renderTabelaContas = (dados) => {
+  const rows = dados.map(c => {
+    const info = CARGO_INFO[c.cargo] || CARGO_INFO.professor;
+    const vocEMesma = c._id === state.contaId;
+    const tituloConvite = c.temSenha ? 'Enviar link para redefinir a senha' : 'Enviar link "Cadastrar sua senha"';
+
+    return `
+    <tr>
+      <td data-label="Nome">${esc(c.nome)}${vocEMesma ? ' <span style="color:var(--cinza);font-size:0.76rem">(você)</span>' : ''}
+        ${c.area ? `<div style="color:var(--cinza);font-size:0.74rem">${esc(c.area)}</div>` : ''}</td>
+      <td data-label="E-mail" style="font-size:0.8rem;color:var(--cinza)">${esc(c.email)}</td>
+      <td data-label="Cargo">${pill(info.label, info.bg, info.cor)}</td>
+      <td data-label="Status">${statusConta(c)}</td>
+      <td data-label="Ações" class="td-acoes">
+        <button class="btn-edit" onclick="editarConta('${c._id}')"><i data-lucide="pencil"></i> Editar</button>
+        ${c.ativo ? `<button class="btn-edit" title="${tituloConvite}" onclick="enviarConviteConta('${c._id}')"><i data-lucide="mail"></i> Convite</button>` : ''}
+        ${vocEMesma ? '' : `<button class="btn-del" onclick="excluirConta('${c._id}')"><i data-lucide="trash-2"></i> Excluir</button>`}
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="table-wrap">
+    <table class="items-table">
+      <thead>
+        <tr><th>Nome</th><th>E-mail</th><th>Cargo</th><th>Status</th><th>Ações</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+};
+
+const editarConta = (id) => {
+  const dados = _contasCache.find(c => c._id === id);
+  if (dados) abrirModal('conta', dados);
+};
+
+const enviarConviteConta = async (id) => {
+  const c = _contasCache.find(x => x._id === id);
+  const acao = c?.temSenha ? 'um link para redefinir a senha' : 'o link "Cadastrar sua senha"';
+  if (!confirm(`Enviar ${acao} para ${c?.email}?`)) return;
+  try {
+    await apiJSON(`/api/admin/contas/${id}/convite`, { method: 'POST' });
+    mostrarToast('E-mail enviado!', 'sucesso');
+    await carregarContas();
+  } catch (e) {
+    mostrarToast(`Erro: ${e.message}`, 'erro');
+  }
+};
+
+const importarServidores = async () => {
+  if (!confirm('Importar a lista oficial de docentes e substitutos do IFPR? Contas já existentes não são alteradas.')) return;
+  try {
+    const r = await apiJSON('/api/admin/contas/importar', { method: 'POST' });
+    mostrarToast(r.novas ? `${r.novas} contas novas importadas!` : 'Todas as contas da lista já estavam cadastradas.', 'sucesso');
+    await carregarContas();
+  } catch (e) {
+    mostrarToast(`Erro: ${e.message}`, 'erro');
+  }
+};
+
+const excluirConta = async (id) => {
+  if (!confirm('Tem certeza que deseja excluir esta conta? A pessoa perderá o acesso ao painel imediatamente.')) return;
+  try {
+    await apiJSON(`/api/admin/contas/${id}`, { method: 'DELETE' });
+    mostrarToast('Conta excluída.', 'sucesso');
+    await carregarContas();
+  } catch (e) {
+    mostrarToast(`Erro: ${e.message}`, 'erro');
+  }
+};
+
+const formsConta = (dados = {}) => `
+  <div class="form-grid">
+    <div class="field full">
+      <label>Nome *</label>
+      <input type="text" id="f_nome_conta" value="${esc(dados.nome || '')}" placeholder="Nome completo" required />
+    </div>
+    <div class="field full">
+      <label>E-mail institucional *</label>
+      <input type="email" id="f_email_conta" value="${esc(dados.email || '')}" placeholder="nome@ifpr.edu.br" ${dados._id ? 'disabled' : ''} required />
+      ${dados._id ? '<p style="color:var(--cinza);font-size:0.76rem;margin-top:0.3rem;">O e-mail não pode ser alterado depois de criada a conta.</p>' : ''}
+    </div>
+    <div class="field full">
+      <label>Área</label>
+      <input type="text" id="f_area_conta" value="${esc(dados.area || '')}" placeholder="Ex.: Informática" />
+    </div>
+    <div class="field">
+      <label>Cargo</label>
+      <select id="f_cargo_conta">
+        <option value="professor" ${!dados.cargo || dados.cargo === 'professor' ? 'selected' : ''}>Docente</option>
+        <option value="substituto" ${dados.cargo === 'substituto' ? 'selected' : ''}>Substituto(a)</option>
+        <option value="desenvolvedor" ${dados.cargo === 'desenvolvedor' ? 'selected' : ''}>Desenvolvedor(a)</option>
+      </select>
+    </div>
+    ${dados._id ? `
+    <div class="field">
+      <label>Status</label>
+      <select id="f_ativo_conta">
+        <option value="true" ${dados.ativo !== false ? 'selected' : ''}>Ativa</option>
+        <option value="false" ${dados.ativo === false ? 'selected' : ''}>Inativa</option>
+      </select>
+    </div>` : `
+    <div class="field full">
+      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+        <input type="checkbox" id="f_convite_conta" checked style="width:auto;" />
+        Enviar agora o e-mail "Cadastrar sua senha"
+      </label>
+    </div>`}
+  </div>`;
+
+const renderTabelaConquistas = (dados) => {
+  const rows = dados.map(c => {
+    const ativa = c.ativa
+      ? `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(68,216,131,0.16);color:#5fe39a">Ativa</span>`
+      : `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(139,144,155,0.18);color:#aab">Inativa</span>`;
+    const autoBadge = c.origem === 'automatica'
+      ? ` <span style="display:inline-block;padding:0.12rem 0.5rem;border-radius:99px;font-size:0.66rem;font-weight:600;background:rgba(96,165,250,0.16);color:#93c5fd" title="Concedida automaticamente pelo sistema"><i data-lucide="settings"></i> Auto</span>`
+      : '';
+    return `
+    <tr>
+      <td data-label="Conquista">${esc(c.icone || '🏆')} ${esc(c.nome)}${autoBadge}</td>
+      <td data-label="Categoria" style="font-size:0.8rem;color:var(--cinza)">${esc(catLabel(c.categoria))}</td>
+      <td data-label="Pontos" style="font-weight:700;color:#f5c469"><i data-lucide="star"></i> ${Number(c.pontos) || 0}</td>
+      <td data-label="Status">${ativa}</td>
+      <td data-label="Ações" class="td-acoes">
+        ${c.origem === 'automatica'
+          ? ''
+          : `<button class="btn-add" onclick="abrirConceder('${c._id}')"><i data-lucide="medal"></i> Conceder</button>`}
+        <button class="btn-edit" onclick="editarConquista('${c._id}')"><i data-lucide="pencil"></i> Editar</button>
+        <button class="btn-del" onclick="deletarItem('conquista', '${c._id}')"><i data-lucide="trash-2"></i> Excluir</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="table-wrap">
+    <table class="items-table">
+      <thead>
+        <tr><th>Conquista</th><th>Categoria</th><th>Pontos</th><th>Status</th><th>Ações</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+};
+
+// Formulário de cadastro/edição de conquista (usa o modal compartilhado)
+const formsConquista = (dados = {}) => `
+  <div class="form-grid">
+    <div class="field full">
+      <label>Nome da conquista *</label>
+      <input type="text" id="f_nome_c" value="${esc(dados.nome || '')}" placeholder="Ex: Primeira nota A" required />
+    </div>
+    <div class="field full">
+      <label>Descrição</label>
+      <textarea id="f_descricao_c" placeholder="Como o aluno conquista isto?">${esc(dados.descricao || '')}</textarea>
+    </div>
+    <div class="field">
+      <label>Ícone (emoji)</label>
+      <input type="text" id="f_icone_c" value="${esc(dados.icone || '🏆')}" placeholder="🏆" maxlength="4" />
+    </div>
+    <div class="field">
+      <label>Pontos (estrelas) *</label>
+      <input type="number" id="f_pontos_c" value="${dados.pontos != null ? dados.pontos : 100}" min="0" step="10" />
+    </div>
+    <div class="field">
+      <label>Categoria</label>
+      <select id="f_categoria_c">
+        <option value="academico" ${dados.categoria==='academico'?'selected':''}>Acadêmico</option>
+        <option value="projeto"   ${dados.categoria==='projeto'?'selected':''}>Projeto</option>
+        <option value="evento"    ${dados.categoria==='evento'?'selected':''}>Evento</option>
+        <option value="especial"  ${(dados.categoria||'especial')==='especial'?'selected':''}>Especial</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="f_ativa_c">
+        <option value="true"  ${dados.ativa!==false?'selected':''}>Ativa</option>
+        <option value="false" ${dados.ativa===false?'selected':''}>Inativa</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Como é concedida</label>
+      <select id="f_origem_c" onchange="toggleRegraConquista()">
+        <option value="manual"     ${(dados.origem||'manual')==='manual'?'selected':''}>Manual (o admin concede)</option>
+        <option value="automatica" ${dados.origem==='automatica'?'selected':''}>Automática (o sistema concede)</option>
+      </select>
+    </div>
+    <div class="field full" id="f_regra_wrap" style="display:${dados.origem==='automatica'?'block':'none'}">
+      <label>Regra automática</label>
+      <select id="f_regra_tipo_c" onchange="toggleRegraConquista()">
+        <option value="nota"           ${dados?.regra?.tipo==='nota'?'selected':''}>Tirar um conceito/nota…</option>
+        <option value="projeto_aceito" ${dados?.regra?.tipo==='projeto_aceito'?'selected':''}>Ter participação aceita em projeto</option>
+      </select>
+
+      <div id="f_regra_nota_wrap" style="margin-top:0.6rem;display:${(!dados?.regra?.tipo||dados?.regra?.tipo==='nota')?'block':'none'}">
+        <label>Nota mínima (concede com nota igual ou acima deste valor)</label>
+        <input type="number" id="f_regra_valor_nota_c" min="0" max="100" step="1"
+               value="${esc(dados?.regra?.valor ?? '90')}" placeholder="Ex: 90" />
+        <p style="color:var(--cinza);font-size:0.74rem;margin-top:0.35rem">
+          Seu SUAP usa nota de 0 a 100. A conquista cai quando o aluno atinge
+          esta nota em qualquer etapa (trimestre) ou na média final.
+        </p>
+      </div>
+
+      <div id="f_regra_proj_wrap" style="margin-top:0.6rem;display:${dados?.regra?.tipo==='projeto_aceito'?'block':'none'}">
+        <label>Tipo de projeto</label>
+        <select id="f_regra_valor_proj_c">
+          <option value=""         ${!dados?.regra?.valor?'selected':''}>Qualquer projeto</option>
+          <option value="pesquisa" ${dados?.regra?.valor==='pesquisa'?'selected':''}>Só pesquisa</option>
+          <option value="extensao" ${dados?.regra?.valor==='extensao'?'selected':''}>Só extensão</option>
+        </select>
+      </div>
+    </div>
+  </div>`;
+
+// Mostra/esconde os campos de regra conforme origem e tipo escolhidos
+const toggleRegraConquista = () => {
+  const origem = document.getElementById('f_origem_c')?.value;
+  const wrap = document.getElementById('f_regra_wrap');
+  if (!wrap) return;
+  wrap.style.display = origem === 'automatica' ? 'block' : 'none';
+
+  const tipo = document.getElementById('f_regra_tipo_c')?.value;
+  const notaWrap = document.getElementById('f_regra_nota_wrap');
+  const projWrap = document.getElementById('f_regra_proj_wrap');
+  if (notaWrap) notaWrap.style.display = tipo === 'nota' ? 'block' : 'none';
+  if (projWrap) projWrap.style.display = tipo === 'projeto_aceito' ? 'block' : 'none';
+};
+
+// Formulário de concessão (matrícula do aluno)
+const formsConceder = (dados = {}) => `
+  <div class="form-grid">
+    <p style="grid-column:1/-1;color:var(--texto-2);font-size:0.88rem;margin-bottom:0.2rem">
+      Concedendo: <strong>${esc(dados.nomeConquista || 'conquista')}</strong>
+    </p>
+    <div class="field full">
+      <label>Matrícula do aluno *</label>
+      <input type="text" id="f_matricula" value="" placeholder="Ex: 2023001234" autocomplete="off"
+             oninput="document.getElementById('conqDoAluno').innerHTML=''" />
+    </div>
+    <p style="grid-column:1/-1;color:var(--cinza);font-size:0.78rem">
+      O aluno precisa já ter acessado o portal ao menos uma vez. Conceder de
+      novo a mesma conquista não soma pontos em dobro.
+    </p>
+    <div class="field full" style="margin-top:-0.3rem">
+      <button class="btn-edit" type="button" onclick="verConquistasDoAluno()"><i data-lucide="clipboard-list"></i> Ver conquistas deste aluno</button>
+    </div>
+    <div id="conqDoAluno" style="grid-column:1/-1"></div>
+  </div>`;
+
+// Busca e lista as conquistas que o aluno (matrícula digitada) já possui,
+// cada uma com um botão para remover.
+const verConquistasDoAluno = async () => {
+  const matricula = document.getElementById('f_matricula').value.trim();
+  const box = document.getElementById('conqDoAluno');
+  if (!matricula) { mostrarToast('Digite a matrícula primeiro.', 'erro'); return; }
+
+  box.innerHTML = `<div class="loading"><div class="spinner"></div> Buscando…</div>`;
+  try {
+    const lista = await apiJSON(`/api/admin/alunos/${encodeURIComponent(matricula)}/conquistas`);
+    if (!lista || !lista.length) {
+      box.innerHTML = `<p style="color:var(--cinza);font-size:0.82rem;padding:0.4rem 0">Este aluno ainda não possui conquistas.</p>`;
+      return;
+    }
+    const linhas = lista.map(r => `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:0.6rem;padding:0.5rem 0.2rem;border-bottom:1px solid var(--borda)">
+        <span style="font-size:0.86rem">
+          ${esc(r.nomeConquista || 'Conquista')}
+          <span style="color:#f5c469;font-weight:600">· <i data-lucide="star"></i> ${Number(r.pontos)||0}</span>
+          ${r.origem === 'automatica' ? '<span style="color:#93c5fd;font-size:0.72rem"> (auto)</span>' : ''}
+        </span>
+        <button class="btn-del" type="button" onclick="removerConcessao('${r._id}')"><i data-lucide="trash-2"></i> Remover</button>
+      </div>`).join('');
+    box.innerHTML = `<div style="margin-top:0.4rem">${linhas}</div>`;
+  } catch(e) {
+    box.innerHTML = `<p style="color:var(--erro);font-size:0.82rem">Erro: ${esc(e.message)}</p>`;
+  }
+};
+
+// Remove (revoga) uma conquista concedida e atualiza a lista
+const removerConcessao = async (registroId) => {
+  if (!confirm('Remover esta conquista do aluno? Os pontos serão recalculados.')) return;
+  try {
+    await apiJSON(`/api/admin/conquistas-concedidas/${registroId}`, { method: 'DELETE' });
+    mostrarToast('Conquista removida do aluno.', 'sucesso');
+    await verConquistasDoAluno(); // recarrega a lista
+  } catch(e) {
+    mostrarToast(`Erro: ${e.message}`, 'erro');
+  }
+};
+
+// Abre o modal de edição de uma conquista (busca os dados primeiro)
+const editarConquista = async (id) => {
+  try {
+    const dados = await apiJSON(`/api/admin/conquistas/${id}`);
+    if (!dados) return;
+    abrirModal('conquista', dados);
+  } catch(e) {
+    mostrarToast('Erro ao carregar dados.', 'erro');
+  }
+};
+
+// Abre o modal de concessão para uma conquista específica
+const abrirConceder = (id) => {
+  const c = _conquistasCache.find(x => x._id === id);
+  abrirModal('conceder', { _id: id, nomeConquista: c ? c.nome : 'conquista' });
+};
+
+// ─────────────────────────────────────────────────────
+// Logout
+// ─────────────────────────────────────────────────────
+const fazerLogout = async () => {
+  await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' });
+  window.location.href = '/admin/login';
+};
+</script>
+<!-- Ícones (Lucide) -->
+<script src="https://unpkg.com/lucide@0.330.0/dist/umd/lucide.min.js"></script>
+<script>
+  (function () {
+    let agendado = false;
+    const desenhar = () => {
+      if (!window.lucide || agendado) return;
+      agendado = true;
+      requestAnimationFrame(() => { agendado = false; window.lucide.createIcons(); });
+    };
+    const iniciar = () => {
+      desenhar();
+      new MutationObserver(desenhar).observe(document.body, { childList: true, subtree: true });
+    };
+    // Espera o script do CDN carregar (defensivo: funciona mesmo se o
+    // <script> do Lucide ainda não tiver executado quando este rodar).
+    if (window.lucide) iniciar();
+    else {
+      const t = setInterval(() => { if (window.lucide) { clearInterval(t); iniciar(); } }, 50);
+      setTimeout(() => clearInterval(t), 8000);
+    }
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IFPlenus — Portal do Aluno</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <!-- Aplica o tema salvo ANTES de pintar a tela (evita flash) -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('ifplenus-tema');
+        document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="/portal.css" />
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-mark" aria-hidden="true">
+      <img class="logo-img" src="/images/if-logo.png" alt="Instituto Federal" />
+    </span>
+    <div>
+      <h1>IF<span>Plenus</span></h1>
+      <p id="sidebarCampus">Instituto Federal do Paraná</p>
+    </div>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="user-avatar" id="userAvatar">?</div>
+    <div class="user-meta">
+      <div class="user-name" id="userName">Carregando…</div>
+      <div class="user-mat"  id="userMat"></div>
+    </div>
+  </div>
+
+  <nav>
+    <div class="nav-item active" data-section="dashboard">
+      <span class="nav-icon"><i data-lucide="home"></i></span> Dashboard
+    </div>
+    <div class="nav-item" data-section="dados">
+      <span class="nav-icon"><i data-lucide="user"></i></span> Dados &amp; Perfil
+    </div>
+    <div class="nav-item" data-section="projetos">
+      <span class="nav-icon"><i data-lucide="folder"></i></span> Projetos
+    </div>
+    <div class="nav-item" data-section="calendario">
+      <span class="nav-icon"><i data-lucide="calendar"></i></span> Calendário
+    </div>
+    <div class="nav-item" data-section="trajetoria">
+      <span class="nav-icon"><i data-lucide="compass"></i></span> Minha Trajetória
+    </div>
+    <div class="nav-item" data-section="conquistas">
+      <span class="nav-icon"><i data-lucide="trophy"></i></span> Conquistas
+    </div>
+    <div class="nav-item" data-section="ranking">
+      <span class="nav-icon"><i data-lucide="trending-up"></i></span> Ranking
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <button class="btn-logout" onclick="logout()"><i data-lucide="log-out"></i> Sair</button>
+  </div>
+</aside>
+
+<!-- Overlay usado para fechar o menu ao tocar fora dele (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">
+        <i data-lucide="menu"></i>
+      </button>
+      <span class="topbar-title" id="topbarTitle">Dashboard</span>
+    </div>
+    <div class="topbar-actions" id="topbarActions"></div>
+  </div>
+  <div class="content">
+
+    <section class="section active" id="section-dashboard">
+      <div id="dashboardContent">
+        <div class="loading"><div class="spinner"></div> Carregando painel…</div>
+      </div>
+    </section>
+
+    <section class="section" id="section-dados">
+      <div id="dadosContent">
+        <div class="loading"><div class="spinner"></div> Buscando dados…</div>
+      </div>
+    </section>
+
+    <section class="section" id="section-projetos">
+      <div id="projetosContent">
+        <div class="loading"><div class="spinner"></div> Buscando projetos…</div>
+      </div>
+    </section>
+
+    <section class="section" id="section-calendario">
+      <div id="calendarioContent">
+        <div class="loading"><div class="spinner"></div> Carregando calendário…</div>
+      </div>
+    </section>
+
+    <section class="section" id="section-conquistas">
+      <div id="conquistasContent">
+        <div class="loading"><div class="spinner"></div> Carregando conquistas…</div>
+      </div>
+    </section>
+
+    <section class="section" id="section-trajetoria">
+      <div id="trajetoriaContent">
+        <div class="loading"><div class="spinner"></div> Carregando sua trajetória…</div>
+      </div>
+    </section>
+
+    <section class="section" id="section-ranking">
+      <div id="rankingContent">
+        <div class="loading"><div class="spinner"></div> Carregando ranking…</div>
+      </div>
+    </section>
+
+    <style>
+      /* ── Dashboard (layout da referência) ── */
+      .dash-hero {
+        display:flex; flex-wrap:wrap; align-items:center; gap:1.5rem;
+        background:var(--card,#26262b); border:1px solid var(--borda,rgba(255,255,255,0.1));
+        border-radius:18px; padding:1.5rem 1.8rem; margin-bottom:1.1rem;
+      }
+      .dash-avatar {
+        width:96px; height:96px; flex-shrink:0; border-radius:50%;
+        display:grid; place-items:center; font-family:'Syne',sans-serif; font-weight:800;
+        font-size:2.4rem; color:var(--verde,#44d883);
+        background:rgba(68,216,131,0.08); border:3px solid var(--verde,#44d883);
+      }
+      .dash-hero .ola { flex:1; min-width:240px; }
+      .dash-hero .ola h2 {
+        font-family:'Syne',sans-serif; font-weight:800; font-size:1.55rem;
+        color:var(--texto,#f4f5f7); margin-bottom:0.1rem;
+      }
+      .dash-hero .ola .curso { color:var(--texto-2,#c2c6cf); font-size:0.9rem; margin-bottom:0.8rem; }
+      .dash-nivel-linha { display:flex; align-items:center; gap:0.5rem; font-size:0.8rem; color:var(--texto-2,#c2c6cf); margin-bottom:0.4rem; }
+      .dash-nivel-linha .badge-nivel { font-family:'Syne',sans-serif; font-weight:700; color:var(--verde,#44d883); }
+      .dash-barra { height:9px; border-radius:99px; background:rgba(255,255,255,0.08); overflow:hidden; max-width:440px; }
+      .dash-barra > span { display:block; height:100%; background:var(--verde,#44d883); border-radius:99px; transition:width .4s; }
+      .dash-hero .indicadores { display:flex; gap:2.2rem; }
+      .dash-hero .indicador { text-align:left; }
+      .dash-hero .indicador .ic { font-size:1.5rem; color:var(--verde,#44d883); }
+      .dash-hero .indicador .v { font-family:'Syne',sans-serif; font-weight:800; font-size:1.6rem; color:var(--texto,#f4f5f7); line-height:1.1; }
+      .dash-hero .indicador .l { color:var(--cinza,#8b909b); font-size:0.76rem; }
+
+      /* Grade de 2 colunas (esquerda: cards + ranking | direita: eventos) */
+      .dash-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.1rem; align-items:start; }
+      @media (max-width:900px){ .dash-grid { grid-template-columns:1fr; } }
+
+      .dash-mini-row { display:grid; grid-template-columns:1fr 1fr; gap:1.1rem; margin-bottom:1.1rem; }
+      .dash-mini {
+        background:var(--card,#26262b); border:1px solid var(--borda,rgba(255,255,255,0.1));
+        border-radius:14px; padding:1.1rem 1.2rem; cursor:pointer; position:relative; transition:border-color .15s, transform .1s;
+      }
+      .dash-mini:hover { border-color:rgba(68,216,131,0.45); transform:translateY(-2px); }
+      .dash-mini .seta { position:absolute; top:0.9rem; right:1rem; color:var(--cinza,#8b909b); }
+      .dash-mini .ic { font-size:1.3rem; }
+      .dash-mini .v { font-family:'Syne',sans-serif; font-weight:800; font-size:1.7rem; color:var(--texto,#f4f5f7); margin-top:0.2rem; }
+      .dash-mini .l { color:var(--cinza,#8b909b); font-size:0.78rem; line-height:1.25; }
+
+      .dash-painel {
+        background:var(--card,#26262b); border:1px solid var(--borda,rgba(255,255,255,0.1));
+        border-radius:16px; padding:1.3rem 1.4rem;
+      }
+      .dash-painel .titulo { font-family:'Syne',sans-serif; font-weight:700; font-size:1.05rem; margin-bottom:1rem; }
+      .dash-painel .rodape-link {
+        display:block; text-align:center; margin-top:1rem; padding-top:0.9rem;
+        border-top:1px solid var(--borda,rgba(255,255,255,0.08));
+        color:var(--verde,#44d883); font-size:0.84rem; font-weight:600; cursor:pointer;
+      }
+
+      /* Pódio do ranking */
+      .dash-rank-row { display:flex; align-items:center; gap:0.8rem; padding:0.55rem 0; }
+      .dash-rank-row .pos {
+        width:30px; height:30px; flex-shrink:0; display:grid; place-items:center; border-radius:8px;
+        font-weight:700; font-size:0.82rem; background:rgba(255,255,255,0.05); color:var(--texto-2,#c2c6cf);
+      }
+      .dash-rank-row .pos.ouro{ background:rgba(245,196,105,0.18); color:#f5c469; }
+      .dash-rank-row .pos.prata{ background:rgba(203,213,225,0.18); color:#cbd5e1; }
+      .dash-rank-row .pos.bronze{ background:rgba(205,127,80,0.18); color:#e0a06a; }
+      .dash-rank-row .av { width:30px; height:30px; flex-shrink:0; border-radius:50%; display:grid; place-items:center; background:rgba(68,216,131,0.1); color:var(--verde,#44d883); font-size:0.9rem; }
+      .dash-rank-row .nm { flex:1; font-size:0.9rem; color:var(--texto,#f4f5f7); }
+      .dash-rank-row .xp { font-weight:700; color:var(--texto-2,#c2c6cf); font-size:0.85rem; }
+      .dash-rank-row.eu { background:rgba(68,216,131,0.06); border:1px solid rgba(68,216,131,0.5); border-radius:10px; padding:0.5rem 0.7rem; }
+      .dash-rank-row.eu .nm { color:var(--verde,#44d883); font-weight:600; }
+
+      /* Timeline de eventos */
+      .dash-timeline { position:relative; padding-left:0.5rem; }
+      .dash-tl-item { position:relative; display:flex; gap:1rem; padding:0 0 0.4rem 1.6rem; }
+      .dash-tl-item::before { /* linha vertical */
+        content:''; position:absolute; left:5px; top:0; bottom:0; width:2px; background:var(--borda,rgba(255,255,255,0.12));
+      }
+      .dash-tl-item:last-child::before { bottom:auto; height:14px; }
+      .dash-tl-item::after { /* nó (bolinha) */
+        content:''; position:absolute; left:0; top:6px; width:12px; height:12px; border-radius:50%;
+        background:var(--bg,#1b1b1f); border:2px solid var(--cinza,#8b909b);
+      }
+      .dash-tl-item.futuro::after { border-color:var(--verde,#44d883); }
+      .dash-tl-item.proximo::after { background:var(--verde,#44d883); border-color:var(--verde,#44d883); box-shadow:0 0 0 4px rgba(68,216,131,0.18); }
+      .dash-tl-data { flex-shrink:0; width:42px; text-align:center; font-family:'Syne',sans-serif; }
+      .dash-tl-data .dia { font-weight:800; font-size:1.05rem; color:var(--verde,#44d883); line-height:1; }
+      .dash-tl-data .mes { font-size:0.66rem; color:var(--cinza,#8b909b); text-transform:uppercase; }
+      .dash-tl-corpo { flex:1; padding-bottom:0.9rem; }
+      .dash-tl-corpo .n { font-weight:600; color:var(--texto,#f4f5f7); font-size:0.9rem; }
+      .dash-tl-corpo .s { color:var(--cinza,#8b909b); font-size:0.78rem; margin-top:0.15rem; }
+      .dash-tl-item.proximo .dash-tl-corpo {
+        background:rgba(68,216,131,0.07); border:1px solid rgba(68,216,131,0.45);
+        border-radius:10px; padding:0.6rem 0.8rem; margin-bottom:0.3rem;
+      }
+      .dash-tl-item.passado { opacity:0.72; }
+      .dash-tl-item.passado .dash-tl-data .dia { color:var(--cinza,#8b909b); }
+      .dash-tl-item.aviso .dash-tl-corpo .n { color:var(--texto-2,#c2c6cf); font-style:italic; font-weight:500; }
+
+      /* Mobile */
+      @media (max-width: 768px) {
+        .dash-hero { padding:1.2rem 1.3rem; gap:1rem; }
+        .dash-avatar { width:72px; height:72px; font-size:1.9rem; }
+        .dash-hero .indicadores { flex-wrap:wrap; gap:1.2rem 1.8rem; }
+        .dash-mini-row { grid-template-columns:1fr 1fr; gap:0.75rem; }
+        .dash-painel { padding:1.1rem 1.2rem; }
+      }
+      @media (max-width: 480px) {
+        .dash-hero { flex-direction:column; align-items:flex-start; text-align:left; }
+        .dash-hero .indicadores { width:100%; justify-content:space-between; gap:1rem; }
+        .dash-mini-row { grid-template-columns:1fr; }
+      }
+    </style>
+
+    <style>
+      /* Ranking (gamificação) */
+      .rank-toggle { display:flex; gap:0.5rem; margin-bottom:1.2rem; }
+      .rank-toggle button {
+        flex:0 0 auto; padding:0.5rem 1.1rem; border-radius:99px; cursor:pointer;
+        font-family:'DM Sans',sans-serif; font-size:0.85rem; font-weight:600;
+        background:transparent; color:var(--texto-2,#c2c6cf);
+        border:1px solid var(--borda,rgba(255,255,255,0.12)); transition:all .15s;
+      }
+      .rank-toggle button.ativo {
+        background:var(--verde,#44d883); color:#06281a; border-color:var(--verde,#44d883);
+      }
+      .rank-eu {
+        display:flex; align-items:center; gap:1rem; margin-bottom:1.4rem;
+        background:linear-gradient(90deg, rgba(68,216,131,0.14), rgba(68,216,131,0.04));
+        border:1px solid rgba(68,216,131,0.4); border-radius:14px; padding:1rem 1.3rem;
+      }
+      .rank-eu .pos { font-family:'Syne',sans-serif; font-weight:800; font-size:1.8rem; color:var(--verde,#44d883); }
+      .rank-eu .meta { flex:1; }
+      .rank-eu .meta .n { font-weight:600; color:var(--texto,#f4f5f7); }
+      .rank-eu .meta .s { color:var(--cinza,#8b909b); font-size:0.82rem; }
+      .rank-eu .pts { font-family:'Syne',sans-serif; font-weight:700; color:#f5c469; font-size:1.1rem; }
+
+      .rank-lista { display:flex; flex-direction:column; gap:0.5rem; }
+      .rank-row {
+        display:flex; align-items:center; gap:0.9rem;
+        background:var(--card,#26262b); border:1px solid var(--borda,rgba(255,255,255,0.1));
+        border-radius:12px; padding:0.7rem 1rem;
+      }
+      .rank-row.eu { border-color:rgba(68,216,131,0.55); background:rgba(68,216,131,0.06); }
+      .rank-row .col-pos {
+        width:34px; height:34px; flex-shrink:0; display:grid; place-items:center;
+        border-radius:9px; font-weight:700; font-size:0.85rem;
+        background:rgba(255,255,255,0.05); color:var(--texto-2,#c2c6cf);
+      }
+      .rank-row .col-pos.ouro   { background:rgba(245,196,105,0.18); color:#f5c469; }
+      .rank-row .col-pos.prata  { background:rgba(203,213,225,0.18); color:#cbd5e1; }
+      .rank-row .col-pos.bronze { background:rgba(205,127,80,0.18);  color:#e0a06a; }
+      .rank-row .col-nome { flex:1; font-weight:500; color:var(--texto,#f4f5f7); font-size:0.92rem; display:flex; flex-direction:column; gap:0.15rem; }
+      .rank-row .col-nome-linha { display:flex; align-items:center; gap:0.5rem; }
+      .col-nivel {
+        font-size:0.72rem; font-weight:600; color:var(--verde,#44d883);
+        background:rgba(68,216,131,0.12); border:1px solid rgba(68,216,131,0.3);
+        padding:0.08rem 0.5rem; border-radius:99px; width:fit-content;
+      }
+      .rank-eu .meta .n { display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; }
+      .rank-row .col-nome .vc {
+        margin-left:0.4rem; font-size:0.7rem; font-weight:700; color:var(--verde,#44d883);
+      }
+      .rank-row .col-pts { font-weight:700; color:#f5c469; font-size:0.9rem; }
+      .rank-vazio { color:var(--cinza,#8b909b); font-size:0.9rem; padding:1rem 0; }
+
+      /* Mobile */
+      @media (max-width: 768px) {
+        .rank-eu { flex-wrap:wrap; }
+        .rank-toggle { flex-wrap:wrap; }
+      }
+      @media (max-width: 480px) {
+        .rank-row { flex-wrap:wrap; }
+      }
+    </style>
+
+    <style>
+      /* Conquistas (gamificação) */
+      .conq-resumo {
+        display:flex; align-items:center; gap:0.8rem;
+        background: var(--card, #26262b);
+        border:1px solid var(--borda, rgba(255,255,255,0.1));
+        border-radius:14px; padding:1rem 1.3rem; margin-bottom:1.4rem;
+      }
+      .conq-resumo .estrela { font-size:1.6rem; }
+      .conq-resumo .total { font-family:'Syne',sans-serif; font-weight:800; font-size:1.5rem; }
+      .conq-resumo .label { color:var(--cinza,#8b909b); font-size:0.85rem; }
+      .conq-grupo-titulo {
+        font-family:'Syne',sans-serif; font-weight:700; font-size:1rem;
+        margin:1.4rem 0 0.8rem; display:flex; align-items:center; gap:0.5rem;
+      }
+      .conq-grid {
+        display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:0.9rem;
+      }
+      .conq-card {
+        background: var(--card, #26262b);
+        border:1px solid var(--borda, rgba(255,255,255,0.1));
+        border-radius:14px; padding:1rem; display:flex; gap:0.8rem; align-items:flex-start;
+        transition:transform .12s, border-color .12s;
+      }
+      .conq-card.bloqueada { opacity:0.62; filter:grayscale(0.35); }
+      .conq-card.desbloqueada { border-color:rgba(68,216,131,0.45); }
+      .conq-card .ic {
+        font-size:1.7rem; line-height:1; flex-shrink:0;
+        width:46px; height:46px; display:grid; place-items:center;
+        background:rgba(255,255,255,0.05); border-radius:12px;
+      }
+      .conq-card .nome { font-weight:600; color:var(--texto,#f4f5f7); font-size:0.95rem; }
+      .conq-card .desc { color:var(--cinza,#8b909b); font-size:0.8rem; margin-top:0.2rem; line-height:1.45; }
+      .conq-card .pts { color:#f5c469; font-weight:700; font-size:0.82rem; margin-top:0.45rem; }
+      .conq-card .auto {
+        display:inline-block; margin-top:0.45rem; margin-left:0.4rem; padding:0.1rem 0.5rem;
+        border-radius:99px; font-size:0.68rem; font-weight:600;
+        background:rgba(96,165,250,0.16); color:#93c5fd;
+      }
+      .conq-vazio { color:var(--cinza,#8b909b); font-size:0.88rem; padding:0.6rem 0; }
+
+      /* Mobile */
+      @media (max-width: 768px) {
+        .conq-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+        .conq-resumo { flex-wrap: wrap; }
+      }
+      @media (max-width: 480px) {
+        .conq-grid { grid-template-columns: 1fr 1fr; }
+      }
+    </style>
+
+    <style>
+      /* Minha Trajetória (timeline do histórico do aluno) */
+      .traj-resumo {
+        display:flex; align-items:center; gap:0.8rem;
+        background:var(--card,#26262b); border:1px solid var(--borda,rgba(255,255,255,0.1));
+        border-radius:14px; padding:1rem 1.3rem; margin-bottom:1.4rem;
+      }
+      .traj-resumo .ic { font-size:1.5rem; }
+      .traj-resumo .total { font-family:'Syne',sans-serif; font-weight:800; font-size:1.4rem; color:var(--texto,#f4f5f7); }
+      .traj-resumo .label { color:var(--cinza,#8b909b); font-size:0.85rem; }
+
+      /* Painel que envolve a timeline (mesmo visual dos painéis do dashboard) */
+      .traj-painel {
+        background:var(--card,#26262b); border:1px solid var(--borda,rgba(255,255,255,0.1));
+        border-radius:16px; padding:1.4rem 1.5rem;
+      }
+
+      /* A timeline reutiliza .dash-timeline / .dash-tl-* do dashboard.
+         Aqui só ajustamos as cores do nó por tipo e o selo de pontos. */
+      .dash-tl-item.traj::after { background:var(--bg,#1b1b1f); }
+      .dash-tl-item.traj-conquista::after { border-color:#f5c469; box-shadow:0 0 0 4px rgba(245,196,105,0.14); }
+      .dash-tl-item.traj-projeto::after   { border-color:var(--verde,#44d883); box-shadow:0 0 0 4px rgba(68,216,131,0.14); }
+      .dash-tl-item.traj .dash-tl-corpo { padding-bottom:1.1rem; }
+      .dash-tl-item.traj .dash-tl-corpo .n { display:flex; align-items:center; flex-wrap:wrap; gap:0.4rem; }
+      .dash-tl-item.traj .dash-tl-data .dia { line-height:1.05; }
+      .traj-hora {
+        font-family:'DM Sans',sans-serif; font-weight:500; font-size:0.62rem;
+        color:var(--cinza,#8b909b); margin-top:0.2rem; letter-spacing:0.3px;
+      }
+      .traj-icone { font-size:1rem; }
+      .traj-pts {
+        font-family:'Syne',sans-serif; font-weight:700; font-size:0.72rem;
+        color:#f5c469; background:rgba(245,196,105,0.14);
+        padding:0.05rem 0.45rem; border-radius:99px;
+      }
+      .traj-tag {
+        font-size:0.68rem; font-weight:600; padding:0.05rem 0.5rem; border-radius:99px;
+        background:rgba(96,165,250,0.16); color:#93c5fd;
+      }
+      .traj-tag.pesquisa { background:rgba(96,165,250,0.16); color:#93c5fd; }
+      .traj-tag.extensao { background:rgba(68,216,131,0.16); color:var(--verde,#44d883); }
+      .traj-ano {
+        font-family:'Syne',sans-serif; font-weight:700; font-size:0.8rem;
+        color:var(--cinza,#8b909b); text-transform:uppercase; letter-spacing:0.5px;
+        margin:0.6rem 0 0.4rem 1.6rem;
+      }
+      .traj-vazio { color:var(--cinza,#8b909b); font-size:0.9rem; padding:1rem 0; }
+
+      /* Mobile */
+      @media (max-width: 768px) {
+        .traj-resumo { flex-wrap: wrap; }
+        .traj-painel { padding: 1.1rem 1.2rem; }
+      }
+    </style>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="footer-cols">
+      <div class="footer-col footer-about">
+        <h3 class="footer-logo">IF<span>Plenus</span></h3>
+        <p>
+          Portal do Aluno do IFPR — Campus Assis Chateaubriand. Acesso rápido aos
+          seus dados acadêmicos, projetos de pesquisa e extensão e
+          calendário, integrado diretamente à API do SUAP.
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Acadêmico</h4>
+        <ul>
+          <li><a href="#" data-section="dados">Dados &amp; Perfil</a></li>
+          <li><a href="#" data-section="projetos">Projetos</a></li>
+          <li><a href="#" data-section="calendario">Calendário</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Institucional</h4>
+        <ul>
+          <li><a href="https://www.ifpr.edu.br" target="_blank" rel="noopener">Site do IFPR</a></li>
+          <li><a href="https://suap.ifpr.edu.br" target="_blank" rel="noopener">SUAP IFPR</a></li>
+          <li><a href="https://www.gov.br" target="_blank" rel="noopener">Portal Gov.br</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© <span id="footerYear"></span> IFPlenus · IFPR — Instituto Federal do Paraná</span>
+      <a class="footer-admin-link" href="/admin/login"><i data-lucide="lock"></i> Acesso administrativo</a>
+    </div>
+  </footer>
+</main>
+
+<script src="/portal.js"></script>
+<!-- Ícones (Lucide): converte os <i data-lucide> em SVG e re-renderiza
+     quando o conteúdo dinâmico muda (dashboard, ranking, conquistas…). -->
+<script src="https://unpkg.com/lucide@0.330.0/dist/umd/lucide.min.js"></script>
+<script>
+  (function () {
+    let agendado = false;
+    const desenhar = () => {
+      if (!window.lucide || agendado) return;
+      agendado = true;
+      requestAnimationFrame(() => { agendado = false; window.lucide.createIcons(); });
+    };
+    const iniciar = () => {
+      desenhar();
+      new MutationObserver(desenhar).observe(document.body, { childList: true, subtree: true });
+    };
+    // Espera o script do CDN carregar (defensivo: funciona mesmo se o
+    // <script> do Lucide ainda não tiver executado quando este rodar).
+    if (window.lucide) iniciar();
+    else {
+      const t = setInterval(() => { if (window.lucide) { clearInterval(t); iniciar(); } }, 50);
+      setTimeout(() => clearInterval(t), 8000);
+    }
+  })();
+</script>
+<script>
+  // Ano atual no rodapé
+  document.getElementById('footerYear').textContent = new Date().getFullYear();
+
+  // Links do rodapé que apontam para seções acionam a navegação da sidebar
+  document.querySelectorAll('.site-footer [data-section]').forEach(a => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const alvo = document.querySelector(`.nav-item[data-section="${a.dataset.section}"]`);
+      if (alvo) {
+        alvo.click();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  });
+</script>
+</body>
+</html>

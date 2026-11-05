@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IFPlenus — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --verde: #44d883;
+      --verde-escuro: #36c172;
+      --verde-glow: rgba(68,216,131,0.35);
+      --bg: #1b1b1f;
+      --panel: #121214;
+      --card: #26262b;
+      --texto: #f4f5f7;
+      --texto-2: #c2c6cf;
+      --cinza: #8b909b;
+      --borda: rgba(255,255,255,0.1);
+      --input-bg: #1f1f24;
+      --erro: #ff6b6b;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--texto);
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    /* Lado esquerdo — visual */
+    .visual {
+      background: var(--panel);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 4rem;
+      position: relative;
+      overflow: hidden;
+      border-right: 1px solid var(--borda);
+    }
+    .visual::before {
+      content: '';
+      position: absolute;
+      width: 520px; height: 520px;
+      background: radial-gradient(circle, var(--verde-glow) 0%, transparent 70%);
+      top: -120px; right: -140px;
+    }
+    .visual::after {
+      content: '';
+      position: absolute;
+      width: 320px; height: 320px;
+      background: radial-gradient(circle, rgba(68,216,131,0.18) 0%, transparent 70%);
+      bottom: -60px; left: 40px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 0.8rem; position: relative; z-index: 1; margin-bottom: 1.2rem; }
+    .visual-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 2.4rem;
+      color: #fff;
+      letter-spacing: -1px;
+    }
+    .visual-logo span { color: var(--verde); }
+
+    .visual-tagline {
+      color: var(--texto-2);
+      font-size: 1.05rem;
+      font-weight: 300;
+      line-height: 1.7;
+      max-width: 360px;
+      position: relative;
+      z-index: 1;
+    }
+    .visual-sub { color: var(--cinza); font-size: 0.82rem; margin-top: 0.5rem; position: relative; z-index: 1; }
+
+    .visual-badges {
+      display: flex; flex-wrap: wrap; gap: 0.6rem;
+      margin-top: 2.5rem; position: relative; z-index: 1;
+    }
+    .badge {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--borda);
+      color: var(--texto-2);
+      font-size: 0.78rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      font-weight: 500;
+    }
+
+    /* Lado direito — formulário */
+    .login-side { display: flex; align-items: center; justify-content: center; padding: 2rem; }
+    .login-box { width: 100%; max-width: 400px; }
+
+    .login-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1.75rem;
+      color: var(--texto);
+      margin-bottom: 0.4rem;
+    }
+    .login-sub { color: var(--cinza); font-size: 0.9rem; margin-bottom: 2.2rem; }
+
+    .field { margin-bottom: 1.2rem; }
+    .field label {
+      display: block; font-size: 0.82rem; font-weight: 500;
+      color: var(--texto-2); margin-bottom: 0.4rem; letter-spacing: 0.3px;
+    }
+    .field input {
+      width: 100%;
+      border: 1.5px solid var(--borda);
+      border-radius: 10px;
+      padding: 0.78rem 1rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      color: var(--texto);
+      background: var(--input-bg);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input::placeholder { color: var(--cinza); }
+    .field input:focus { border-color: var(--verde); }
+
+    .btn-login {
+      width: 100%;
+      background: var(--verde);
+      color: #06281a;
+      border: none;
+      border-radius: 10px;
+      padding: 0.85rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 0.5rem;
+    }
+    .btn-login:hover { background: var(--verde-escuro); }
+    .btn-login:active { transform: scale(0.98); }
+    .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .erro-msg {
+      background: rgba(255,107,107,0.12);
+      border: 1px solid rgba(255,107,107,0.4);
+      color: var(--erro);
+      border-radius: 8px;
+      padding: 0.7rem 1rem;
+      font-size: 0.85rem;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .ifpr-note { color: var(--cinza); font-size: 0.78rem; text-align: center; margin-top: 1.8rem; line-height: 1.5; }
+
+    @media (max-width: 1024px) {
+      .visual { padding: 2.5rem; }
+    }
+
+    @media (max-width: 768px) {
+      body { grid-template-columns: 1fr; }
+      .visual { display: none; }
+      .login-side { padding: 1.5rem; }
+    }
+
+    @media (max-width: 380px) {
+      .login-side { padding: 1.1rem; }
+      .login-title { font-size: 1.5rem; }
+    }
+
+    /* Ícones (Lucide) — herdam tamanho (1em) e cor (currentColor) do contexto */
+    svg.lucide { width:1em; height:1em; display:inline-block; vertical-align:-0.125em; flex-shrink:0; stroke-width:2; }
+  </style>
+</head>
+<body>
+
+<div class="visual">
+  <div class="brand">
+    <img src="/images/if-logo.png" width="40" height="40" alt="Instituto Federal" style="object-fit:contain;display:block" />
+    <div class="visual-logo">IF<span>Plenus</span></div>
+  </div>
+  <p class="visual-tagline">Acesse suas informações acadêmicas do IFPR em um só lugar.</p>
+  <p class="visual-sub">Instituto Federal do Paraná · Campus Assis Chateaubriand</p>
+  <div class="visual-badges">
+    <span class="badge"><i data-lucide="bar-chart-3"></i> Boletim</span>
+    <span class="badge"><i data-lucide="user"></i> Dados Pessoais</span>
+    <span class="badge"><i data-lucide="microscope"></i> Pesquisa</span>
+    <span class="badge"><i data-lucide="sprout"></i> Extensão</span>
+    <span class="badge"><i data-lucide="calendar"></i> Calendário</span>
+  </div>
+</div>
+
+<div class="login-side">
+  <div class="login-box">
+    <h1 class="login-title">Entrar</h1>
+    <p class="login-sub">Use suas credenciais do SUAP IFPR</p>
+
+    <div class="field">
+      <label for="matricula">Matrícula</label>
+      <input type="text" id="matricula" placeholder="Ex: 2023001234" autocomplete="username" />
+    </div>
+
+    <div class="field">
+      <label for="senha">Senha</label>
+      <input type="password" id="senha" placeholder="Sua senha do SUAP" autocomplete="current-password" />
+    </div>
+
+    <button class="btn-login" id="btnLogin">Entrar no Portal</button>
+
+    <div class="erro-msg" id="erroMsg"></div>
+
+    <p class="ifpr-note">
+      Utilize as mesmas credenciais que você usa<br>para acessar o SUAP IFPR.
+    </p>
+  </div>
+</div>
+
+<script>
+  const btn = document.getElementById('btnLogin');
+  const erroMsg = document.getElementById('erroMsg');
+
+  async function fazerLogin() {
+    const matricula = document.getElementById('matricula').value.trim();
+    const senha = document.getElementById('senha').value;
+
+    if (!matricula || !senha) {
+      mostrarErro('Preencha matrícula e senha.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Autenticando…';
+    erroMsg.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ matricula, senha }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.sucesso) {
+        window.location.href = '/';
+      } else {
+        mostrarErro(data.erro || 'Erro ao autenticar.');
+      }
+    } catch (e) {
+      mostrarErro('Erro de conexão. Verifique sua internet.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Entrar no Portal';
+    }
+  }
+
+  function mostrarErro(msg) {
+    erroMsg.textContent = msg;
+    erroMsg.style.display = 'block';
+  }
+
+  btn.addEventListener('click', fazerLogin);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') fazerLogin();
+  });
+</script>
+<!-- Ícones (Lucide) -->
+<script src="https://unpkg.com/lucide@0.330.0/dist/umd/lucide.min.js"></script>
+<script>
+  (function () {
+    let agendado = false;
+    const desenhar = () => {
+      if (!window.lucide || agendado) return;
+      agendado = true;
+      requestAnimationFrame(() => { agendado = false; window.lucide.createIcons(); });
+    };
+    const iniciar = () => {
+      desenhar();
+      new MutationObserver(desenhar).observe(document.body, { childList: true, subtree: true });
+    };
+    // Espera o script do CDN carregar (defensivo: funciona mesmo se o
+    // <script> do Lucide ainda não tiver executado quando este rodar).
+    if (window.lucide) iniciar();
+    else {
+      const t = setInterval(() => { if (window.lucide) { clearInterval(t); iniciar(); } }, 50);
+      setTimeout(() => clearInterval(t), 8000);
+    }
+  })();
+</script>
+</body>
+</html>
