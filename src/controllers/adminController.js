@@ -263,6 +263,9 @@ const criarConta = async (req, res) => {
       return res.status(400).json({ erro: 'Nome e e-mail são obrigatórios' });
     }
     const emailNorm = normEmail(email);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNorm)) {
+      return res.status(400).json({ erro: 'E-mail inválido' });
+    }
     if (await Admin.findOne({ email: emailNorm })) {
       return res.status(409).json({ erro: 'Já existe uma conta com este e-mail' });
     }
@@ -446,6 +449,10 @@ const deletarProjeto = async (req, res) => {
   try {
     const proj = await Projeto.findByIdAndDelete(req.params.id);
     if (!proj) return res.status(404).json({ erro: 'Projeto não encontrado' });
+    // Pedidos pendentes/recusados de um projeto que não existe mais só
+    // poluíam a lista de solicitações. Os ACEITOS ficam (são histórico do
+    // aluno e justificam conquistas já ganhas).
+    await Solicitacao.deleteMany({ origem: 'local', projeto: proj._id, status: { $ne: 'aceito' } });
     return res.json({ sucesso: true });
   } catch (err) {
     console.error('Erro ao excluir projeto:', err.message);
@@ -532,7 +539,7 @@ const deletarEvento = async (req, res) => {
 const getSolicitacoes = async (req, res) => {
   try {
     const filtro = {};
-    if (req.query.status) filtro.status = req.query.status;
+    if (['pendente', 'aceito', 'recusado'].includes(req.query.status)) filtro.status = req.query.status;
 
     const lista = await Solicitacao.find(filtro)
       .populate('projeto', 'titulo tipo')

@@ -239,7 +239,7 @@ const solicitarParticipacaoSuap = async (req, res) => {
 
     // Título vindo do espelho local (se algum aluno já carregou o projeto)
     const cache = await ProjetoSuapCache.findOne({ suapId, tipo }).lean();
-    const titulo = cache?.titulo || req.body.titulo || '(projeto do SUAP)';
+    const titulo = String(cache?.titulo || req.body.titulo || '(projeto do SUAP)').slice(0, 300);
 
     const solicitacao = await Solicitacao.create({
       origem: 'suap',
@@ -314,7 +314,11 @@ const handleError = (res, err, contexto) => {
   );
 
   if (status === 401) {
-    return res.status(401).json({ erro: 'Token SUAP expirado. Faça login novamente.' });
+    // A sessão do SUAP morreu: derruba também a sessão do IFPlenus. Sem isso
+    // o portal ia para /login, o servidor via o cookie ainda válido e mandava
+    // de volta para / — um loop de redirecionamento infinito.
+    res.clearCookie('authToken');
+    return res.status(401).json({ erro: 'Sua sessão do SUAP expirou. Faça login novamente.' });
   }
   if (status === 403) {
     // "Host not in allowlist" = o IP do servidor não está liberado no SUAP
@@ -330,12 +334,9 @@ const handleError = (res, err, contexto) => {
     return res.status(404).json({ erro: `${contexto} não encontrado` });
   }
 
-  return res.status(500).json({
-    erro: `Erro ao buscar ${contexto}`,
-    detalhe: typeof body === 'string'
-      ? body
-      : body?.detail ?? body?.message ?? err.message,
-  });
+  // Falha do SUAP (fora do ar, timeout, erro interno) → 502, sem repassar
+  // o HTML/mensagem interna do SUAP para o navegador.
+  return res.status(502).json({ erro: `O SUAP não respondeu ao buscar ${contexto}. Tente novamente.` });
 };
 
 module.exports = {

@@ -113,6 +113,32 @@ const formatarData = (d) => {
   return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
 };
 
+// Lê "AAAA-MM-DD" como data LOCAL. `new Date('2026-08-17')` é meia-noite UTC,
+// que no Brasil vira 21h do dia ANTERIOR — um evento de hoje aparecia como passado.
+const dataLocal = (v) => {
+  if (!v) return null;
+  const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T00:00:00(?:\.0+)?Z?$)/);
+  const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(v);
+  return isNaN(d) ? null : d;
+};
+
+// Aviso discreto no canto da tela (no lugar das janelas de alerta do navegador)
+let _avisoTimer = null;
+const aviso = (msg, tipo = '') => {
+  let el = document.getElementById('avisoPortal');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'avisoPortal';
+    el.className = 'aviso-portal';
+    el.setAttribute('role', 'status');
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.className = `aviso-portal ${tipo} show`;
+  clearTimeout(_avisoTimer);
+  _avisoTimer = setTimeout(() => el.classList.remove('show'), 3500);
+};
+
 const dadoItem = (label, valor) =>
   (valor == null || valor === '') ? '' : `
   <div class="dado-item">
@@ -389,7 +415,7 @@ const fecharConfig = () => {
 };
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') fecharConfig();
+  if (e.key === 'Escape') { fecharNiveis(); fecharConfig(); }
 });
 
 // ── PROJETOS (aba única: áreas Pesquisa/Extensão × fontes Sistema/Admin) ──
@@ -430,6 +456,7 @@ const trocarAreaProjetos = async (area) => {
 
 // Recarrega a aba de projetos (após solicitar/cancelar), mantendo a área.
 const recarregarProjetos = (area) => {
+  state.projOcupado = false;
   state.projArea = (area === 'pesquisa' || area === 'extensao') ? area : (state.projArea || 'pesquisa');
   state.loaded['projetos'] = true;
   renderProjetosShell();
@@ -537,8 +564,16 @@ const renderProjetoInterno = (p, area, tipoClass, tipoLabel) => {
     </div>`;
 };
 
+// Desabilita os botões de participação enquanto um pedido está em andamento
+const travarBotoes = (sim) => {
+  state.projOcupado = sim;
+  document.querySelectorAll('#projetosArea .projeto-acoes button').forEach(b => { b.disabled = sim; });
+};
+
 // Envia a solicitação de participação (projeto local) e recarrega a aba.
 const solicitarParticipacao = async (projetoId, area) => {
+  if (state.projOcupado) return; // evita clique duplo
+  travarBotoes(true);
   try {
     const res = await fetch(`/api/projetos-internos/${projetoId}/solicitar`, {
       method: 'POST',
@@ -546,15 +581,18 @@ const solicitarParticipacao = async (projetoId, area) => {
     });
     if (res.status === 401) { window.location.href = '/login'; return; }
     const data = await res.json();
-    if (res.ok && data.sucesso) recarregarProjetos(area);
-    else alert(data.erro || 'Não foi possível enviar a solicitação.');
+    if (res.ok && data.sucesso) { aviso('Solicitação enviada! Aguarde a resposta do professor.', 'ok'); recarregarProjetos(area); }
+    else { aviso(data.erro || 'Não foi possível enviar a solicitação.', 'erro'); travarBotoes(false); }
   } catch (e) {
-    alert('Erro de conexão ao enviar a solicitação.');
+    aviso('Erro de conexão ao enviar a solicitação.', 'erro');
+    travarBotoes(false);
   }
 };
 
 // Envia a solicitação de participação (projeto do SUAP) e recarrega a aba.
 const solicitarParticipacaoSuap = async (suapId, area) => {
+  if (state.projOcupado) return; // evita clique duplo
+  travarBotoes(true);
   try {
     const res = await fetch(`/api/projetos-suap/${suapId}/solicitar`, {
       method: 'POST',
@@ -564,39 +602,48 @@ const solicitarParticipacaoSuap = async (suapId, area) => {
     });
     if (res.status === 401) { window.location.href = '/login'; return; }
     const data = await res.json();
-    if (res.ok && data.sucesso) recarregarProjetos(area);
-    else alert(data.erro || 'Não foi possível enviar a solicitação.');
+    if (res.ok && data.sucesso) { aviso('Solicitação enviada! Aguarde a resposta do professor.', 'ok'); recarregarProjetos(area); }
+    else { aviso(data.erro || 'Não foi possível enviar a solicitação.', 'erro'); travarBotoes(false); }
   } catch (e) {
-    alert('Erro de conexão ao enviar a solicitação.');
+    aviso('Erro de conexão ao enviar a solicitação.', 'erro');
+    travarBotoes(false);
   }
 };
 
 // Cancela a solicitação (pendente → desistência; recusada → tentar de novo)
 // de um projeto local, e recarrega a aba.
 const resetarSolicitacao = async (projetoId, area) => {
+  if (state.projOcupado) return; // evita clique duplo
+  travarBotoes(true);
   try {
     const res = await fetch(`/api/projetos-internos/${projetoId}/solicitacao`, {
       method: 'DELETE',
       credentials: 'include',
     });
     if (res.status === 401) { window.location.href = '/login'; return; }
+    if (!res.ok) { aviso('Não foi possível cancelar a solicitação.', 'erro'); travarBotoes(false); return; }
     recarregarProjetos(area);
   } catch (e) {
-    alert('Erro de conexão.');
+    aviso('Erro de conexão.', 'erro');
+    travarBotoes(false);
   }
 };
 
 // Cancela a solicitação (pendente/recusada) de um projeto do SUAP.
 const resetarSolicitacaoSuap = async (suapId, area) => {
+  if (state.projOcupado) return; // evita clique duplo
+  travarBotoes(true);
   try {
     const res = await fetch(`/api/projetos-suap/${suapId}/solicitacao`, {
       method: 'DELETE',
       credentials: 'include',
     });
     if (res.status === 401) { window.location.href = '/login'; return; }
+    if (!res.ok) { aviso('Não foi possível cancelar a solicitação.', 'erro'); travarBotoes(false); return; }
     recarregarProjetos(area);
   } catch (e) {
-    alert('Erro de conexão.');
+    aviso('Erro de conexão.', 'erro');
+    travarBotoes(false);
   }
 };
 const carregarCalendario = async () => {
@@ -611,8 +658,8 @@ const carregarCalendario = async () => {
     // Mantém só os eventos do ano presente (início OU fim no ano atual,
     // para incluir eventos que atravessam a virada de ano).
     const doAno = eventos.filter(ev => {
-      const ini = parseInt(String(ev.data_inicio || ev.data || '').slice(0, 4), 10);
-      const fim = parseInt(String(ev.data_fim || '').slice(0, 4), 10);
+      const ini = dataLocal(ev.data_inicio || ev.data)?.getFullYear();
+      const fim = dataLocal(ev.data_fim)?.getFullYear();
       return ini === anoAtual || fim === anoAtual;
     });
 
@@ -623,12 +670,11 @@ const carregarCalendario = async () => {
 
     // Ordem decrescente: eventos mais próximos/recentes em cima, mais antigos embaixo.
     const sorted = [...doAno].sort((a,b) =>
-      new Date(b.data_inicio || b.data || '') - new Date(a.data_inicio || a.data || '')
+      (dataLocal(b.data_inicio || b.data) || 0) - (dataLocal(a.data_inicio || a.data) || 0)
     );
 
     el.innerHTML = `<div class="eventos-lista">${sorted.map(ev => {
-      const dataStr = ev.data_inicio || ev.data || '';
-      const dt = dataStr ? new Date(dataStr + 'T12:00:00') : null;
+      const dt = dataLocal(ev.data_inicio || ev.data);
       return `<div class="evento-item">
         <div class="evento-data">
           <div class="mes">${dt ? MESES[dt.getMonth()] : ''}</div>
@@ -721,6 +767,7 @@ const carregarDashboard = async () => {
     if (!dash) return;
 
     const n = dash.nivel || {};
+    state.dash = dash; // usado pela janela "Ver níveis"
     const primeiroNome = (dash.nome || 'Aluno').split(' ')[0];
     const inicial = primeiroNome.charAt(0).toUpperCase() || '?';
 
@@ -750,8 +797,8 @@ const carregarDashboard = async () => {
     // ── Timeline de eventos (passados + futuros) ──
     const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
     const comData = (Array.isArray(eventos) ? eventos : [])
-      .map(ev => ({ ...ev, _d: new Date(ev.data_inicio || ev.data) }))
-      .filter(ev => !isNaN(ev._d));
+      .map(ev => ({ ...ev, _d: dataLocal(ev.data_inicio || ev.data) }))
+      .filter(ev => ev._d);
 
     const futuros  = comData.filter(ev => ev._d >= hoje).sort((a,b) => a._d - b._d); // mais perto primeiro
     const passados = comData.filter(ev => ev._d <  hoje).sort((a,b) => b._d - a._d); // mais recente primeiro
@@ -800,11 +847,14 @@ const carregarDashboard = async () => {
         <div class="ola">
           <h2>Olá, ${esc(primeiroNome)}!</h2>
           ${dash.curso ? `<div class="curso">${esc(dash.curso)}</div>` : ''}
-          <div class="dash-nivel-linha">
-            <span class="badge-nivel"><i data-lucide="award"></i> Nível ${n.nivel} · ${esc(n.nome || '')}</span>
-            <span>${n.faltamParaProximo ? `${n.faltamParaProximo} pts p/ ${esc(n.proximoNome)}` : 'nível máximo <i data-lucide="trophy"></i>'}</span>
-          </div>
-          <div class="dash-barra"><span style="width:${Math.min(100, Math.max(0, n.progresso || 0))}%"></span></div>
+          <button type="button" class="dash-nivel-btn" onclick="abrirNiveis()" aria-haspopup="dialog" title="Ver todos os níveis e como subir">
+            <div class="dash-nivel-linha">
+              <span class="badge-nivel"><i data-lucide="award"></i> Nível ${n.nivel} · ${esc(n.nome || '')}</span>
+              <span>${n.faltamParaProximo ? `${n.faltamParaProximo} pts p/ ${esc(n.proximoNome)}` : 'nível máximo <i data-lucide="trophy"></i>'}</span>
+              <span class="ver-niveis">Ver níveis <i data-lucide="chevron-right"></i></span>
+            </div>
+            <div class="dash-barra"><span style="width:${Math.min(100, Math.max(0, n.progresso || 0))}%"></span></div>
+          </button>
         </div>
         <div class="indicadores">
           <div class="indicador"><div class="ic"><i data-lucide="star"></i></div><div class="v">${dash.pontos}</div><div class="l">Pontos</div></div>
@@ -815,31 +865,31 @@ const carregarDashboard = async () => {
       <div class="dash-grid">
         <div>
           <div class="dash-mini-row">
-            <div class="dash-mini" onclick="irParaSecao('ranking')">
+            <button type="button" class="dash-mini" onclick="abrirNiveis()" aria-haspopup="dialog">
               <span class="seta"><i data-lucide="arrow-right"></i></span>
-              <div class="ic"><i data-lucide="trophy"></i></div>
-              <div class="v">${dash.posicaoGeral != null ? dash.posicaoGeral + "º" : "—"}</div>
-              <div class="l">Lugar<br>Ranking Geral</div>
-            </div>
-            <div class="dash-mini" onclick="irParaSecao('conquistas')">
+              <div class="ic"><i data-lucide="award"></i></div>
+              <div class="v">Nível ${n.nivel ?? 1}</div>
+              <div class="l">${esc(n.nome || '')}<br>Ver todos os níveis</div>
+            </button>
+            <button type="button" class="dash-mini" onclick="irParaSecao('conquistas')">
               <span class="seta"><i data-lucide="arrow-right"></i></span>
               <div class="ic"><i data-lucide="medal"></i></div>
               <div class="v">${dash.totalConquistas ?? 0}</div>
               <div class="l">Conquistas<br>Desbloqueadas</div>
-            </div>
+            </button>
           </div>
 
           <div class="dash-painel">
             <div class="titulo">Ranking Geral</div>
             ${podioHtml}
-            <span class="rodape-link" onclick="irParaSecao('ranking')">Ver Ranking Completo</span>
+            <button type="button" class="rodape-link" onclick="irParaSecao('ranking')">Ver Ranking Completo</button>
           </div>
         </div>
 
         <div class="dash-painel">
           <div class="titulo">Próximos Eventos</div>
           <div class="dash-timeline">${timelineHtml}</div>
-          <span class="rodape-link" onclick="irParaSecao('calendario')">Ver Calendário</span>
+          <button type="button" class="rodape-link" onclick="irParaSecao('calendario')">Ver Calendário</button>
         </div>
       </div>
     `;
@@ -848,6 +898,116 @@ const carregarDashboard = async () => {
   }
 };
 
+// ── Janela "Níveis" (aberta pelo nível do dashboard) ───────────
+let _focoAntesNiveis = null;
+
+const abrirNiveis = async () => {
+  const dash = state.dash;
+  if (!dash) return;
+  _focoAntesNiveis = document.activeElement;
+
+  let modal = document.getElementById('niveisModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'niveisModal';
+    modal.className = 'niveis-overlay';
+    modal.innerHTML = `
+      <div class="niveis-dialog" role="dialog" aria-modal="true" aria-labelledby="niveisTitulo">
+        <div class="niveis-head">
+          <h2 id="niveisTitulo"><i data-lucide="award"></i> Níveis do IFPlenus</h2>
+          <button type="button" class="config-fechar" onclick="fecharNiveis()" aria-label="Fechar"><i data-lucide="x"></i></button>
+        </div>
+        <div class="niveis-body" id="niveisBody"></div>
+      </div>`;
+    modal.addEventListener('click', (e) => { if (e.target === modal) fecharNiveis(); });
+    document.body.appendChild(modal);
+  }
+
+  const pontos = Number(dash.pontos) || 0;
+  const atual = dash.nivel?.nivel || 1;
+  const niveis = Array.isArray(dash.niveis) && dash.niveis.length
+    ? dash.niveis
+    : [{ nivel: atual, nome: dash.nivel?.nome || '', min: dash.nivel?.inicioFaixa || 0 }];
+
+  const escada = niveis.map((nv, i) => {
+    const prox = niveis[i + 1];
+    const estado = nv.nivel < atual ? 'feito' : nv.nivel === atual ? 'atual' : 'futuro';
+    const faixa = prox ? `${nv.min} a ${prox.min - 1} pts` : `${nv.min} pts ou mais`;
+    let detalhe = '';
+    if (estado === 'feito') detalhe = '<span class="nv-tag ok"><i data-lucide="check"></i> Alcançado</span>';
+    if (estado === 'atual') {
+      detalhe = prox
+        ? `<div class="nv-progresso"><div class="dash-barra"><span style="width:${Math.min(100, Math.max(0, dash.nivel?.progresso || 0))}%"></span></div>
+             <small>Faltam <strong>${prox.min - pontos} pts</strong> para ${esc(prox.nome)}</small></div>`
+        : '<span class="nv-tag ok"><i data-lucide="trophy"></i> Nível máximo!</span>';
+    }
+    if (estado === 'futuro') detalhe = `<span class="nv-tag"><i data-lucide="lock"></i> Faltam ${nv.min - pontos} pts</span>`;
+    return `
+      <li class="nv-item ${estado}">
+        <div class="nv-num">${estado === 'feito' ? '<i data-lucide="check"></i>' : nv.nivel}</div>
+        <div class="nv-info">
+          <div class="nv-nome">${esc(nv.nome)} ${estado === 'atual' ? '<span class="nv-voce">VOCÊ</span>' : ''}</div>
+          <div class="nv-faixa">${faixa}</div>
+          ${estado === 'atual' ? detalhe : ''}
+        </div>
+        ${estado !== 'atual' ? detalhe : ''}
+      </li>`;
+  }).join('');
+
+  document.getElementById('niveisBody').innerHTML = `
+    <div class="nv-resumo">
+      <div><div class="nv-pts"><i data-lucide="star"></i> ${pontos}</div><div class="nv-pts-l">seus pontos</div></div>
+      <div><div class="nv-pts">${esc(dash.nivel?.nome || '')}</div><div class="nv-pts-l">nível atual</div></div>
+    </div>
+
+    <ol class="nv-escada">${escada}</ol>
+
+    <h3 class="nv-subtitulo"><i data-lucide="sparkles"></i> Como ganhar pontos</h3>
+    <ul class="nv-dicas">
+      <li><span class="ic"><i data-lucide="medal"></i></span><div><strong>Desbloqueie conquistas</strong><p>Cada conquista vale pontos. Algumas são automáticas, outras são concedidas pelos professores.</p></div></li>
+      <li><span class="ic"><i data-lucide="folder"></i></span><div><strong>Participe de projetos</strong><p>Peça para entrar em projetos de pesquisa ou extensão na aba Projetos. Quando o professor aceitar, você pode ganhar conquistas.</p></div></li>
+      <li><span class="ic"><i data-lucide="graduation-cap"></i></span><div><strong>Capriche nas notas</strong><p>Conquistas de desempenho são liberadas sozinhas quando suas notas no SUAP atingem a meta.</p></div></li>
+    </ul>
+
+    <h3 class="nv-subtitulo"><i data-lucide="target"></i> Próximas conquistas para você</h3>
+    <div id="nvProximas">${esqueleto('lista', 2)}</div>
+
+    <button type="button" class="nv-cta" onclick="fecharNiveis(); irParaSecao('conquistas')">Ver todas as conquistas <i data-lucide="arrow-right"></i></button>`;
+
+  modal.classList.add('open');
+  document.body.classList.add('config-aberta');
+  setTimeout(() => modal.querySelector('.config-fechar')?.focus(), 50);
+
+  // Sugestões: as conquistas disponíveis que valem menos pontos (mais fáceis primeiro)
+  try {
+    const dados = await api('/api/minhas-conquistas');
+    const box = document.getElementById('nvProximas');
+    if (!dados || !box) return;
+    const disp = (dados.disponiveis || []).slice().sort((a, b) => (a.pontos || 0) - (b.pontos || 0)).slice(0, 3);
+    box.innerHTML = disp.length
+      ? `<div class="nv-sugestoes">${disp.map(c => `
+          <div class="nv-sug">
+            <span class="nv-sug-ic">${esc(c.icone || '🏆')}</span>
+            <div><strong>${esc(c.nome)}</strong>${c.descricao ? `<p>${esc(c.descricao)}</p>` : ''}</div>
+            <span class="nv-sug-pts">+${Number(c.pontos) || 0}</span>
+          </div>`).join('')}</div>`
+      : '<p class="nv-vazio">Você já desbloqueou todas as conquistas disponíveis. <i data-lucide="party-popper"></i></p>';
+  } catch (e) {
+    const box = document.getElementById('nvProximas');
+    if (box) box.innerHTML = '<p class="nv-vazio">Não foi possível carregar as conquistas agora.</p>';
+  }
+};
+
+const fecharNiveis = () => {
+  const modal = document.getElementById('niveisModal');
+  if (!modal || !modal.classList.contains('open')) return;
+  modal.classList.remove('open');
+  if (!document.getElementById('configDrawer')?.classList.contains('open')) {
+    document.body.classList.remove('config-aberta');
+  }
+  _focoAntesNiveis?.focus?.();
+};
+
 // ── Ranking (gamificação) ──────────────────────────────────────
 let _rankEscopo = 'geral';
 
@@ -864,9 +1024,10 @@ const trocarEscopoRanking = (escopo) => {
 const renderRanking = async () => {
   const el = document.getElementById('rankingContent');
   el.innerHTML = esqueleto('ranking');
+  const pedido = (state.rankPedido = (state.rankPedido || 0) + 1);
   try {
     const dados = await api(`/api/ranking?escopo=${_rankEscopo}`);
-    if (!dados) return;
+    if (!dados || pedido !== state.rankPedido) return;
 
     const toggle = `
       <div class="rank-toggle">

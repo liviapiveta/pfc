@@ -3,7 +3,11 @@ const Conquista = require('../models/Conquista');
 const ConquistaUsuario = require('../models/ConquistaUsuario');
 const Solicitacao = require('../models/Solicitacao');
 const User = require('../models/User');
-const { calcularNivel } = require('../services/niveis');
+const { calcularNivel, NIVEIS } = require('../services/niveis');
+
+// Pontos precisam ser um número inteiro ≥ 0 (antes "abc" passava e virava erro 500)
+const pontosValidos = (v) => v !== '' && v != null && Number.isFinite(Number(v)) && Number(v) >= 0;
+const textoSimples = (v) => (typeof v === 'string' ? v : undefined);
 
 /**
  * Recalcula o total de pontos de um aluno a partir das conquistas
@@ -114,7 +118,8 @@ const _rankearAlunos = async (filtroUser = {}) => {
 const getConquistas = async (req, res) => {
   try {
     const filtro = {};
-    if (req.query.categoria) filtro.categoria = req.query.categoria;
+    const categoria = textoSimples(req.query.categoria);
+    if (categoria) filtro.categoria = categoria;
     if (req.query.ativa === 'true') filtro.ativa = true;
     if (req.query.ativa === 'false') filtro.ativa = false;
 
@@ -149,7 +154,7 @@ const criarConquista = async (req, res) => {
     if (!nome || !nome.trim()) {
       return res.status(400).json({ erro: 'O nome da conquista é obrigatório' });
     }
-    if (pontos == null || Number(pontos) < 0) {
+    if (!pontosValidos(pontos)) {
       return res.status(400).json({ erro: 'Pontos deve ser um número maior ou igual a 0' });
     }
     // Conquista automática precisa de uma regra com tipo
@@ -168,6 +173,15 @@ const criarConquista = async (req, res) => {
 /** PUT /api/admin/conquistas/:id */
 const atualizarConquista = async (req, res) => {
   try {
+    if ('pontos' in req.body && !pontosValidos(req.body.pontos)) {
+      return res.status(400).json({ erro: 'Pontos deve ser um número maior ou igual a 0' });
+    }
+    if ('nome' in req.body && !String(req.body.nome || '').trim()) {
+      return res.status(400).json({ erro: 'O nome da conquista é obrigatório' });
+    }
+    if (req.body.origem === 'automatica' && !req.body?.regra?.tipo) {
+      return res.status(400).json({ erro: 'Conquista automática exige uma regra (regra.tipo)' });
+    }
     const c = await Conquista.findByIdAndUpdate(req.params.id, req.body, {
       returnDocument: 'after',
       runValidators: true,
@@ -229,7 +243,8 @@ const deletarConquista = async (req, res) => {
  */
 const concederConquista = async (req, res) => {
   try {
-    const matricula = String(req.body.matricula || '').trim();
+    // Matrículas são gravadas em MAIÚSCULAS no login do aluno
+    const matricula = String(req.body.matricula || '').trim().toUpperCase();
     if (!matricula) {
       return res.status(400).json({ erro: 'A matrícula do aluno é obrigatória' });
     }
@@ -256,7 +271,7 @@ const concederConquista = async (req, res) => {
         pontos: conquista.pontos,
         status: 'confirmada',
         origem: 'admin',
-        concedidoPor: req.admin?.usuario || 'admin',
+        concedidoPor: req.admin?.email || req.admin?.nome || 'admin',
         contexto: {},
         chaveContexto: '',
       });
@@ -282,7 +297,7 @@ const concederConquista = async (req, res) => {
  */
 const getConquistasDoAluno = async (req, res) => {
   try {
-    const matricula = String(req.params.matricula || '').trim();
+    const matricula = String(req.params.matricula || '').trim().toUpperCase();
     const lista = await ConquistaUsuario.find({ matricula })
       .sort({ createdAt: -1 })
       .lean();
@@ -328,8 +343,7 @@ const getMinhasConquistas = async (req, res) => {
   try {
     const matricula = req.user.matricula;
 
-    const [usuario, desbloqueadasRaw, catalogo] = await Promise.all([
-      User.findOne({ matricula }).select('pontos').lean(),
+    const [desbloqueadasRaw, catalogo] = await Promise.all([
       ConquistaUsuario.find({ matricula, status: 'confirmada' })
         .populate('conquista', 'nome icone categoria descricao origem')
         .sort({ createdAt: -1 })
@@ -366,8 +380,12 @@ const getMinhasConquistas = async (req, res) => {
         origem: c.origem,          // 'manual' | 'automatica'
       }));
 
+    // Soma das conquistas confirmadas (mesma fonte do Dashboard e do Ranking;
+    // antes usava o cache User.pontos, que podia mostrar outro número)
+    const pontos = desbloqueadas.reduce((t, d) => t + (Number(d.pontos) || 0), 0);
+
     return res.json({
-      pontos: usuario?.pontos || 0,
+      pontos,
       desbloqueadas,
       disponiveis,
     });
@@ -403,7 +421,7 @@ const getRanking = async (req, res) => {
           escopo,
           curso: null,
           semCurso: true,
-          eu: { posicao: null, nome: me.nomeUsuario, pontos: me.pontos || 0 },
+          eu: { posicao: null, nome: me.nomeUsuario, pontos: me.pontos || 0, nivel: calcularNivel(me.pontos || 0) },
           total: 0,
           ranking: [],
         });
@@ -478,6 +496,7 @@ const getDashboard = async (req, res) => {
       curso: me.curso || '',
       pontos,
       nivel: calcularNivel(pontos),       // { nivel, nome, progresso, faltamParaProximo, ... }
+      niveis: NIVEIS,                     // escala completa (janela "Ver níveis")
       posicaoGeral,
       totalAlunos,
       totalConquistas,

@@ -51,7 +51,10 @@ const userSchema = new mongoose.Schema(
         preferencias: {
             anoLetivoAtual: { type: Number, default: null },
             periodoLetivoAtual: { type: Number, default: null },
-            temaEscuro: { type: Boolean, default: false },
+            // null = o aluno nunca escolheu (o site usa o tema escuro padrão).
+            // Antes o padrão era false, o que forçava o tema CLARO em
+            // qualquer aparelho novo de quem nunca tinha mexido no tema.
+            temaEscuro: { type: Boolean, default: null },
         },
         ultimoAcesso: {
             type: Date,

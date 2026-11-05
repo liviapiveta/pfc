@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IFPlenus — Painel Admin</title>
+  <link rel="icon" type="image/png" href="/images/if-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
@@ -892,6 +893,13 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// Só aceita links http(s) — evita "javascript:" vindo de dados cadastrados
+const urlSegura = (u) => {
+  if (!u) return null;
+  try { return ['http:', 'https:'].includes(new URL(u, location.origin).protocol) ? u : null; }
+  catch (e) { return null; }
+};
+
 // ── Esqueletos de carregamento (no lugar do "Carregando…") ──────
 const esqueletoAdmin = (tipo = 'tabela', qtd = 4) => {
   const sk = (w) => `<span class="skel" style="width:${w}"></span>`;
@@ -1130,11 +1138,11 @@ const renderTabelaProjetosSuap = (dados) => {
     : '<span class="badge-tipo badge-extensao">Extensão</span>';
 
   const rows = dados.map(p => {
-    const titulo = p.link_suap
-      ? `<a href="${esc(p.link_suap)}" target="_blank" rel="noopener">${esc(p.titulo || '—')}</a>`
+    const titulo = urlSegura(p.link_suap)
+      ? `<a href="${esc(urlSegura(p.link_suap))}" target="_blank" rel="noopener">${esc(p.titulo || '—')}</a>`
       : esc(p.titulo || '—');
-    const link = p.link_suap
-      ? `<a href="${esc(p.link_suap)}" target="_blank" rel="noopener">Abrir</a>`
+    const link = urlSegura(p.link_suap)
+      ? `<a href="${esc(urlSegura(p.link_suap))}" target="_blank" rel="noopener">Abrir</a>`
       : '—';
 
     return `
@@ -1164,11 +1172,11 @@ const renderTabelaProjetos = (dados, tipo) => {
     : '<span class="badge-tipo badge-extensao">Extensão</span>';
 
   const rows = dados.map(p => {
-    const titulo = p.link_suap
-      ? `<a href="${esc(p.link_suap)}" target="_blank" rel="noopener">${esc(p.titulo)}</a>`
+    const titulo = urlSegura(p.link_suap)
+      ? `<a href="${esc(urlSegura(p.link_suap))}" target="_blank" rel="noopener">${esc(p.titulo)}</a>`
       : esc(p.titulo);
-    const link = p.link_suap
-      ? `<a href="${esc(p.link_suap)}" target="_blank" rel="noopener">Abrir</a>`
+    const link = urlSegura(p.link_suap)
+      ? `<a href="${esc(urlSegura(p.link_suap))}" target="_blank" rel="noopener">Abrir</a>`
       : '—';
 
     return `
@@ -1665,7 +1673,10 @@ const atualizarStats = (stats) => {
 let toastTimer;
 const mostrarToast = (msg, tipo = '') => {
   const el = document.getElementById('toast');
-  el.textContent = tipo === 'sucesso' ? '<i data-lucide="check"></i> ' + msg : tipo === 'erro' ? '<i data-lucide="x"></i> ' + msg : msg;
+  // Antes usava textContent com o HTML do ícone: o aviso mostrava o texto
+  // '<i data-lucide="check"></i>' literalmente na frente da mensagem.
+  const icone = tipo === 'sucesso' ? '<i data-lucide="check"></i> ' : tipo === 'erro' ? '<i data-lucide="x"></i> ' : '';
+  el.innerHTML = icone + esc(msg);
   el.className = `toast ${tipo} show`;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 3200);

@@ -45,17 +45,19 @@ const suapClient = (token) =>
 // ── AUTH ──────────────────────────────────────────────────────
 
 const autenticar = async (matricula, senha) => {
+  // timeout: sem ele, um SUAP travado deixava o login "Autenticando…" até a
+  // Vercel derrubar a função
   const { data } = await axios.post(`${SUAP_BASE}token/pair`, {
     username: matricula,
     password: senha,
-  });
+  }, { timeout: 15000 });
   return { access: data.access, refresh: data.refresh };
 };
 
 const refreshToken = async (refresh) => {
   const { data } = await axios.post(`${SUAP_BASE}token/refresh`, {
     refresh,
-  });
+  }, { timeout: 10000 });
   return data.access;
 };
 

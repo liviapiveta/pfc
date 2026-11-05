@@ -54,7 +54,10 @@ const login = async (req, res) => {
       if (status === 400 || status === 401) {
         return res.status(401).json({ erro: 'Matrícula ou senha inválidos' });
       }
-      return res.status(500).json({ erro: 'Erro ao autenticar no SUAP' });
+      if (err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT') {
+        return res.status(504).json({ erro: 'O SUAP demorou demais para responder. Tente novamente em instantes.' });
+      }
+      return res.status(502).json({ erro: 'Não foi possível falar com o SUAP agora. Tente novamente em instantes.' });
     }
 
     const { access: accessToken, refresh: refreshToken } = authData;
