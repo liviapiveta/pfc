@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IFPlenus — Painel Admin</title>
+  <link rel="icon" type="image/png" href="/images/if-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
@@ -62,7 +63,7 @@
     }
 
     .sidebar-logo h1 span { color: var(--verde); }
-    .sidebar-logo p { font-size: 0.7rem; color: rgba(255,255,255,0.35); margin-top: 0.2rem; }
+    .sidebar-logo p { font-size: 0.7rem; color: rgba(255,255,255,0.62); margin-top: 0.2rem; }
 
     .admin-pill {
       margin: 0.75rem 1.5rem;
@@ -122,7 +123,7 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      color: rgba(255,255,255,0.4);
+      color: rgba(255,255,255,0.68);
       font-size: 0.82rem;
       cursor: pointer;
       transition: color 0.15s;
@@ -191,8 +192,8 @@
 
     .topbar-badge {
       background: var(--amarelo-claro);
-      border: 1px solid #fde68a;
-      color: #92400e;
+      border: 1px solid rgba(245,185,66,0.45);
+      color: #f5c469;
       font-size: 0.72rem;
       font-weight: 600;
       padding: 0.2rem 0.65rem;
@@ -531,6 +532,73 @@
     .stat-label { font-size: 0.72rem; color: var(--cinza); font-weight: 500; }
     .stat-value { font-family: 'Syne', sans-serif; font-size: 1.7rem; font-weight: 700; color: var(--texto); line-height: 1.2; }
 
+    /* ── Painel do professor / Estatísticas / Histórico ── */
+    .aviso-escopo { display:flex; gap:0.6rem; align-items:flex-start; margin-top:1rem; padding:0.85rem 1rem; border-radius:12px;
+      background:var(--amarelo-claro); border:1px solid rgba(245,185,66,0.4); color:var(--texto-2); font-size:0.85rem; line-height:1.6; }
+    .aviso-escopo > svg { color:#f5c469; flex-shrink:0; margin-top:0.2rem; }
+    .sem-acao { font-size:0.75rem; color:var(--cinza); font-style:italic; }
+    .est-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:1rem; }
+    .est-grid .card { margin-bottom:0; }
+    .est-barras { display:flex; flex-direction:column; gap:0.55rem; }
+    .est-barra-linha { display:grid; grid-template-columns:minmax(0, 1.4fr) 2fr 4ch; gap:0.7rem; align-items:center; font-size:0.82rem; }
+    .est-rotulo { color:var(--texto-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .est-trilho { height:10px; border-radius:99px; background:color-mix(in srgb, var(--texto) 8%, transparent); overflow:hidden; }
+    .est-trilho > span { display:block; height:100%; border-radius:99px; background:var(--amarelo); }
+    .est-valor { font-weight:700; color:var(--texto); min-width:2ch; text-align:right; }
+    .est-colunas { display:flex; align-items:flex-end; gap:0.6rem; height:170px; padding-top:1.4rem; }
+    .est-coluna { flex:1; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:0.3rem; }
+    .est-coluna-barra { width:100%; max-width:42px; border-radius:8px 8px 3px 3px; background:var(--amarelo); }
+    .est-coluna-valor { font-size:0.78rem; font-weight:700; color:var(--texto); }
+    .est-coluna-rotulo { font-size:0.72rem; color:var(--cinza); }
+    .est-pilha { display:flex; height:22px; border-radius:99px; overflow:hidden; gap:2px; margin:0.4rem 0 1rem; }
+    .est-pilha span, .est-legenda li span { display:block; }
+    .est-pilha .pend, .est-legenda .pend { background:#f5b942; }
+    .est-pilha .ok, .est-legenda .ok { background:#44d883; }
+    .est-pilha .rec, .est-legenda .rec { background:#ff7b7b; }
+    .est-legenda { list-style:none; display:flex; flex-wrap:wrap; gap:0.5rem 1.2rem; font-size:0.84rem; color:var(--texto-2); }
+    .est-legenda li { display:flex; align-items:center; gap:0.4rem; }
+    .est-legenda li span { width:12px; height:12px; border-radius:4px; }
+    .est-legenda strong { color:var(--texto); }
+    .est-nota { color:var(--cinza); font-size:0.78rem; margin-top:0.9rem; line-height:1.5; }
+    .est-nota strong { color:var(--texto-2); }
+    .est-vazio { color:var(--cinza); font-size:0.85rem; padding:0.5rem 0; }
+    .hist-filtros { display:flex; gap:0.6rem; flex-wrap:wrap; margin-bottom:1rem; }
+    .hist-lista { list-style:none; display:flex; flex-direction:column; }
+    .hist-item { display:flex; gap:0.8rem; padding:0.75rem 0.2rem; border-bottom:1px solid var(--borda); }
+    .hist-ic { width:32px; height:32px; flex-shrink:0; border-radius:9px; display:grid; place-items:center; background:var(--amarelo-claro); color:#f5c469; }
+    .hist-corpo { min-width:0; font-size:0.86rem; color:var(--texto-2); line-height:1.5; }
+    .hist-corpo strong { color:var(--texto); }
+    .hist-alvo { color:var(--texto); overflow-wrap:anywhere; }
+    .hist-corpo small { color:var(--cinza); font-size:0.75rem; }
+    .hist-paginas { display:flex; align-items:center; justify-content:space-between; gap:0.6rem; flex-wrap:wrap; margin-top:1rem; font-size:0.8rem; color:var(--cinza); }
+    .hist-paginas button:disabled { opacity:0.4; cursor:default; }
+    @media (max-width: 480px) { .est-grid { grid-template-columns:1fr; } .est-barra-linha { grid-template-columns:1fr auto; } .est-barra-linha .est-trilho { grid-column:1 / -1; grid-row:2; } }
+
+    /* ── ESQUELETOS DE CARREGAMENTO ── */
+    .sk-wrap { display: flex; flex-direction: column; gap: 0.6rem; }
+    .skel {
+      display: block; border-radius: 8px;
+      background: linear-gradient(90deg,
+        color-mix(in srgb, var(--texto) 8%, transparent) 25%,
+        color-mix(in srgb, var(--texto) 15%, transparent) 40%,
+        color-mix(in srgb, var(--texto) 8%, transparent) 60%);
+      background-size: 300% 100%;
+      animation: skel-brilho 1.3s ease-in-out infinite;
+    }
+    @keyframes skel-brilho { from { background-position: 100% 0; } to { background-position: 0 0; } }
+    .sk-linha-tab {
+      display: grid; grid-template-columns: 2.2fr 1.6fr 1fr 0.8fr; gap: 1rem; align-items: center;
+      padding: 0.85rem 0.4rem; border-bottom: 1px solid var(--borda);
+    }
+    .sk-linha-tab .skel { height: 0.8rem; }
+    .sk-linha-tab .skel:first-child { height: 0.95rem; }
+    .stat-card.sk-stat { display: flex; flex-direction: column; gap: 0.6rem; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+    @media (max-width: 768px) {
+      .sk-linha-tab { grid-template-columns: 1fr 1fr; border: 1px solid var(--borda); border-radius: 12px; padding: 0.9rem; background: var(--bg-2); }
+    }
+    @media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
+
     /* ── LOADING ── */
     .loading {
       display: flex;
@@ -565,7 +633,9 @@
       .menu-toggle { display: inline-flex; }
       .topbar-title { font-size: 1rem; }
       .topbar { padding: 0.85rem 1rem; }
-      .topbar-badge { font-size: 0.64rem; padding: 0.18rem 0.5rem; }
+      .topbar-badge { font-size: 0.64rem; padding: 0.18rem 0.5rem; flex-shrink: 1; min-width: 0; max-width: 48%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .topbar-badge .badge-cargo { display: none; }
+      .topbar-title { flex-shrink: 0; }
 
       .card { padding: 1.1rem; }
       .card-header { flex-direction: column; align-items: stretch; }
@@ -621,9 +691,19 @@
         padding-top: 0.1rem;
       }
       .items-table td:first-child { color: var(--texto); }
-      .items-table td.td-acoes { flex-direction: column; align-items: stretch; gap: 0.4rem; }
-      .items-table td.td-acoes::before { padding-top: 0; margin-bottom: 0.1rem; }
-      .items-table td.td-acoes button { width: 100%; justify-content: center; margin-right: 0; }
+      .items-table td.td-acoes { flex-wrap: wrap; justify-content: flex-end; gap: 0.4rem; padding-top: 0.6rem; }
+      .items-table td.td-acoes::before { display: none; }
+      .items-table td.td-acoes button { flex: 1 1 0; min-width: 0; justify-content: center; margin-right: 0; }
+
+      /* Contas: card compacto (nome, e-mail, selos e ações) — 78 contas
+         em cards altos viravam uma página enorme no celular */
+      .tabela-contas tr { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.4rem; padding: 0.75rem 0.85rem; }
+      .tabela-contas td { display: block; border: none; padding: 0; text-align: left; }
+      .tabela-contas td::before { display: none; }
+      .tabela-contas td.c-nome, .tabela-contas td.c-email { flex: 1 1 100%; }
+      .tabela-contas td.c-nome { font-weight: 600; }
+      .tabela-contas td.c-email { margin-bottom: 0.15rem; overflow-wrap: anywhere; }
+      .tabela-contas td.td-acoes { display: flex; flex: 1 1 100%; padding-top: 0.45rem; }
     }
 
     @media (max-width: 480px) {
@@ -672,6 +752,12 @@
     <div class="nav-item" data-section="conquistas">
       <span class="nav-icon"><i data-lucide="trophy"></i></span> Conquistas
     </div>
+    <div class="nav-item" data-section="estatisticas">
+      <span class="nav-icon"><i data-lucide="pie-chart"></i></span> Estatísticas
+    </div>
+    <div class="nav-item" data-section="historico" id="navItemHistorico" style="display:none">
+      <span class="nav-icon"><i data-lucide="history"></i></span> Histórico
+    </div>
     <div class="nav-item" data-section="contas" id="navItemContas" style="display:none">
       <span class="nav-icon"><i data-lucide="users"></i></span> Contas do Painel
     </div>
@@ -700,8 +786,7 @@
 
     <!-- OVERVIEW -->
     <section class="section active" id="section-overview">
-      <div class="stats-row" id="statsRow">
-        <div class="loading"><div class="spinner"></div> Carregando…</div>
+      <div class="stats-row" id="statsRow" data-skel="stats">
       </div>
       <div class="card">
         <div class="card-header">
@@ -713,6 +798,12 @@
           e <strong>Eventos do Calendário</strong>.<br><br>
           Estes dados complementam as informações que vêm diretamente do SUAP, preenchendo lacunas
           ou adicionando registros locais.
+        </p>
+        <p id="avisoEscopo" class="aviso-escopo" hidden>
+          <i data-lucide="user-check"></i>
+          <span>Você está no <strong>painel do professor</strong>: vê e gerencia só os <strong>seus projetos</strong>
+          (cadastrados por você ou com o seu e-mail como coordenador) e as <strong>solicitações</strong> deles.
+          Os eventos você pode cadastrar e editar os seus; conquistas você pode conceder aos alunos.</span>
         </p>
       </div>
     </section>
@@ -730,7 +821,7 @@
           <button class="btn-add" onclick="abrirModal(state.projArea)">+ Novo projeto</button>
         </div>
         <div id="projAdminList">
-          <div class="loading"><div class="spinner"></div> Carregando…</div>
+          <div data-skel="tabela"></div>
         </div>
       </div>
 
@@ -745,7 +836,7 @@
           projetos, e os pedidos aparecem em <strong>Solicitações</strong>.
         </p>
         <div id="projSuapList">
-          <div class="loading"><div class="spinner"></div> Carregando…</div>
+          <div data-skel="tabela"></div>
         </div>
       </div>
     </section>
@@ -758,7 +849,7 @@
           <button class="btn-add" onclick="abrirModal('evento')">+ Novo evento</button>
         </div>
         <div id="eventosList">
-          <div class="loading"><div class="spinner"></div> Carregando…</div>
+          <div data-skel="tabela"></div>
         </div>
       </div>
     </section>
@@ -774,7 +865,7 @@
           confirmar a participação ou recuse a solicitação.
         </p>
         <div id="solicitacoesList">
-          <div class="loading"><div class="spinner"></div> Carregando…</div>
+          <div data-skel="tabela"></div>
         </div>
       </div>
     </section>
@@ -784,7 +875,7 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Catálogo de Conquistas</span>
-          <button class="btn-add" onclick="abrirModal('conquista')">+ Nova conquista</button>
+          <button class="btn-add" id="btnNovaConquista" onclick="abrirModal('conquista')" hidden>+ Nova conquista</button>
         </div>
         <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
           Cadastre as conquistas que os alunos podem desbloquear. Cada conquista
@@ -793,8 +884,42 @@
           matrícula — os pontos dele são atualizados na hora.
         </p>
         <div id="conquistasList">
-          <div class="loading"><div class="spinner"></div> Carregando…</div>
+          <div data-skel="tabela"></div>
         </div>
+      </div>
+    </section>
+
+    <!-- ESTATÍSTICAS (todos os servidores) -->
+    <section class="section" id="section-estatisticas">
+      <div id="estatisticasConteudo"><div data-skel="stats"></div></div>
+    </section>
+
+    <!-- HISTÓRICO / AUDITORIA (somente desenvolvedor) -->
+    <section class="section" id="section-historico">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Histórico do painel</span>
+        </div>
+        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
+          Tudo o que foi feito no painel: quem concedeu ou removeu conquistas, decidiu solicitações,
+          criou, editou ou excluiu projetos, eventos e contas — e quando.
+        </p>
+        <div class="hist-filtros">
+          <div class="field" style="flex:1;min-width:200px;margin:0;">
+            <input type="search" id="histBusca" aria-label="Buscar no histórico" placeholder="Buscar por pessoa, aluno, projeto…" oninput="agendarHistorico()" />
+          </div>
+          <div class="field" style="margin:0;">
+            <select id="histAcao" aria-label="Filtrar por tipo de ação" onchange="carregarHistorico(1)">
+              <option value="">Todas as ações</option>
+              <option value="conquista">Conquistas</option>
+              <option value="solicitacao">Solicitações</option>
+              <option value="projeto">Projetos</option>
+              <option value="evento">Eventos</option>
+              <option value="conta">Contas</option>
+            </select>
+          </div>
+        </div>
+        <div id="historicoList"><div data-skel="tabela"></div></div>
       </div>
     </section>
 
@@ -803,15 +928,33 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Contas do Painel Administrativo</span>
-          <button class="btn-add" onclick="abrirModal('conta')">+ Nova conta</button>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <button class="btn-edit" onclick="importarServidores()"><i data-lucide="download"></i> Importar lista IFPR</button>
+            <button class="btn-add" onclick="abrirModal('conta')">+ Nova conta</button>
+          </div>
         </div>
         <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
-          Gerencie quem pode acessar este painel. Contas com cargo <strong>Desenvolvedor(a)</strong>
-          também podem gerenciar outras contas; contas <strong>Professor(a)</strong> têm acesso
-          normal ao restante do painel.
+          Só podem entrar no painel <strong>docentes</strong>, <strong>substitutos</strong> e a
+          <strong>desenvolvedora</strong>. No primeiro acesso, a pessoa digita o e-mail na tela de login e
+          recebe automaticamente um link <em>"Cadastrar sua senha"</em> (enviado por noreplyifplenus@gmail.com).
+          Você também pode enviar o convite manualmente pelo botão <strong>Convite</strong>.
         </p>
+        <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;">
+          <div class="field" style="flex:1;min-width:200px;margin:0;">
+            <input type="search" id="buscaContas" aria-label="Buscar contas" placeholder="Buscar por nome, e-mail ou área…" oninput="filtrarContas()" />
+          </div>
+          <div class="field" style="margin:0;">
+            <select id="filtroCargoContas" aria-label="Filtrar por cargo" onchange="filtrarContas()">
+              <option value="">Todos os cargos</option>
+              <option value="professor">Docentes</option>
+              <option value="substituto">Substitutos</option>
+              <option value="desenvolvedor">Desenvolvedor(a)</option>
+            </select>
+          </div>
+          <span id="resumoContas" style="color:var(--cinza);font-size:0.8rem;"></span>
+        </div>
         <div id="contasList">
-          <div class="loading"><div class="spinner"></div> Carregando…</div>
+          <div data-skel="tabela"></div>
         </div>
       </div>
     </section>
@@ -837,36 +980,30 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<!-- TROCA OBRIGATÓRIA DE SENHA (primeiro acesso / após redefinição) -->
-<div class="modal-overlay" id="trocaSenhaOverlay">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title"><i data-lucide="key-round"></i> Defina sua senha</span>
-    </div>
-    <div style="padding:0 0.2rem 0.4rem;">
-      <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1.1rem;">
-        Você está usando uma senha temporária. Por segurança, escolha uma senha
-        só sua antes de continuar.
-      </p>
-      <div class="form-grid">
-        <div class="field full">
-          <label>Nova senha *</label>
-          <input type="password" id="trocaSenhaNova" placeholder="Mínimo 6 caracteres" minlength="6" />
-        </div>
-        <div class="field full">
-          <label>Confirmar nova senha *</label>
-          <input type="password" id="trocaSenhaConfirmar" placeholder="Repita a senha" minlength="6" />
-        </div>
-      </div>
-      <div class="erro-msg" id="trocaSenhaErro" style="display:none;color:#ff8585;font-size:0.83rem;margin-top:0.7rem;"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-primary" id="btnTrocaSenha" onclick="confirmarTrocaSenhaObrigatoria()" style="width:100%;">Definir senha e entrar</button>
-    </div>
-  </div>
-</div>
-
 <script>
+// Só aceita links http(s) — evita "javascript:" vindo de dados cadastrados
+const urlSegura = (u) => {
+  if (!u) return null;
+  try { return ['http:', 'https:'].includes(new URL(u, location.origin).protocol) ? u : null; }
+  catch (e) { return null; }
+};
+
+// ── Esqueletos de carregamento (no lugar do "Carregando…") ──────
+const esqueletoAdmin = (tipo = 'tabela', qtd = 4) => {
+  const sk = (w) => `<span class="skel" style="width:${w}"></span>`;
+  if (tipo === 'stats') {
+    return Array.from({ length: 4 }, () =>
+      `<div class="stat-card sk-stat">${sk('55%')}<span class="skel" style="width:35%;height:1.6rem"></span></div>`).join('');
+  }
+  const larg = [['80%', '70%', '60%', '50%'], ['65%', '85%', '45%', '70%'], ['90%', '60%', '70%', '40%']];
+  return `<div class="sk-wrap" role="status" aria-busy="true"><span class="sr-only">Carregando…</span>${
+    Array.from({ length: qtd }, (_, i) => `<div class="sk-linha-tab">${larg[i % 3].map(sk).join('')}</div>`).join('')
+  }</div>`;
+};
+document.querySelectorAll('[data-skel]').forEach(el => {
+  el.innerHTML = esqueletoAdmin(el.dataset.skel);
+});
+
 // ─────────────────────────────────────────────────────
 // Estado
 // ─────────────────────────────────────────────────────
@@ -888,7 +1025,7 @@ const esc = s => String(s ?? '')
 // ─────────────────────────────────────────────────────
 const api = async (url, opts = {}) => {
   const res = await fetch(url, { credentials: 'include', ...opts });
-  if (res.status === 401) { window.location.href = '/admin/login'; return null; }
+  if (res.status === 401) { window.location.href = '/login?admin'; return null; }
   return res;
 };
 
@@ -940,6 +1077,8 @@ document.querySelectorAll('.nav-item').forEach(item => {
       eventos:  'Eventos do Calendário',
       solicitacoes: 'Solicitações de Participação',
       conquistas: 'Conquistas',
+      estatisticas: 'Estatísticas',
+      historico: 'Histórico',
       contas: 'Contas do Painel',
     };
     document.getElementById('topbarTitle').textContent = titles[sec] || '';
@@ -958,15 +1097,21 @@ document.querySelectorAll('.nav-item').forEach(item => {
     if (me) {
       state.cargoAtual = me.cargo;
       state.contaId = me.id;
-      const cargoLabel = me.cargo === 'desenvolvedor' ? 'Desenvolvedor(a)' : 'Professor(a)';
+      const cargoLabel = ({ desenvolvedor: 'Desenvolvedor(a)', substituto: 'Substituto(a)' })[me.cargo] || 'Docente';
+      const primeiroNome = String(me.nome || '').trim().split(/\s+/)[0] || 'Admin';
       document.getElementById('topbarAdminBadge').innerHTML =
-        `<i data-lucide="lock"></i> ${esc(me.nome)} · ${cargoLabel}`;
-      if (me.cargo === 'desenvolvedor') {
+        `<i data-lucide="lock"></i> <span>${esc(primeiroNome)}</span><span class="badge-cargo"> · ${cargoLabel}</span>`;
+      document.getElementById('topbarAdminBadge').title = `${me.nome} · ${cargoLabel}`;
+      const dev = me.cargo === 'desenvolvedor';
+      if (dev) {
         document.getElementById('navItemContas').style.display = 'flex';
+        document.getElementById('navItemHistorico').style.display = 'flex';
+        document.getElementById('btnNovaConquista').hidden = false;
+      } else {
+        document.getElementById('avisoEscopo').hidden = false;
       }
-      if (me.precisaTrocarSenha) {
-        document.getElementById('trocaSenhaOverlay').classList.add('open');
-      }
+      // Se a lista de conquistas já foi desenhada antes do cargo chegar, redesenha
+      if (state.secaoAtiva === 'conquistas') carregarConquistas();
       if (window.lucide) lucide.createIcons();
     }
   } catch (e) { /* segue com o rótulo padrão do topbar */ }
@@ -976,11 +1121,11 @@ document.querySelectorAll('.nav-item').forEach(item => {
     if (!stats) return;
     document.getElementById('statsRow').innerHTML = `
       <div class="stat-card">
-        <div class="stat-label">Proj. Pesquisa</div>
+        <div class="stat-label">${stats.escopo === 'meus' ? 'Meus proj. de pesquisa' : 'Proj. Pesquisa'}</div>
         <div class="stat-value">${stats.pesquisa ?? 0}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Proj. Extensão</div>
+        <div class="stat-label">${stats.escopo === 'meus' ? 'Meus proj. de extensão' : 'Proj. Extensão'}</div>
         <div class="stat-value">${stats.extensao ?? 0}</div>
       </div>
       <div class="stat-card">
@@ -988,7 +1133,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
         <div class="stat-value">${stats.eventos ?? 0}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Solicitações pendentes</div>
+        <div class="stat-label">${stats.escopo === 'meus' ? 'Pendentes nos meus projetos' : 'Solicitações pendentes'}</div>
         <div class="stat-value">${stats.solicitacoes ?? 0}</div>
       </div>`;
   } catch(e) {
@@ -1003,11 +1148,13 @@ const carregarLista = async (tipo) => {
   if (tipo === 'conquistas') return carregarConquistas();
   if (tipo === 'projetos')   return carregarProjetosAdminSec();
   if (tipo === 'contas')     return carregarContas();
+  if (tipo === 'estatisticas') return carregarEstatisticas();
+  if (tipo === 'historico')  return carregarHistorico(1);
 
   const elMap = { eventos: 'eventosList', solicitacoes: 'solicitacoesList' };
   const el = document.getElementById(elMap[tipo]);
   if (!el) return;
-  el.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+  el.innerHTML = esqueletoAdmin();
 
   try {
     const endpoint =
@@ -1054,8 +1201,8 @@ const carregarProjetosAdminSec = async () => {
   const adminEl = document.getElementById('projAdminList');
   const suapEl  = document.getElementById('projSuapList');
   if (!adminEl || !suapEl) return;
-  adminEl.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
-  suapEl.innerHTML  = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+  adminEl.innerHTML = esqueletoAdmin();
+  suapEl.innerHTML  = esqueletoAdmin();
 
   // 1) Projetos cadastrados pela administração (CRUD)
   try {
@@ -1090,11 +1237,11 @@ const renderTabelaProjetosSuap = (dados) => {
     : '<span class="badge-tipo badge-extensao">Extensão</span>';
 
   const rows = dados.map(p => {
-    const titulo = p.link_suap
-      ? `<a href="${esc(p.link_suap)}" target="_blank" rel="noopener">${esc(p.titulo || '—')}</a>`
+    const titulo = urlSegura(p.link_suap)
+      ? `<a href="${esc(urlSegura(p.link_suap))}" target="_blank" rel="noopener">${esc(p.titulo || '—')}</a>`
       : esc(p.titulo || '—');
-    const link = p.link_suap
-      ? `<a href="${esc(p.link_suap)}" target="_blank" rel="noopener">Abrir</a>`
+    const link = urlSegura(p.link_suap)
+      ? `<a href="${esc(urlSegura(p.link_suap))}" target="_blank" rel="noopener">Abrir</a>`
       : '—';
 
     return `
@@ -1124,11 +1271,11 @@ const renderTabelaProjetos = (dados, tipo) => {
     : '<span class="badge-tipo badge-extensao">Extensão</span>';
 
   const rows = dados.map(p => {
-    const titulo = p.link_suap
-      ? `<a href="${esc(p.link_suap)}" target="_blank" rel="noopener">${esc(p.titulo)}</a>`
+    const titulo = urlSegura(p.link_suap)
+      ? `<a href="${esc(urlSegura(p.link_suap))}" target="_blank" rel="noopener">${esc(p.titulo)}</a>`
       : esc(p.titulo);
-    const link = p.link_suap
-      ? `<a href="${esc(p.link_suap)}" target="_blank" rel="noopener">Abrir</a>`
+    const link = urlSegura(p.link_suap)
+      ? `<a href="${esc(urlSegura(p.link_suap))}" target="_blank" rel="noopener">Abrir</a>`
       : '—';
 
     return `
@@ -1140,8 +1287,9 @@ const renderTabelaProjetos = (dados, tipo) => {
       <td data-label="Situação" style="font-size:0.8rem">${esc(p.situacao || '—')}</td>
       <td data-label="Link" style="font-size:0.8rem">${link}</td>
       <td data-label="Ações" class="td-acoes">
+        ${p.podeEditar === false ? '<span class="sem-acao">Somente leitura</span>' : `
         <button class="btn-edit" onclick="editarProjeto('${tipo}', '${p._id}')"><i data-lucide="pencil"></i> Editar</button>
-        <button class="btn-del" onclick="deletarItem('${tipo}', '${p._id}')"><i data-lucide="trash-2"></i> Excluir</button>
+        <button class="btn-del" onclick="deletarItem('${tipo}', '${p._id}')"><i data-lucide="trash-2"></i> Excluir</button>`}
       </td>
     </tr>`;
   }).join('');
@@ -1162,12 +1310,13 @@ const renderTabelaEventos = (dados) => {
   const rows = dados.map(ev => `
     <tr>
       <td data-label="Nome">${esc(ev.nome)}</td>
-      <td data-label="Data Início" style="font-size:0.8rem">${esc(ev.data_inicio || '—')}</td>
-      <td data-label="Data Fim" style="font-size:0.8rem">${esc(ev.data_fim || '—')}</td>
+      <td data-label="Data Início" style="font-size:0.8rem">${esc(dataBR(ev.data_inicio))}</td>
+      <td data-label="Data Fim" style="font-size:0.8rem">${esc(dataBR(ev.data_fim))}</td>
       <td data-label="Local" style="font-size:0.8rem;color:var(--cinza)">${esc(ev.local || '—')}</td>
       <td data-label="Ações" class="td-acoes">
+        ${ev.podeEditar === false ? '<span class="sem-acao" title="Só quem cadastrou (ou a desenvolvedora) pode editar">Cadastrado por outra pessoa</span>' : `
         <button class="btn-edit" onclick="editarEvento('${ev._id}')"><i data-lucide="pencil"></i> Editar</button>
-        <button class="btn-del" onclick="deletarItem('evento', '${ev._id}')"><i data-lucide="trash-2"></i> Excluir</button>
+        <button class="btn-del" onclick="deletarItem('evento', '${ev._id}')"><i data-lucide="trash-2"></i> Excluir</button>`}
       </td>
     </tr>`).join('');
 
@@ -1181,6 +1330,149 @@ const renderTabelaEventos = (dados) => {
       <tbody>${rows}</tbody>
     </table>
   </div>`;
+};
+
+
+// "2026-08-17" → "17/08/2026"
+const dataBR = (v) => {
+  const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : (v || '—');
+};
+
+// ─────────────────────────────────────────────────────
+// Estatísticas (coordenação)
+// ─────────────────────────────────────────────────────
+const barras = (itens, rotulo, valor, sufixo = '') => {
+  const max = Math.max(1, ...itens.map(valor));
+  return `<div class="est-barras">${itens.map(i => `
+    <div class="est-barra-linha">
+      <span class="est-rotulo" title="${esc(rotulo(i))}">${esc(rotulo(i))}</span>
+      <span class="est-trilho"><span style="width:${Math.max(2, Math.round(valor(i) / max * 100))}%"></span></span>
+      <span class="est-valor">${valor(i)}${sufixo}</span>
+    </div>`).join('')}</div>`;
+};
+
+const carregarEstatisticas = async () => {
+  const el = document.getElementById('estatisticasConteudo');
+  el.innerHTML = esqueletoAdmin('stats') + esqueletoAdmin('tabela', 4);
+  try {
+    const d = await apiJSON('/api/admin/estatisticas');
+    if (!d) return;
+    const t = d.totais || {};
+    const sol = t.solicitacoes || {};
+    const totalSol = (sol.pendente || 0) + (sol.aceito || 0) + (sol.recusado || 0);
+    const vazio = (msg) => `<p class="est-vazio">${msg}</p>`;
+    const maxEvo = Math.max(1, ...d.evolucao.map(m => m.conquistas));
+
+    el.innerHTML = `
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label">Alunos no IFPlenus</div><div class="stat-value">${t.alunos ?? 0}</div></div>
+        <div class="stat-card"><div class="stat-label">Ativos (7 dias)</div><div class="stat-value">${t.ativos7 ?? 0}</div></div>
+        <div class="stat-card"><div class="stat-label">Ativos (30 dias)</div><div class="stat-value">${t.ativos30 ?? 0}</div></div>
+        <div class="stat-card"><div class="stat-label">Conquistas concedidas</div><div class="stat-value">${t.concessoes ?? 0}</div></div>
+      </div>
+
+      <div class="est-grid">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Conquistas por mês</span></div>
+          <div class="est-colunas" role="img" aria-label="Conquistas concedidas nos últimos 6 meses: ${d.evolucao.map(m => `${m.rotulo} ${m.conquistas}`).join(', ')}">
+            ${d.evolucao.map(m => `
+              <div class="est-coluna">
+                <span class="est-coluna-valor">${m.conquistas}</span>
+                <span class="est-coluna-barra" style="height:${Math.max(3, Math.round(m.conquistas / maxEvo * 100))}%"></span>
+                <span class="est-coluna-rotulo">${esc(m.rotulo)}</span>
+              </div>`).join('')}
+          </div>
+          <p class="est-nota">Pontos distribuídos no período: <strong>${d.evolucao.reduce((a, m) => a + m.pontos, 0)}</strong></p>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Solicitações de participação</span></div>
+          ${totalSol ? `
+            <div class="est-pilha" role="img" aria-label="Pendentes ${sol.pendente || 0}, aceitas ${sol.aceito || 0}, recusadas ${sol.recusado || 0}">
+              <span class="pend" style="flex:${sol.pendente || 0}"></span>
+              <span class="ok" style="flex:${sol.aceito || 0}"></span>
+              <span class="rec" style="flex:${sol.recusado || 0}"></span>
+            </div>
+            <ul class="est-legenda">
+              <li><span class="pend"></span> Pendentes <strong>${sol.pendente || 0}</strong></li>
+              <li><span class="ok"></span> Aceitas <strong>${sol.aceito || 0}</strong></li>
+              <li><span class="rec"></span> Recusadas <strong>${sol.recusado || 0}</strong></li>
+            </ul>` : vazio('Nenhuma solicitação ainda.')}
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Alunos por curso</span></div>
+          ${d.porCurso.length ? barras(d.porCurso, c => c.curso, c => c.alunos) : vazio('Nenhum aluno ainda.')}
+          ${d.porCurso.length ? `<p class="est-nota">Média de pontos: ${d.porCurso.slice(0, 4).map(c => `${esc(c.curso.split(' ').slice(0, 4).join(' '))} <strong>${c.pontosMedios}</strong>`).join(' · ')}</p>` : ''}
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Projetos com mais procura</span></div>
+          ${d.topProjetos.length ? barras(d.topProjetos, p => p.titulo, p => p.total) : vazio('Nenhum projeto recebeu solicitação ainda.')}
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Conquistas mais desbloqueadas</span></div>
+          ${d.topConquistas.length ? barras(d.topConquistas, c => c.nome, c => c.total) : vazio('Nenhuma conquista concedida ainda.')}
+        </div>
+      </div>`;
+  } catch (e) {
+    el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+  }
+};
+
+// ─────────────────────────────────────────────────────
+// Histórico (auditoria) — só desenvolvedor
+// ─────────────────────────────────────────────────────
+const ACOES_LABEL = {
+  'conquista.criar': ['Criou a conquista', 'plus'], 'conquista.editar': ['Editou a conquista', 'pencil'],
+  'conquista.excluir': ['Excluiu a conquista', 'trash-2'], 'conquista.conceder': ['Concedeu', 'medal'],
+  'conquista.revogar': ['Removeu a conquista', 'undo-2'],
+  'solicitacao.aceito': ['Aceitou a participação', 'check'], 'solicitacao.recusado': ['Recusou a participação', 'x'],
+  'solicitacao.pendente': ['Voltou para pendente', 'rotate-ccw'],
+  'projeto.criar': ['Criou o projeto', 'plus'], 'projeto.editar': ['Editou o projeto', 'pencil'], 'projeto.excluir': ['Excluiu o projeto', 'trash-2'],
+  'evento.criar': ['Criou o evento', 'plus'], 'evento.editar': ['Editou o evento', 'pencil'], 'evento.excluir': ['Excluiu o evento', 'trash-2'],
+  'conta.criar': ['Criou a conta', 'user-plus'], 'conta.editar': ['Editou a conta', 'user-cog'], 'conta.excluir': ['Excluiu a conta', 'user-x'],
+  'conta.convite': ['Enviou convite para', 'mail'], 'conta.importar': ['Importou a', 'download'],
+};
+let _histTimer = null;
+const agendarHistorico = () => { clearTimeout(_histTimer); _histTimer = setTimeout(() => carregarHistorico(1), 300); };
+
+const carregarHistorico = async (pagina = 1) => {
+  const el = document.getElementById('historicoList');
+  el.innerHTML = esqueletoAdmin('tabela', 5);
+  try {
+    const q = encodeURIComponent(document.getElementById('histBusca')?.value || '');
+    const acao = encodeURIComponent(document.getElementById('histAcao')?.value || '');
+    const d = await apiJSON(`/api/admin/historico?pagina=${pagina}&q=${q}&acao=${acao}`);
+    if (!d) return;
+    if (!d.itens.length) {
+      el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="history"></i></div><p>Nada registrado${q || acao ? ' com esses filtros' : ' ainda'}.</p></div>`;
+      return;
+    }
+    const quando = (iso) => new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    el.innerHTML = `
+      <ol class="hist-lista">${d.itens.map(i => {
+        const [rotulo, icone] = ACOES_LABEL[i.acao] || [i.acao, 'dot'];
+        return `
+        <li class="hist-item">
+          <span class="hist-ic"><i data-lucide="${icone}"></i></span>
+          <div class="hist-corpo">
+            <div><strong>${esc(i.adminNome || i.adminEmail || 'Alguém')}</strong> ${esc(rotulo)} <span class="hist-alvo">${esc(i.alvo || '')}</span></div>
+            <small>${esc(quando(i.createdAt))}${i.adminEmail ? ` · ${esc(i.adminEmail)}` : ''}</small>
+          </div>
+        </li>`; }).join('')}
+      </ol>
+      ${d.paginas > 1 ? `
+        <div class="hist-paginas">
+          <button class="btn-edit" ${d.pagina <= 1 ? 'disabled' : ''} onclick="carregarHistorico(${d.pagina - 1})"><i data-lucide="chevron-left"></i> Anteriores</button>
+          <span>Página ${d.pagina} de ${d.paginas} · ${d.total} registro(s)</span>
+          <button class="btn-edit" ${d.pagina >= d.paginas ? 'disabled' : ''} onclick="carregarHistorico(${d.pagina + 1})">Próximos <i data-lucide="chevron-right"></i></button>
+        </div>` : `<p class="est-nota">${d.total} registro(s)</p>`}`;
+  } catch (e) {
+    el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+  }
 };
 
 // ─────────────────────────────────────────────────────
@@ -1210,7 +1502,7 @@ const renderTabelaSolicitacoes = (dados) => {
       <td data-label="Status">${badge(s.status)}</td>
       <td data-label="Ações" class="td-acoes">
         ${s.status !== 'aceito'   ? `<button class="btn-edit" onclick="decidirSolicitacao('${s._id}','aceito')"><i data-lucide="check"></i> Aceitar</button>` : ''}
-        ${s.status !== 'recusado' ? `<button class="btn-del" onclick="decidirSolicitacao('${s._id}','recusado')"><i data-lucide="x"></i> Recusar</button>` : ''}
+        ${s.status !== 'recusado' ? `<button class="btn-del" onclick="decidirSolicitacao('${s._id}','recusado', ${s.status === 'aceito'})"><i data-lucide="x"></i> Recusar</button>` : ''}
       </td>
     </tr>`).join('');
 
@@ -1224,7 +1516,10 @@ const renderTabelaSolicitacoes = (dados) => {
   </div>`;
 };
 
-const decidirSolicitacao = async (id, status) => {
+const decidirSolicitacao = async (id, status, eraAceita = false) => {
+  // Recusar uma participação JÁ aceita pode tirar conquistas (e pontos) do aluno
+  if (eraAceita && status === 'recusado' &&
+      !confirm('Esta participação já foi aceita. Recusar agora pode remover conquistas e pontos que o aluno ganhou por ela. Continuar?')) return;
   try {
     await apiJSON(`/api/admin/solicitacoes/${id}`, {
       method: 'PUT',
@@ -1338,7 +1633,6 @@ const abrirModal = (tipo, dados = {}) => {
     conquista: dados._id ? 'Editar conquista'          : 'Nova conquista',
     conceder: 'Conceder conquista a um aluno',
     conta: dados._id ? 'Editar conta' : 'Nova conta',
-    contaSenha: 'Redefinir senha',
   };
   document.getElementById('modalTitle').textContent = titulos[tipo] || 'Novo item';
 
@@ -1347,7 +1641,6 @@ const abrirModal = (tipo, dados = {}) => {
   else if (tipo === 'conquista')  corpo = formsConquista(dados);
   else if (tipo === 'conceder')   corpo = formsConceder(dados);
   else if (tipo === 'conta')      corpo = formsConta(dados);
-  else if (tipo === 'contaSenha') corpo = formsContaSenha(dados);
   else                            corpo = formsProjeto(dados);
 
   document.getElementById('modalBody').innerHTML = corpo;
@@ -1404,54 +1697,41 @@ const salvarItem = async () => {
     }
 
     // ── Contas do painel ──
-    if (tipo === 'contaSenha') {
-      const resp = await apiJSON(`/api/admin/contas/${state.editandoId}/senha`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      await carregarContas();
-      const conta = _contasCache.find(c => c._id === state.editandoId);
-      mostrarCredenciaisGeradas(conta?.nome || 'a conta', conta?.email || '', resp.senhaTemporaria);
-      return;
-    }
-
     if (tipo === 'conta') {
       const isEditConta = !!state.editandoId;
-      const cargo = document.getElementById('f_cargo_conta').value;
+      const bodyConta = {
+        nome: document.getElementById('f_nome_conta').value.trim(),
+        area: document.getElementById('f_area_conta').value.trim(),
+        cargo: document.getElementById('f_cargo_conta').value,
+      };
+      if (!bodyConta.nome) { mostrarToast('O nome é obrigatório.', 'erro'); return; }
 
       if (isEditConta) {
-        const bodyConta = {
-          nome: document.getElementById('f_nome_conta').value.trim(),
-          cargo,
-          ativo: document.getElementById('f_ativo_conta').value === 'true',
-        };
-        if (!bodyConta.nome) { mostrarToast('O nome é obrigatório.', 'erro'); return; }
+        bodyConta.ativo = document.getElementById('f_ativo_conta').value === 'true';
         await apiJSON(`/api/admin/contas/${state.editandoId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(bodyConta),
         });
         mostrarToast('Conta atualizada!', 'sucesso');
-        fecharModal();
-        await carregarContas();
       } else {
-        const bodyConta = {
-          nome: document.getElementById('f_nome_conta').value.trim(),
-          email: document.getElementById('f_email_conta').value.trim(),
-          cargo,
-        };
-        if (!bodyConta.nome || !bodyConta.email) {
-          mostrarToast('Preencha nome e e-mail.', 'erro'); return;
-        }
+        bodyConta.email = document.getElementById('f_email_conta').value.trim();
+        bodyConta.enviarConvite = document.getElementById('f_convite_conta').checked;
+        if (!bodyConta.email) { mostrarToast('Informe o e-mail.', 'erro'); return; }
         const resp = await apiJSON('/api/admin/contas', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(bodyConta),
         });
-        await carregarContas();
-        mostrarCredenciaisGeradas(bodyConta.nome, bodyConta.email, resp.senhaTemporaria);
+        mostrarToast(
+          bodyConta.enviarConvite
+            ? (resp?.conviteEnviado ? 'Conta criada e convite enviado por e-mail!' : 'Conta criada, mas o e-mail falhou. Tente pelo botão Convite.')
+            : 'Conta criada! A pessoa recebe o link ao digitar o e-mail no login.',
+          resp?.conviteEnviado === false && bodyConta.enviarConvite ? 'erro' : 'sucesso'
+        );
       }
+      fecharModal();
+      await carregarContas();
       return;
     }
 
@@ -1508,6 +1788,8 @@ const salvarItem = async () => {
         link_suap:    document.getElementById('f_link').value.trim() || null,
       };
       if (!body.nome || !body.data_inicio) { mostrarToast('Preencha os campos obrigatórios.', 'erro'); return; }
+      if (body.data_fim && body.data_fim < body.data_inicio) { mostrarToast('A data de fim não pode ser antes da data de início.', 'erro'); return; }
+      if (body.link_suap && !urlSegura(body.link_suap)) { mostrarToast('O link precisa começar com http:// ou https://', 'erro'); return; }
     } else {
       body = {
         titulo:             document.getElementById('f_titulo').value.trim(),
@@ -1522,6 +1804,8 @@ const salvarItem = async () => {
         tipo,
       };
       if (!body.titulo) { mostrarToast('O título é obrigatório.', 'erro'); return; }
+      if (body.dt_inicio && body.dt_final && body.dt_final < body.dt_inicio) { mostrarToast('A data final não pode ser antes da data de início.', 'erro'); return; }
+      if (body.link_suap && !urlSegura(body.link_suap)) { mostrarToast('O link precisa começar com http:// ou https://', 'erro'); return; }
     }
 
     const isEdit = !!state.editandoId;
@@ -1617,11 +1901,11 @@ const deletarItem = async (tipo, id) => {
 const atualizarStats = (stats) => {
   document.getElementById('statsRow').innerHTML = `
     <div class="stat-card">
-      <div class="stat-label">Proj. Pesquisa</div>
+      <div class="stat-label">${stats.escopo === 'meus' ? 'Meus proj. de pesquisa' : 'Proj. Pesquisa'}</div>
       <div class="stat-value">${stats.pesquisa ?? 0}</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Proj. Extensão</div>
+      <div class="stat-label">${stats.escopo === 'meus' ? 'Meus proj. de extensão' : 'Proj. Extensão'}</div>
       <div class="stat-value">${stats.extensao ?? 0}</div>
     </div>
     <div class="stat-card">
@@ -1629,7 +1913,7 @@ const atualizarStats = (stats) => {
       <div class="stat-value">${stats.eventos ?? 0}</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Solicitações pendentes</div>
+      <div class="stat-label">${stats.escopo === 'meus' ? 'Pendentes nos meus projetos' : 'Solicitações pendentes'}</div>
       <div class="stat-value">${stats.solicitacoes ?? 0}</div>
     </div>`;
 };
@@ -1640,7 +1924,10 @@ const atualizarStats = (stats) => {
 let toastTimer;
 const mostrarToast = (msg, tipo = '') => {
   const el = document.getElementById('toast');
-  el.textContent = tipo === 'sucesso' ? '<i data-lucide="check"></i> ' + msg : tipo === 'erro' ? '<i data-lucide="x"></i> ' + msg : msg;
+  // Antes usava textContent com o HTML do ícone: o aviso mostrava o texto
+  // '<i data-lucide="check"></i>' literalmente na frente da mensagem.
+  const icone = tipo === 'sucesso' ? '<i data-lucide="check"></i> ' : tipo === 'erro' ? '<i data-lucide="x"></i> ' : '';
+  el.innerHTML = icone + esc(msg);
   el.className = `toast ${tipo} show`;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
@@ -1655,7 +1942,7 @@ let _conquistasCache = [];
 const carregarConquistas = async () => {
   const el = document.getElementById('conquistasList');
   if (!el) return;
-  el.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+  el.innerHTML = esqueletoAdmin();
   try {
     const dados = await apiJSON('/api/admin/conquistas');
     if (!dados) return;
@@ -1681,7 +1968,7 @@ let _contasCache = [];
 const carregarContas = async () => {
   const el = document.getElementById('contasList');
   if (!el) return;
-  el.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+  el.innerHTML = esqueletoAdmin();
   try {
     const dados = await apiJSON('/api/admin/contas');
     if (!dados) return;
@@ -1690,40 +1977,68 @@ const carregarContas = async () => {
       el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="users"></i></div><p>Nenhuma conta cadastrada ainda.</p></div>`;
       return;
     }
-    el.innerHTML = renderTabelaContas(dados);
+    filtrarContas();
   } catch(e) {
     el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
   }
 };
 
-const cargoLabel = (c) => c === 'desenvolvedor' ? 'Desenvolvedor(a)' : 'Professor(a)';
+const CARGO_INFO = {
+  professor:     { label: 'Docente',          bg: 'rgba(68,216,131,0.16)', cor: '#5fe39a' },
+  substituto:    { label: 'Substituto(a)',    bg: 'rgba(245,185,66,0.16)', cor: '#f5c469' },
+  desenvolvedor: { label: 'Desenvolvedor(a)', bg: 'rgba(96,165,250,0.16)', cor: '#93c5fd' },
+};
+const pill = (txt, bg, cor) =>
+  `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:${bg};color:${cor};white-space:nowrap">${txt}</span>`;
+
+const statusConta = (c) => {
+  if (!c.ativo) return pill('Inativa', 'rgba(139,144,155,0.18)', '#aab');
+  if (c.temSenha) return pill('Senha cadastrada', 'rgba(68,216,131,0.16)', '#5fe39a');
+  if (c.conviteEnviadoEm) return pill('Convite enviado', 'rgba(96,165,250,0.16)', '#93c5fd');
+  return pill('Aguardando 1º acesso', 'rgba(245,185,66,0.16)', '#f5c469');
+};
+
+const filtrarContas = () => {
+  const el = document.getElementById('contasList');
+  if (!el) return;
+  const termo = (document.getElementById('buscaContas')?.value || '').trim().toLowerCase();
+  const cargo = document.getElementById('filtroCargoContas')?.value || '';
+  const lista = _contasCache.filter(c =>
+    (!cargo || c.cargo === cargo) &&
+    (!termo || `${c.nome} ${c.email} ${c.area || ''}`.toLowerCase().includes(termo))
+  );
+  const comSenha = _contasCache.filter(c => c.temSenha).length;
+  const resumo = document.getElementById('resumoContas');
+  if (resumo) resumo.textContent = `${lista.length} de ${_contasCache.length} contas · ${comSenha} com senha cadastrada`;
+
+  el.innerHTML = lista.length
+    ? renderTabelaContas(lista)
+    : `<div class="empty-table"><div class="icon"><i data-lucide="search"></i></div><p>Nenhuma conta encontrada.</p></div>`;
+};
 
 const renderTabelaContas = (dados) => {
   const rows = dados.map(c => {
-    const cargoBadge = c.cargo === 'desenvolvedor'
-      ? `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(96,165,250,0.16);color:#93c5fd">Desenvolvedor(a)</span>`
-      : `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(68,216,131,0.16);color:#5fe39a">Professor(a)</span>`;
-    const statusBadge = c.ativo
-      ? `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(68,216,131,0.16);color:#5fe39a">Ativa</span>`
-      : `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(139,144,155,0.18);color:#aab">Inativa</span>`;
+    const info = CARGO_INFO[c.cargo] || CARGO_INFO.professor;
     const vocEMesma = c._id === state.contaId;
+    const tituloConvite = c.temSenha ? 'Enviar link para redefinir a senha' : 'Enviar link "Cadastrar sua senha"';
 
     return `
     <tr>
-      <td data-label="Nome">${esc(c.nome)}${vocEMesma ? ' <span style="color:var(--cinza);font-size:0.76rem">(você)</span>' : ''}</td>
-      <td data-label="E-mail" style="font-size:0.8rem;color:var(--cinza)">${esc(c.email)}</td>
-      <td data-label="Cargo">${cargoBadge}</td>
-      <td data-label="Status">${statusBadge}</td>
+      <td data-label="Nome" class="c-nome">${esc(c.nome)}${vocEMesma ? ' <span style="color:var(--cinza);font-size:0.76rem">(você)</span>' : ''}
+        ${c.area ? `<div style="color:var(--cinza);font-size:0.74rem">${esc(c.area)}</div>` : ''}</td>
+      <td data-label="E-mail" class="c-email" style="font-size:0.8rem;color:var(--cinza)">${esc(c.email)}</td>
+      <td data-label="Cargo">${pill(info.label, info.bg, info.cor)}</td>
+      <td data-label="Status">${statusConta(c)}</td>
       <td data-label="Ações" class="td-acoes">
         <button class="btn-edit" onclick="editarConta('${c._id}')"><i data-lucide="pencil"></i> Editar</button>
-        <button class="btn-edit" onclick="abrirRedefinirSenha('${c._id}')"><i data-lucide="key"></i> Senha</button>
+        ${c.ativo ? `<button class="btn-edit" title="${tituloConvite}" onclick="enviarConviteConta('${c._id}')"><i data-lucide="mail"></i> Convite</button>` : ''}
         ${vocEMesma ? '' : `<button class="btn-del" onclick="excluirConta('${c._id}')"><i data-lucide="trash-2"></i> Excluir</button>`}
       </td>
     </tr>`;
   }).join('');
 
   return `<div class="table-wrap">
-    <table class="items-table">
+    <table class="items-table tabela-contas">
       <thead>
         <tr><th>Nome</th><th>E-mail</th><th>Cargo</th><th>Status</th><th>Ações</th></tr>
       </thead>
@@ -1737,9 +2052,28 @@ const editarConta = (id) => {
   if (dados) abrirModal('conta', dados);
 };
 
-const abrirRedefinirSenha = (id) => {
-  const dados = _contasCache.find(c => c._id === id);
-  abrirModal('contaSenha', { _id: id, nome: dados?.nome, email: dados?.email });
+const enviarConviteConta = async (id) => {
+  const c = _contasCache.find(x => x._id === id);
+  const acao = c?.temSenha ? 'um link para redefinir a senha' : 'o link "Cadastrar sua senha"';
+  if (!confirm(`Enviar ${acao} para ${c?.email}?`)) return;
+  try {
+    await apiJSON(`/api/admin/contas/${id}/convite`, { method: 'POST' });
+    mostrarToast('E-mail enviado!', 'sucesso');
+    await carregarContas();
+  } catch (e) {
+    mostrarToast(`Erro: ${e.message}`, 'erro');
+  }
+};
+
+const importarServidores = async () => {
+  if (!confirm('Importar a lista oficial de docentes e substitutos do IFPR? Contas já existentes não são alteradas.')) return;
+  try {
+    const r = await apiJSON('/api/admin/contas/importar', { method: 'POST' });
+    mostrarToast(r.novas ? `${r.novas} contas novas importadas!` : 'Todas as contas da lista já estavam cadastradas.', 'sucesso');
+    await carregarContas();
+  } catch (e) {
+    mostrarToast(`Erro: ${e.message}`, 'erro');
+  }
 };
 
 const excluirConta = async (id) => {
@@ -1760,21 +2094,19 @@ const formsConta = (dados = {}) => `
       <input type="text" id="f_nome_conta" value="${esc(dados.nome || '')}" placeholder="Nome completo" required />
     </div>
     <div class="field full">
-      <label>E-mail *</label>
+      <label>E-mail institucional *</label>
       <input type="email" id="f_email_conta" value="${esc(dados.email || '')}" placeholder="nome@ifpr.edu.br" ${dados._id ? 'disabled' : ''} required />
       ${dados._id ? '<p style="color:var(--cinza);font-size:0.76rem;margin-top:0.3rem;">O e-mail não pode ser alterado depois de criada a conta.</p>' : ''}
     </div>
-    ${!dados._id ? `
     <div class="field full">
-      <p style="color:var(--cinza);font-size:0.8rem;background:rgba(255,255,255,0.04);border:1px solid var(--borda);border-radius:8px;padding:0.6rem 0.8rem;">
-        <i data-lucide="key"></i> Uma senha temporária será gerada automaticamente e mostrada
-        na próxima tela — repasse-a à pessoa. Ela será obrigada a trocá-la no primeiro acesso.
-      </p>
-    </div>` : ''}
+      <label>Área</label>
+      <input type="text" id="f_area_conta" value="${esc(dados.area || '')}" placeholder="Ex.: Informática" />
+    </div>
     <div class="field">
       <label>Cargo</label>
       <select id="f_cargo_conta">
-        <option value="professor" ${dados.cargo !== 'desenvolvedor' ? 'selected' : ''}>Professor(a)</option>
+        <option value="professor" ${!dados.cargo || dados.cargo === 'professor' ? 'selected' : ''}>Docente</option>
+        <option value="substituto" ${dados.cargo === 'substituto' ? 'selected' : ''}>Substituto(a)</option>
         <option value="desenvolvedor" ${dados.cargo === 'desenvolvedor' ? 'selected' : ''}>Desenvolvedor(a)</option>
       </select>
     </div>
@@ -1785,95 +2117,14 @@ const formsConta = (dados = {}) => `
         <option value="true" ${dados.ativo !== false ? 'selected' : ''}>Ativa</option>
         <option value="false" ${dados.ativo === false ? 'selected' : ''}>Inativa</option>
       </select>
-    </div>` : ''}
-  </div>`;
-
-const formsContaSenha = (dados = {}) => `
-  <div class="form-grid">
+    </div>` : `
     <div class="field full">
-      <p style="color:var(--texto-2);font-size:0.85rem;">
-        Uma nova senha temporária aleatória será gerada para <strong>${esc(dados.nome || 'esta conta')}</strong>.
-        A senha atual dela deixa de funcionar assim que você confirmar.
-      </p>
-    </div>
+      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+        <input type="checkbox" id="f_convite_conta" checked style="width:auto;" />
+        Enviar agora o e-mail "Cadastrar sua senha"
+      </label>
+    </div>`}
   </div>`;
-
-// Mostra, dentro do próprio modal, a senha temporária recém-gerada (na
-// criação de conta ou na redefinição), com botão de copiar. Só aparece
-// nesta tela — não fica visível de novo em nenhum outro lugar do painel.
-const mostrarCredenciaisGeradas = (nome, email, senha) => {
-  document.getElementById('modalTitle').textContent = 'Senha temporária gerada';
-  document.getElementById('modalBody').innerHTML = `
-    <div class="form-grid">
-      <div class="field full">
-        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:0.9rem;">
-          Copie e repasse esta senha para <strong>${esc(nome)}</strong>${email ? ` (${esc(email)})` : ''}.
-          Ela só aparece agora — se perder, gere uma nova pelo botão "Senha" na lista de contas.
-          A pessoa será obrigada a trocá-la assim que entrar.
-        </p>
-        <div style="display:flex;gap:0.5rem;align-items:center;">
-          <input type="text" id="senhaGeradaTexto" value="${esc(senha)}" readonly
-            style="flex:1;font-family:monospace;font-size:1rem;padding:0.7rem 0.9rem;border-radius:8px;border:1.5px solid var(--borda);background:var(--input-bg,#1f1f24);color:var(--texto);" />
-          <button type="button" class="btn-edit" onclick="copiarSenhaGerada()"><i data-lucide="copy"></i> Copiar</button>
-        </div>
-      </div>
-    </div>`;
-
-  const footer = document.querySelector('#modalOverlay .modal-footer');
-  if (footer) {
-    footer.innerHTML = `<button class="btn-primary" onclick="fecharModal()">Concluído</button>`;
-  }
-  document.getElementById('modalOverlay').classList.add('open');
-  if (window.lucide) lucide.createIcons();
-};
-
-const copiarSenhaGerada = () => {
-  const input = document.getElementById('senhaGeradaTexto');
-  if (!input) return;
-  input.select();
-  navigator.clipboard?.writeText(input.value)
-    .then(() => mostrarToast('Senha copiada!', 'sucesso'))
-    .catch(() => {});
-};
-
-// ── Troca obrigatória de senha (primeiro acesso) ────────────────
-const confirmarTrocaSenhaObrigatoria = async () => {
-  const nova = document.getElementById('trocaSenhaNova').value;
-  const confirmar = document.getElementById('trocaSenhaConfirmar').value;
-  const erroEl = document.getElementById('trocaSenhaErro');
-  erroEl.style.display = 'none';
-
-  if (!nova || nova.length < 6) {
-    erroEl.textContent = 'A senha precisa ter pelo menos 6 caracteres.';
-    erroEl.style.display = 'block';
-    return;
-  }
-  if (nova !== confirmar) {
-    erroEl.textContent = 'As senhas não coincidem.';
-    erroEl.style.display = 'block';
-    return;
-  }
-
-  const btn = document.getElementById('btnTrocaSenha');
-  btn.disabled = true;
-  btn.textContent = 'Salvando…';
-
-  try {
-    await apiJSON('/api/admin/me/senha', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ novaSenha: nova }),
-    });
-    document.getElementById('trocaSenhaOverlay').classList.remove('open');
-    mostrarToast('Senha definida com sucesso!', 'sucesso');
-  } catch (e) {
-    erroEl.textContent = `Erro: ${e.message}`;
-    erroEl.style.display = 'block';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Definir senha e entrar';
-  }
-};
 
 const renderTabelaConquistas = (dados) => {
   const rows = dados.map(c => {
@@ -1893,8 +2144,9 @@ const renderTabelaConquistas = (dados) => {
         ${c.origem === 'automatica'
           ? ''
           : `<button class="btn-add" onclick="abrirConceder('${c._id}')"><i data-lucide="medal"></i> Conceder</button>`}
+        ${state.cargoAtual === 'desenvolvedor' ? `
         <button class="btn-edit" onclick="editarConquista('${c._id}')"><i data-lucide="pencil"></i> Editar</button>
-        <button class="btn-del" onclick="deletarItem('conquista', '${c._id}')"><i data-lucide="trash-2"></i> Excluir</button>
+        <button class="btn-del" onclick="deletarItem('conquista', '${c._id}')"><i data-lucide="trash-2"></i> Excluir</button>` : ''}
       </td>
     </tr>`;
   }).join('');
@@ -2021,7 +2273,7 @@ const verConquistasDoAluno = async () => {
   const box = document.getElementById('conqDoAluno');
   if (!matricula) { mostrarToast('Digite a matrícula primeiro.', 'erro'); return; }
 
-  box.innerHTML = `<div class="loading"><div class="spinner"></div> Buscando…</div>`;
+  box.innerHTML = esqueletoAdmin('tabela', 2);
   try {
     const lista = await apiJSON(`/api/admin/alunos/${encodeURIComponent(matricula)}/conquistas`);
     if (!lista || !lista.length) {
@@ -2076,12 +2328,13 @@ const abrirConceder = (id) => {
 // Logout
 // ─────────────────────────────────────────────────────
 const fazerLogout = async () => {
-  await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' });
-  window.location.href = '/admin/login';
+  try { await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' }); }
+  catch (e) { /* sai mesmo sem resposta */ }
+  window.location.href = '/login?admin';
 };
 </script>
 <!-- Ícones (Lucide) -->
-<script src="https://unpkg.com/lucide@0.330.0/dist/umd/lucide.min.js"></script>
+<script src="/lucide.min.js"></script>
 <script>
   (function () {
     let agendado = false;

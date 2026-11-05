@@ -39,4 +39,17 @@ const solicitacaoSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Um aluno só pode ter UMA solicitação por projeto. Sem estes índices,
+// dois cliques rápidos em "Fazer parte" criavam pedidos duplicados
+// (o controller já trata o erro 11000 que eles geram).
+solicitacaoSchema.index(
+  { projeto: 1, matricula: 1 },
+  { unique: true, partialFilterExpression: { origem: 'local' } }
+);
+solicitacaoSchema.index(
+  { projetoSuapId: 1, matricula: 1 },
+  { unique: true, partialFilterExpression: { origem: 'suap' } }
+);
+solicitacaoSchema.index({ matricula: 1, status: 1 });
+
 module.exports = mongoose.model('Solicitacao', solicitacaoSchema);

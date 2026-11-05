@@ -4,17 +4,34 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IFPlenus — Portal do Aluno</title>
+  <link rel="icon" type="image/png" href="/images/if-logo.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#1b1b1f" />
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="IFPlenus" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <!-- Aplica o tema salvo ANTES de pintar a tela (evita flash) -->
+  <!-- Aplica tema e acessibilidade ANTES de pintar a tela (evita "piscar").
+       Padrão: tema escuro. Só muda se o próprio aluno escolheu outro neste navegador. -->
   <script>
     (function () {
-      try {
-        var t = localStorage.getItem('ifplenus-tema');
-        document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
-      } catch (e) {
-        document.documentElement.setAttribute('data-theme', 'dark');
+      var d = document.documentElement, p = {};
+      try { p = JSON.parse(localStorage.getItem('ifplenus-acess') || '{}') || {}; } catch (e) {}
+      try { localStorage.removeItem('ifplenus-tema'); } catch (e) {} /* chave antiga (só claro/escuro) */
+      var temas = ['dark', 'light', 'hc-escuro', 'hc-claro', 'daltonico'];
+      d.setAttribute('data-theme', temas.indexOf(p.tema) > -1 ? p.tema : 'dark');
+      if (p.texto === 'grande' || p.texto === 'muito-grande') d.setAttribute('data-texto', p.texto);
+      if (p.fonte) {
+        d.setAttribute('data-fonte', 'legivel');
+        var l = document.createElement('link'); l.id = 'fonteLegivel'; l.rel = 'stylesheet';
+        l.href = 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap';
+        document.head.appendChild(l);
       }
+      if (p.espaco) d.setAttribute('data-espaco', 'amplo');
+      if (p.links) d.setAttribute('data-links', 'destaque');
+      if (p.movimento) d.setAttribute('data-movimento', 'reduzido');
     })();
   </script>
   <link rel="stylesheet" href="/portal.css" />
@@ -44,9 +61,6 @@
   <nav>
     <div class="nav-item active" data-section="dashboard">
       <span class="nav-icon"><i data-lucide="home"></i></span> Dashboard
-    </div>
-    <div class="nav-item" data-section="dados">
-      <span class="nav-icon"><i data-lucide="user"></i></span> Dados &amp; Perfil
     </div>
     <div class="nav-item" data-section="projetos">
       <span class="nav-icon"><i data-lucide="folder"></i></span> Projetos
@@ -82,49 +96,49 @@
       </button>
       <span class="topbar-title" id="topbarTitle">Dashboard</span>
     </div>
-    <div class="topbar-actions" id="topbarActions"></div>
+    <div class="topbar-right">
+      <div class="topbar-actions" id="topbarActions"></div>
+      <button type="button" class="topbar-config" onclick="abrirConfig()" aria-label="Configurações" title="Configurações">
+        <span class="topbar-config-av" id="topbarAvatar">?</span>
+        <i data-lucide="settings"></i>
+      </button>
+    </div>
   </div>
   <div class="content">
 
     <section class="section active" id="section-dashboard">
       <div id="dashboardContent">
-        <div class="loading"><div class="spinner"></div> Carregando painel…</div>
-      </div>
-    </section>
-
-    <section class="section" id="section-dados">
-      <div id="dadosContent">
-        <div class="loading"><div class="spinner"></div> Buscando dados…</div>
+        <div data-skel="dashboard"></div>
       </div>
     </section>
 
     <section class="section" id="section-projetos">
       <div id="projetosContent">
-        <div class="loading"><div class="spinner"></div> Buscando projetos…</div>
+        <div data-skel="lista"></div>
       </div>
     </section>
 
     <section class="section" id="section-calendario">
       <div id="calendarioContent">
-        <div class="loading"><div class="spinner"></div> Carregando calendário…</div>
+        <div data-skel="timeline"></div>
       </div>
     </section>
 
     <section class="section" id="section-conquistas">
       <div id="conquistasContent">
-        <div class="loading"><div class="spinner"></div> Carregando conquistas…</div>
+        <div data-skel="grade"></div>
       </div>
     </section>
 
     <section class="section" id="section-trajetoria">
       <div id="trajetoriaContent">
-        <div class="loading"><div class="spinner"></div> Carregando sua trajetória…</div>
+        <div data-skel="timeline"></div>
       </div>
     </section>
 
     <section class="section" id="section-ranking">
       <div id="rankingContent">
-        <div class="loading"><div class="spinner"></div> Carregando ranking…</div>
+        <div data-skel="ranking"></div>
       </div>
     </section>
 
@@ -139,7 +153,7 @@
         width:96px; height:96px; flex-shrink:0; border-radius:50%;
         display:grid; place-items:center; font-family:'Syne',sans-serif; font-weight:800;
         font-size:2.4rem; color:var(--verde,#44d883);
-        background:rgba(68,216,131,0.08); border:3px solid var(--verde,#44d883);
+        background:color-mix(in srgb, var(--verde) 8%, transparent); border:3px solid var(--verde,#44d883);
       }
       .dash-hero .ola { flex:1; min-width:240px; }
       .dash-hero .ola h2 {
@@ -166,7 +180,7 @@
         background:var(--card,#26262b); border:1px solid var(--borda,rgba(255,255,255,0.1));
         border-radius:14px; padding:1.1rem 1.2rem; cursor:pointer; position:relative; transition:border-color .15s, transform .1s;
       }
-      .dash-mini:hover { border-color:rgba(68,216,131,0.45); transform:translateY(-2px); }
+      .dash-mini:hover { border-color:color-mix(in srgb, var(--verde) 45%, transparent); transform:translateY(-2px); }
       .dash-mini .seta { position:absolute; top:0.9rem; right:1rem; color:var(--cinza,#8b909b); }
       .dash-mini .ic { font-size:1.3rem; }
       .dash-mini .v { font-family:'Syne',sans-serif; font-weight:800; font-size:1.7rem; color:var(--texto,#f4f5f7); margin-top:0.2rem; }
@@ -189,13 +203,13 @@
         width:30px; height:30px; flex-shrink:0; display:grid; place-items:center; border-radius:8px;
         font-weight:700; font-size:0.82rem; background:rgba(255,255,255,0.05); color:var(--texto-2,#c2c6cf);
       }
-      .dash-rank-row .pos.ouro{ background:rgba(245,196,105,0.18); color:#f5c469; }
-      .dash-rank-row .pos.prata{ background:rgba(203,213,225,0.18); color:#cbd5e1; }
-      .dash-rank-row .pos.bronze{ background:rgba(205,127,80,0.18); color:#e0a06a; }
-      .dash-rank-row .av { width:30px; height:30px; flex-shrink:0; border-radius:50%; display:grid; place-items:center; background:rgba(68,216,131,0.1); color:var(--verde,#44d883); font-size:0.9rem; }
+      .dash-rank-row .pos.ouro{ background:color-mix(in srgb, var(--pontos) 18%, transparent); color:var(--pontos); }
+      .dash-rank-row .pos.prata{ background:rgba(203,213,225,0.18); color:var(--prata); }
+      .dash-rank-row .pos.bronze{ background:rgba(205,127,80,0.18); color:var(--bronze); }
+      .dash-rank-row .av { width:30px; height:30px; flex-shrink:0; border-radius:50%; display:grid; place-items:center; background:color-mix(in srgb, var(--verde) 10%, transparent); color:var(--verde,#44d883); font-size:0.9rem; }
       .dash-rank-row .nm { flex:1; font-size:0.9rem; color:var(--texto,#f4f5f7); }
       .dash-rank-row .xp { font-weight:700; color:var(--texto-2,#c2c6cf); font-size:0.85rem; }
-      .dash-rank-row.eu { background:rgba(68,216,131,0.06); border:1px solid rgba(68,216,131,0.5); border-radius:10px; padding:0.5rem 0.7rem; }
+      .dash-rank-row.eu { background:color-mix(in srgb, var(--verde) 6%, transparent); border:1px solid color-mix(in srgb, var(--verde) 50%, transparent); border-radius:10px; padding:0.5rem 0.7rem; }
       .dash-rank-row.eu .nm { color:var(--verde,#44d883); font-weight:600; }
 
       /* Timeline de eventos */
@@ -210,7 +224,7 @@
         background:var(--bg,#1b1b1f); border:2px solid var(--cinza,#8b909b);
       }
       .dash-tl-item.futuro::after { border-color:var(--verde,#44d883); }
-      .dash-tl-item.proximo::after { background:var(--verde,#44d883); border-color:var(--verde,#44d883); box-shadow:0 0 0 4px rgba(68,216,131,0.18); }
+      .dash-tl-item.proximo::after { background:var(--verde,#44d883); border-color:var(--verde,#44d883); box-shadow:0 0 0 4px color-mix(in srgb, var(--verde) 18%, transparent); }
       .dash-tl-data { flex-shrink:0; width:42px; text-align:center; font-family:'Syne',sans-serif; }
       .dash-tl-data .dia { font-weight:800; font-size:1.05rem; color:var(--verde,#44d883); line-height:1; }
       .dash-tl-data .mes { font-size:0.66rem; color:var(--cinza,#8b909b); text-transform:uppercase; }
@@ -218,10 +232,11 @@
       .dash-tl-corpo .n { font-weight:600; color:var(--texto,#f4f5f7); font-size:0.9rem; }
       .dash-tl-corpo .s { color:var(--cinza,#8b909b); font-size:0.78rem; margin-top:0.15rem; }
       .dash-tl-item.proximo .dash-tl-corpo {
-        background:rgba(68,216,131,0.07); border:1px solid rgba(68,216,131,0.45);
+        background:color-mix(in srgb, var(--verde) 7%, transparent); border:1px solid color-mix(in srgb, var(--verde) 45%, transparent);
         border-radius:10px; padding:0.6rem 0.8rem; margin-bottom:0.3rem;
       }
-      .dash-tl-item.passado { opacity:0.72; }
+      /* Passados: só o nó/data ficam neutros (antes usava opacidade, que deixava o texto abaixo do contraste mínimo) */
+      .dash-tl-item.passado .dash-tl-corpo .n { color:var(--texto-2); }
       .dash-tl-item.passado .dash-tl-data .dia { color:var(--cinza,#8b909b); }
       .dash-tl-item.aviso .dash-tl-corpo .n { color:var(--texto-2,#c2c6cf); font-style:italic; font-weight:500; }
 
@@ -250,18 +265,18 @@
         border:1px solid var(--borda,rgba(255,255,255,0.12)); transition:all .15s;
       }
       .rank-toggle button.ativo {
-        background:var(--verde,#44d883); color:#06281a; border-color:var(--verde,#44d883);
+        background:var(--verde,#44d883); color:var(--sobre-verde); border-color:var(--verde,#44d883);
       }
       .rank-eu {
         display:flex; align-items:center; gap:1rem; margin-bottom:1.4rem;
-        background:linear-gradient(90deg, rgba(68,216,131,0.14), rgba(68,216,131,0.04));
-        border:1px solid rgba(68,216,131,0.4); border-radius:14px; padding:1rem 1.3rem;
+        background:linear-gradient(90deg, color-mix(in srgb, var(--verde) 14%, transparent), color-mix(in srgb, var(--verde) 4%, transparent));
+        border:1px solid color-mix(in srgb, var(--verde) 40%, transparent); border-radius:14px; padding:1rem 1.3rem;
       }
       .rank-eu .pos { font-family:'Syne',sans-serif; font-weight:800; font-size:1.8rem; color:var(--verde,#44d883); }
       .rank-eu .meta { flex:1; }
       .rank-eu .meta .n { font-weight:600; color:var(--texto,#f4f5f7); }
       .rank-eu .meta .s { color:var(--cinza,#8b909b); font-size:0.82rem; }
-      .rank-eu .pts { font-family:'Syne',sans-serif; font-weight:700; color:#f5c469; font-size:1.1rem; }
+      .rank-eu .pts { font-family:'Syne',sans-serif; font-weight:700; color:var(--pontos); font-size:1.1rem; }
 
       .rank-lista { display:flex; flex-direction:column; gap:0.5rem; }
       .rank-row {
@@ -269,27 +284,27 @@
         background:var(--card,#26262b); border:1px solid var(--borda,rgba(255,255,255,0.1));
         border-radius:12px; padding:0.7rem 1rem;
       }
-      .rank-row.eu { border-color:rgba(68,216,131,0.55); background:rgba(68,216,131,0.06); }
+      .rank-row.eu { border-color:color-mix(in srgb, var(--verde) 55%, transparent); background:color-mix(in srgb, var(--verde) 6%, transparent); }
       .rank-row .col-pos {
         width:34px; height:34px; flex-shrink:0; display:grid; place-items:center;
         border-radius:9px; font-weight:700; font-size:0.85rem;
         background:rgba(255,255,255,0.05); color:var(--texto-2,#c2c6cf);
       }
-      .rank-row .col-pos.ouro   { background:rgba(245,196,105,0.18); color:#f5c469; }
-      .rank-row .col-pos.prata  { background:rgba(203,213,225,0.18); color:#cbd5e1; }
-      .rank-row .col-pos.bronze { background:rgba(205,127,80,0.18);  color:#e0a06a; }
+      .rank-row .col-pos.ouro   { background:color-mix(in srgb, var(--pontos) 18%, transparent); color:var(--pontos); }
+      .rank-row .col-pos.prata  { background:rgba(203,213,225,0.18); color:var(--prata); }
+      .rank-row .col-pos.bronze { background:rgba(205,127,80,0.18);  color:var(--bronze); }
       .rank-row .col-nome { flex:1; font-weight:500; color:var(--texto,#f4f5f7); font-size:0.92rem; display:flex; flex-direction:column; gap:0.15rem; }
       .rank-row .col-nome-linha { display:flex; align-items:center; gap:0.5rem; }
       .col-nivel {
         font-size:0.72rem; font-weight:600; color:var(--verde,#44d883);
-        background:rgba(68,216,131,0.12); border:1px solid rgba(68,216,131,0.3);
+        background:color-mix(in srgb, var(--verde) 12%, transparent); border:1px solid color-mix(in srgb, var(--verde) 30%, transparent);
         padding:0.08rem 0.5rem; border-radius:99px; width:fit-content;
       }
       .rank-eu .meta .n { display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; }
       .rank-row .col-nome .vc {
         margin-left:0.4rem; font-size:0.7rem; font-weight:700; color:var(--verde,#44d883);
       }
-      .rank-row .col-pts { font-weight:700; color:#f5c469; font-size:0.9rem; }
+      .rank-row .col-pts { font-weight:700; color:var(--pontos); font-size:0.9rem; }
       .rank-vazio { color:var(--cinza,#8b909b); font-size:0.9rem; padding:1rem 0; }
 
       /* Mobile */
@@ -326,8 +341,11 @@
         border-radius:14px; padding:1rem; display:flex; gap:0.8rem; align-items:flex-start;
         transition:transform .12s, border-color .12s;
       }
-      .conq-card.bloqueada { opacity:0.62; filter:grayscale(0.35); }
-      .conq-card.desbloqueada { border-color:rgba(68,216,131,0.45); }
+      /* Bloqueada: ícone apagado e borda tracejada (antes a opacidade derrubava o contraste do texto) */
+      .conq-card.bloqueada { border-style:dashed; }
+      .conq-card.bloqueada .ic { filter:grayscale(1); opacity:0.55; }
+      .conq-card.bloqueada .nome { color:var(--texto-2); }
+      .conq-card.desbloqueada { border-color:color-mix(in srgb, var(--verde) 45%, transparent); }
       .conq-card .ic {
         font-size:1.7rem; line-height:1; flex-shrink:0;
         width:46px; height:46px; display:grid; place-items:center;
@@ -335,11 +353,11 @@
       }
       .conq-card .nome { font-weight:600; color:var(--texto,#f4f5f7); font-size:0.95rem; }
       .conq-card .desc { color:var(--cinza,#8b909b); font-size:0.8rem; margin-top:0.2rem; line-height:1.45; }
-      .conq-card .pts { color:#f5c469; font-weight:700; font-size:0.82rem; margin-top:0.45rem; }
+      .conq-card .pts { color:var(--pontos); font-weight:700; font-size:0.82rem; margin-top:0.45rem; }
       .conq-card .auto {
         display:inline-block; margin-top:0.45rem; margin-left:0.4rem; padding:0.1rem 0.5rem;
         border-radius:99px; font-size:0.68rem; font-weight:600;
-        background:rgba(96,165,250,0.16); color:#93c5fd;
+        background:color-mix(in srgb, var(--azul-tag) 16%, transparent); color:var(--azul-tag);
       }
       .conq-vazio { color:var(--cinza,#8b909b); font-size:0.88rem; padding:0.6rem 0; }
 
@@ -350,6 +368,9 @@
       }
       @media (max-width: 480px) {
         .conq-grid { grid-template-columns: 1fr 1fr; }
+      }
+      @media (max-width: 420px) {
+        .conq-grid { grid-template-columns: 1fr; }
       }
     </style>
 
@@ -373,8 +394,8 @@
       /* A timeline reutiliza .dash-timeline / .dash-tl-* do dashboard.
          Aqui só ajustamos as cores do nó por tipo e o selo de pontos. */
       .dash-tl-item.traj::after { background:var(--bg,#1b1b1f); }
-      .dash-tl-item.traj-conquista::after { border-color:#f5c469; box-shadow:0 0 0 4px rgba(245,196,105,0.14); }
-      .dash-tl-item.traj-projeto::after   { border-color:var(--verde,#44d883); box-shadow:0 0 0 4px rgba(68,216,131,0.14); }
+      .dash-tl-item.traj-conquista::after { border-color:var(--pontos); box-shadow:0 0 0 4px color-mix(in srgb, var(--pontos) 14%, transparent); }
+      .dash-tl-item.traj-projeto::after   { border-color:var(--verde,#44d883); box-shadow:0 0 0 4px color-mix(in srgb, var(--verde) 14%, transparent); }
       .dash-tl-item.traj .dash-tl-corpo { padding-bottom:1.1rem; }
       .dash-tl-item.traj .dash-tl-corpo .n { display:flex; align-items:center; flex-wrap:wrap; gap:0.4rem; }
       .dash-tl-item.traj .dash-tl-data .dia { line-height:1.05; }
@@ -385,15 +406,15 @@
       .traj-icone { font-size:1rem; }
       .traj-pts {
         font-family:'Syne',sans-serif; font-weight:700; font-size:0.72rem;
-        color:#f5c469; background:rgba(245,196,105,0.14);
+        color:var(--pontos); background:color-mix(in srgb, var(--pontos) 14%, transparent);
         padding:0.05rem 0.45rem; border-radius:99px;
       }
       .traj-tag {
         font-size:0.68rem; font-weight:600; padding:0.05rem 0.5rem; border-radius:99px;
-        background:rgba(96,165,250,0.16); color:#93c5fd;
+        background:color-mix(in srgb, var(--azul-tag) 16%, transparent); color:var(--azul-tag);
       }
-      .traj-tag.pesquisa { background:rgba(96,165,250,0.16); color:#93c5fd; }
-      .traj-tag.extensao { background:rgba(68,216,131,0.16); color:var(--verde,#44d883); }
+      .traj-tag.pesquisa { background:color-mix(in srgb, var(--azul-tag) 16%, transparent); color:var(--azul-tag); }
+      .traj-tag.extensao { background:color-mix(in srgb, var(--verde) 16%, transparent); color:var(--verde,#44d883); }
       .traj-ano {
         font-family:'Syne',sans-serif; font-weight:700; font-size:0.8rem;
         color:var(--cinza,#8b909b); text-transform:uppercase; letter-spacing:0.5px;
@@ -414,7 +435,7 @@
   <footer class="site-footer">
     <div class="footer-cols">
       <div class="footer-col footer-about">
-        <h3 class="footer-logo">IF<span>Plenus</span></h3>
+        <h2 class="footer-logo">IF<span>Plenus</span></h2>
         <p>
           Portal do Aluno do IFPR — Campus Assis Chateaubriand. Acesso rápido aos
           seus dados acadêmicos, projetos de pesquisa e extensão e
@@ -423,35 +444,44 @@
       </div>
 
       <div class="footer-col">
-        <h4>Acadêmico</h4>
+        <h3>Acadêmico</h3>
         <ul>
-          <li><a href="#" data-section="dados">Dados &amp; Perfil</a></li>
           <li><a href="#" data-section="projetos">Projetos</a></li>
           <li><a href="#" data-section="calendario">Calendário</a></li>
         </ul>
       </div>
 
       <div class="footer-col">
-        <h4>Institucional</h4>
+        <h3>Institucional</h3>
         <ul>
           <li><a href="https://www.ifpr.edu.br" target="_blank" rel="noopener">Site do IFPR</a></li>
           <li><a href="https://suap.ifpr.edu.br" target="_blank" rel="noopener">SUAP IFPR</a></li>
-          <li><a href="https://www.gov.br" target="_blank" rel="noopener">Portal Gov.br</a></li>
         </ul>
       </div>
     </div>
 
     <div class="footer-bottom">
       <span>© <span id="footerYear"></span> IFPlenus · IFPR — Instituto Federal do Paraná</span>
-      <a class="footer-admin-link" href="/admin/login"><i data-lucide="lock"></i> Acesso administrativo</a>
     </div>
   </footer>
 </main>
 
+<!-- CONFIGURAÇÕES (painel lateral: perfil, dados do SUAP e aparência) -->
+<div class="config-overlay" id="configOverlay" onclick="fecharConfig()"></div>
+<div class="config-drawer" id="configDrawer" role="dialog" aria-modal="true" aria-labelledby="configTitulo" aria-hidden="true">
+  <div class="config-head">
+    <h2 id="configTitulo"><i data-lucide="settings"></i> Configurações</h2>
+    <button type="button" class="config-fechar" onclick="fecharConfig()" aria-label="Fechar"><i data-lucide="x"></i></button>
+  </div>
+  <div class="config-body" id="dadosContent">
+    <div data-skel="config"></div>
+  </div>
+</div>
+
 <script src="/portal.js"></script>
 <!-- Ícones (Lucide): converte os <i data-lucide> em SVG e re-renderiza
      quando o conteúdo dinâmico muda (dashboard, ranking, conquistas…). -->
-<script src="https://unpkg.com/lucide@0.330.0/dist/umd/lucide.min.js"></script>
+<script src="/lucide.min.js"></script>
 <script>
   (function () {
     let agendado = false;
@@ -488,6 +518,15 @@
       }
     });
   });
+</script>
+
+<!-- PWA: permite instalar o IFPlenus como app (ícone na tela inicial) -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js').catch(function () { /* sem PWA, o site funciona igual */ });
+    });
+  }
 </script>
 </body>
 </html>
