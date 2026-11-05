@@ -2,6 +2,17 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const suapService = require('../services/suapService');
 
+/**
+ * O access token do SUAP é um JWT: lemos o campo `exp` (sem validar a
+ * assinatura — só para saber a validade). Retorna true se faltar menos
+ * de 2 minutos para expirar, ou se não der para ler.
+ */
+const tokenSuapExpirando = (token) => {
+  const dados = jwt.decode(token);
+  if (!dados || !dados.exp) return true;
+  return dados.exp * 1000 - Date.now() < 2 * 60 * 1000;
+};
+
 const authMiddleware = async (req, res, next) => {
   try {
     const token =
@@ -26,20 +37,18 @@ const authMiddleware = async (req, res, next) => {
       return res.redirect('/login');
     }
 
-    // ── Tenta renovar o token SUAP se houver refreshToken ───────
-    // O token SUAP de acesso dura ~1h; o refresh dura mais.
-    // Se uma chamada falhar com 401, o controller já retorna erro
-    // apropriado, mas aqui tentamos renovar proativamente sempre
-    // que o usuário tiver um refreshToken salvo.
-    if (user.suapRefreshToken) {
+    // ── Renova o token SUAP só quando ele estiver expirando ──────
+    // Antes isso rodava em TODA requisição: deixava tudo lento, gerava um
+    // token novo a cada clique e invalidava o cache (que usa o token na chave).
+    if (user.suapRefreshToken && tokenSuapExpirando(user.suapToken)) {
       try {
         const novoAccessToken = await suapService.refreshToken(
           user.suapRefreshToken
         );
 
         if (novoAccessToken && novoAccessToken !== user.suapToken) {
+          suapService.limparCache(user.suapToken); // limpa cache do token ANTIGO
           user.suapToken = novoAccessToken;
-          suapService.limparCache(user.suapToken); // limpa cache do token antigo
           await User.findByIdAndUpdate(user._id, {
             suapToken: novoAccessToken,
           });

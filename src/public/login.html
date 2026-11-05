@@ -3,275 +3,481 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IFPlenus — Login</title>
+  <title>IFPlenus — Entrar</title>
+  <link rel="icon" type="image/png" href="/images/if-logo.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#1b1b1f" />
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="IFPlenus" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
       --verde: #44d883;
       --verde-escuro: #36c172;
-      --verde-glow: rgba(68,216,131,0.35);
-      --bg: #1b1b1f;
-      --panel: #121214;
-      --card: #26262b;
+      --azul: #7aa7ff;
+      --azul-escuro: #5d8ff5;
+      --bg: #141417;
       --texto: #f4f5f7;
       --texto-2: #c2c6cf;
       --cinza: #8b909b;
       --borda: rgba(255,255,255,0.1);
-      --input-bg: #1f1f24;
-      --erro: #ff6b6b;
+      --input-bg: rgba(255,255,255,0.04);
+      --erro: #ff7b7b;
     }
 
+    html, body { height: 100%; }
     body {
       font-family: 'DM Sans', sans-serif;
       background: var(--bg);
       color: var(--texto);
       min-height: 100vh;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      overflow-x: hidden;
     }
 
-    /* Lado esquerdo — visual */
-    .visual {
-      background: var(--panel);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: flex-start;
-      padding: 4rem;
-      position: relative;
-      overflow: hidden;
-      border-right: 1px solid var(--borda);
+    /* ── Topo: marca centralizada sobre a divisória ─────────────── */
+    .marca {
+      position: fixed; top: 1.6rem; left: 50%; transform: translateX(-50%);
+      z-index: 5; display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.55rem 1.1rem 0.55rem 0.7rem;
+      background: rgba(20,20,23,0.85); backdrop-filter: blur(10px);
+      border: 1px solid var(--borda); border-radius: 999px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
     }
-    .visual::before {
-      content: '';
-      position: absolute;
-      width: 520px; height: 520px;
-      background: radial-gradient(circle, var(--verde-glow) 0%, transparent 70%);
-      top: -120px; right: -140px;
+    .marca img { width: 28px; height: 28px; object-fit: contain; }
+    .marca .nome { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.15rem; letter-spacing: -0.5px; }
+    .marca .nome span { color: var(--verde); }
+
+    /* ── Divisão em duas metades ────────────────────────────────── */
+    .split { display: flex; min-height: 100vh; }
+
+    .lado {
+      --cor: var(--verde); --cor-escura: var(--verde-escuro); --cor-rgb: 68,216,131;
+      flex: 1 1 50%;
+      position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      padding: 7rem 3rem 3rem;
+      transition: flex-grow .5s cubic-bezier(.2,.8,.2,1), filter .4s;
     }
-    .visual::after {
-      content: '';
-      position: absolute;
-      width: 320px; height: 320px;
-      background: radial-gradient(circle, rgba(68,216,131,0.18) 0%, transparent 70%);
-      bottom: -60px; left: 40px;
+    .lado.admin { --cor: var(--azul); --cor-escura: var(--azul-escuro); --cor-rgb: 122,167,255; }
+
+    .lado.aluno { background: linear-gradient(160deg, #13211a 0%, #141417 55%); }
+    .lado.admin { background: linear-gradient(200deg, #151b2a 0%, #141417 55%); border-left: 1px solid var(--borda); }
+
+    /* brilho de fundo */
+    .lado::before {
+      content: ''; position: absolute; width: 620px; height: 620px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(var(--cor-rgb),0.22) 0%, transparent 65%);
+      pointer-events: none; transition: opacity .4s, transform .6s;
+    }
+    .lado.aluno::before { top: -220px; left: -180px; }
+    .lado.admin::before { bottom: -240px; right: -200px; }
+
+    /* grade sutil */
+    .lado::after {
+      content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.35;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(ellipse at center, #000 20%, transparent 75%);
     }
 
-    .brand { display: flex; align-items: center; gap: 0.8rem; position: relative; z-index: 1; margin-bottom: 1.2rem; }
-    .visual-logo {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: 2.4rem;
-      color: #fff;
-      letter-spacing: -1px;
-    }
-    .visual-logo span { color: var(--verde); }
-
-    .visual-tagline {
-      color: var(--texto-2);
-      font-size: 1.05rem;
-      font-weight: 300;
-      line-height: 1.7;
-      max-width: 360px;
-      position: relative;
-      z-index: 1;
-    }
-    .visual-sub { color: var(--cinza); font-size: 0.82rem; margin-top: 0.5rem; position: relative; z-index: 1; }
-
-    .visual-badges {
-      display: flex; flex-wrap: wrap; gap: 0.6rem;
-      margin-top: 2.5rem; position: relative; z-index: 1;
-    }
-    .badge {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--borda);
-      color: var(--texto-2);
-      font-size: 0.78rem;
-      padding: 0.35rem 0.85rem;
-      border-radius: 999px;
-      font-weight: 500;
+    /* foco: a metade em uso cresce um pouco e a outra apaga */
+    @media (min-width: 861px) {
+      .split:has(.lado.aluno:focus-within) .lado.aluno,
+      .split:has(.lado.admin:focus-within) .lado.admin { flex-grow: 1.18; }
+      .split:has(.lado.aluno:focus-within) .lado.admin,
+      .split:has(.lado.admin:focus-within) .lado.aluno { filter: saturate(0.6) brightness(0.8); }
+      .lado:focus-within::before { transform: scale(1.12); }
     }
 
-    /* Lado direito — formulário */
-    .login-side { display: flex; align-items: center; justify-content: center; padding: 2rem; }
-    .login-box { width: 100%; max-width: 400px; }
+    .painel { position: relative; z-index: 1; width: 100%; max-width: 400px; }
 
-    .login-title {
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      font-size: 1.75rem;
-      color: var(--texto);
-      margin-bottom: 0.4rem;
+    .selo {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      font-size: 0.74rem; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;
+      color: var(--cor); background: rgba(var(--cor-rgb),0.1);
+      border: 1px solid rgba(var(--cor-rgb),0.3);
+      padding: 0.35rem 0.8rem; border-radius: 999px; margin-bottom: 1.1rem;
     }
-    .login-sub { color: var(--cinza); font-size: 0.9rem; margin-bottom: 2.2rem; }
+    .icone-grande {
+      width: 58px; height: 58px; border-radius: 16px; display: grid; place-items: center;
+      font-size: 1.7rem; color: var(--cor);
+      background: linear-gradient(145deg, rgba(var(--cor-rgb),0.2), rgba(var(--cor-rgb),0.05));
+      border: 1px solid rgba(var(--cor-rgb),0.35); margin-bottom: 1.2rem;
+      box-shadow: 0 12px 30px rgba(var(--cor-rgb),0.15);
+    }
+    h1 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2rem; letter-spacing: -0.8px; line-height: 1.1; margin-bottom: 0.5rem; }
+    .sub { color: var(--texto-2); font-size: 0.93rem; line-height: 1.55; margin-bottom: 1.8rem; }
 
-    .field { margin-bottom: 1.2rem; }
-    .field label {
-      display: block; font-size: 0.82rem; font-weight: 500;
-      color: var(--texto-2); margin-bottom: 0.4rem; letter-spacing: 0.3px;
+    .cartao {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--borda); border-radius: 18px;
+      padding: 1.5rem; backdrop-filter: blur(6px);
     }
+
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; font-size: 0.8rem; font-weight: 500; color: var(--texto-2); margin-bottom: 0.4rem; }
     .field input {
-      width: 100%;
-      border: 1.5px solid var(--borda);
-      border-radius: 10px;
-      padding: 0.78rem 1rem;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.95rem;
-      color: var(--texto);
-      background: var(--input-bg);
-      outline: none;
-      transition: border-color 0.2s;
+      width: 100%; border: 1.5px solid var(--borda); border-radius: 11px;
+      padding: 0.8rem 1rem; font-family: inherit; font-size: 0.95rem;
+      color: var(--texto); background: var(--input-bg); outline: none;
+      transition: border-color .2s, box-shadow .2s;
     }
     .field input::placeholder { color: var(--cinza); }
-    .field input:focus { border-color: var(--verde); }
+    .field input:focus { border-color: var(--cor); box-shadow: 0 0 0 4px rgba(var(--cor-rgb),0.12); }
 
-    .btn-login {
-      width: 100%;
-      background: var(--verde);
-      color: #06281a;
-      border: none;
-      border-radius: 10px;
-      padding: 0.85rem;
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      margin-top: 0.5rem;
+    .btn {
+      width: 100%; border: none; border-radius: 11px; padding: 0.88rem;
+      font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; cursor: pointer;
+      background: var(--cor); color: #0b1a12;
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+      transition: background .2s, transform .1s, box-shadow .2s;
+      box-shadow: 0 10px 24px rgba(var(--cor-rgb),0.22); margin-top: 0.3rem;
     }
-    .btn-login:hover { background: var(--verde-escuro); }
-    .btn-login:active { transform: scale(0.98); }
-    .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+    .lado.admin .btn { color: #0b1430; }
+    .btn:hover { background: var(--cor-escura); }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
     .erro-msg {
-      background: rgba(255,107,107,0.12);
-      border: 1px solid rgba(255,107,107,0.4);
-      color: var(--erro);
-      border-radius: 8px;
-      padding: 0.7rem 1rem;
-      font-size: 0.85rem;
-      margin-top: 1rem;
-      display: none;
+      background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.4);
+      color: var(--erro); border-radius: 10px; padding: 0.7rem 0.9rem;
+      font-size: 0.84rem; margin-top: 0.9rem; display: none; line-height: 1.45;
+    }
+    .info-msg {
+      background: rgba(var(--cor-rgb),0.08); border: 1px solid rgba(var(--cor-rgb),0.35);
+      color: var(--texto-2); border-radius: 12px; padding: 0.95rem 1rem;
+      font-size: 0.86rem; line-height: 1.6;
+    }
+    .info-msg strong { color: var(--texto); }
+
+    .nota { color: var(--cinza); font-size: 0.78rem; margin-top: 1.1rem; line-height: 1.5; display: flex; gap: 0.45rem; }
+    .nota svg { margin-top: 0.15rem; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 1.4rem; }
+    .chip {
+      font-size: 0.74rem; color: var(--texto-2); padding: 0.3rem 0.7rem; border-radius: 999px;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--borda);
+      display: inline-flex; align-items: center; gap: 0.35rem;
     }
 
-    .ifpr-note { color: var(--cinza); font-size: 0.78rem; text-align: center; margin-top: 1.8rem; line-height: 1.5; }
+    .email-fixo {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+      background: var(--input-bg); border: 1.5px solid var(--borda); border-radius: 11px;
+      padding: 0.65rem 0.9rem; font-size: 0.88rem; color: var(--texto-2);
+      margin-bottom: 1rem; word-break: break-all;
+    }
+    .link-btn {
+      background: none; border: none; color: var(--cor); font-family: inherit;
+      font-size: 0.8rem; font-weight: 600; cursor: pointer; padding: 0; white-space: nowrap;
+    }
+    .link-btn:hover { text-decoration: underline; }
+    .link-btn:disabled { color: var(--cinza); cursor: default; text-decoration: none; }
+    .acoes-extra { display: flex; justify-content: space-between; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+    .etapa { display: none; animation: aparecer .3s ease; }
+    .etapa.ativa { display: block; }
+    @keyframes aparecer { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-    @media (max-width: 1024px) {
-      .visual { padding: 2.5rem; }
+    .rodape {
+      position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%);
+      color: var(--cinza); font-size: 0.72rem; z-index: 5; white-space: nowrap;
     }
 
-    @media (max-width: 768px) {
-      body { grid-template-columns: 1fr; }
-      .visual { display: none; }
-      .login-side { padding: 1.5rem; }
+    /* ── Abas (só no celular) ───────────────────────────────────── */
+    .abas { display: none; }
+
+    @media (max-width: 860px) {
+      .marca { position: static; transform: none; margin: 1.2rem auto 0; width: fit-content; }
+      .abas {
+        display: flex; gap: 0.3rem; margin: 1rem 1rem 0; padding: 0.3rem;
+        background: rgba(255,255,255,0.04); border: 1px solid var(--borda); border-radius: 14px;
+      }
+      .abas button {
+        flex: 1; border: none; background: transparent; color: var(--texto-2);
+        font-family: inherit; font-weight: 600; font-size: 0.88rem; padding: 0.65rem;
+        border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+      }
+      .abas button.ativa[data-lado="aluno"] { background: var(--verde); color: #0b1a12; }
+      .abas button.ativa[data-lado="admin"] { background: var(--azul); color: #0b1430; }
+
+      .split { display: block; min-height: auto; }
+      .lado { display: none; padding: 1.8rem 1rem 4.5rem; min-height: calc(100vh - 140px); align-items: flex-start; }
+      .lado.ativo { display: flex; }
+      .lado.admin { border-left: none; }
+      h1 { font-size: 1.65rem; }
+      .rodape { position: static; transform: none; text-align: center; padding: 0 1rem 1.2rem; white-space: normal; }
     }
 
-    @media (max-width: 380px) {
-      .login-side { padding: 1.1rem; }
-      .login-title { font-size: 1.5rem; }
+    @media (prefers-reduced-motion: reduce) {
+      .lado, .lado::before, .etapa { transition: none; animation: none; }
     }
 
-    /* Ícones (Lucide) — herdam tamanho (1em) e cor (currentColor) do contexto */
-    svg.lucide { width:1em; height:1em; display:inline-block; vertical-align:-0.125em; flex-shrink:0; stroke-width:2; }
+    svg.lucide { width: 1em; height: 1em; display: inline-block; vertical-align: -0.125em; flex-shrink: 0; stroke-width: 2; }
+
+    /* Mostrar / ocultar senha */
+    .campo-senha { position: relative; }
+    .campo-senha input { padding-right: 3.1rem !important; }
+    .ver-senha {
+      position: absolute; top: 50%; right: 0.4rem; transform: translateY(-50%);
+      width: 2.4rem; height: 2.4rem; border-radius: 9px; border: none; background: transparent;
+      color: var(--cinza); cursor: pointer; display: grid; place-items: center; font-size: 1.1rem;
+    }
+    .ver-senha:hover { color: var(--texto); background: rgba(255,255,255,0.06); }
+    .ver-senha:focus-visible { outline: 2px solid var(--cor, var(--verde, #44d883)); outline-offset: 1px; color: var(--texto); }
+    .campo-senha input::-ms-reveal, .campo-senha input::-ms-clear { display: none; } /* Edge: evita 2 olhos */
   </style>
 </head>
 <body>
 
-<div class="visual">
-  <div class="brand">
-    <img src="/images/if-logo.png" width="40" height="40" alt="Instituto Federal" style="object-fit:contain;display:block" />
-    <div class="visual-logo">IF<span>Plenus</span></div>
-  </div>
-  <p class="visual-tagline">Acesse suas informações acadêmicas do IFPR em um só lugar.</p>
-  <p class="visual-sub">Instituto Federal do Paraná · Campus Assis Chateaubriand</p>
-  <div class="visual-badges">
-    <span class="badge"><i data-lucide="bar-chart-3"></i> Boletim</span>
-    <span class="badge"><i data-lucide="user"></i> Dados Pessoais</span>
-    <span class="badge"><i data-lucide="microscope"></i> Pesquisa</span>
-    <span class="badge"><i data-lucide="sprout"></i> Extensão</span>
-    <span class="badge"><i data-lucide="calendar"></i> Calendário</span>
-  </div>
-</div>
+<header class="marca">
+  <img src="/images/if-logo.png" alt="Instituto Federal" />
+  <div class="nome">IF<span>Plenus</span></div>
+</header>
 
-<div class="login-side">
-  <div class="login-box">
-    <h1 class="login-title">Entrar</h1>
-    <p class="login-sub">Use suas credenciais do SUAP IFPR</p>
+<nav class="abas" role="tablist" aria-label="Tipo de acesso">
+  <button type="button" data-lado="aluno" class="ativa" role="tab"><i data-lucide="graduation-cap"></i> Sou aluno</button>
+  <button type="button" data-lado="admin" role="tab"><i data-lucide="briefcase"></i> Sou servidor</button>
+</nav>
 
-    <div class="field">
-      <label for="matricula">Matrícula</label>
-      <input type="text" id="matricula" placeholder="Ex: 2023001234" autocomplete="username" />
+<main class="split">
+
+  <!-- ── ALUNOS ─────────────────────────────────────────────── -->
+  <section class="lado aluno ativo" id="ladoAluno" aria-labelledby="tituloAluno">
+    <div class="painel">
+      <span class="selo"><i data-lucide="graduation-cap"></i> Portal do aluno</span>
+      <h1 id="tituloAluno">Entre e acompanhe sua jornada no IFPR</h1>
+      <p class="sub">Projetos, calendário, conquistas e ranking em um só lugar.</p>
+
+      <form class="cartao" id="formAluno" novalidate>
+        <div class="field">
+          <label for="matricula">Matrícula</label>
+          <input type="text" id="matricula" placeholder="Ex.: 20231234567" autocomplete="username" autocapitalize="characters" />
+        </div>
+        <div class="field">
+          <label for="senhaAluno">Senha</label>
+          <div class="campo-senha">
+            <input type="password" id="senhaAluno" placeholder="Sua senha do SUAP" autocomplete="current-password" />
+            <button type="button" class="ver-senha" aria-controls="senhaAluno" aria-pressed="false" aria-label="Mostrar senha" title="Mostrar senha"><i data-lucide="eye"></i></button>
+          </div>
+        </div>
+        <button class="btn" type="submit" id="btnAluno"><i data-lucide="log-in"></i> <span>Entrar no portal</span></button>
+        <div class="erro-msg" id="erroAluno" role="alert"></div>
+        <p class="nota"><i data-lucide="shield-check"></i> Use a mesma matrícula e senha do SUAP IFPR.</p>
+      </form>
+
+      <div class="chips">
+        <span class="chip"><i data-lucide="trophy"></i> Conquistas</span>
+        <span class="chip"><i data-lucide="trending-up"></i> Ranking</span>
+        <span class="chip"><i data-lucide="folder"></i> Projetos</span>
+        <span class="chip"><i data-lucide="calendar"></i> Calendário</span>
+      </div>
     </div>
+  </section>
 
-    <div class="field">
-      <label for="senha">Senha</label>
-      <input type="password" id="senha" placeholder="Sua senha do SUAP" autocomplete="current-password" />
+  <!-- ── SERVIDORES / ADMIN ────────────────────────────────── -->
+  <section class="lado admin" id="ladoAdmin" aria-labelledby="tituloAdmin">
+    <div class="painel">
+      <span class="selo"><i data-lucide="briefcase"></i> Painel administrativo</span>
+      <h1 id="tituloAdmin">Acesso de docentes e substitutos</h1>
+      <p class="sub" id="subAdmin">Gerencie projetos, eventos, conquistas e solicitações dos alunos.</p>
+
+      <div class="cartao">
+        <!-- Etapa 1: e-mail -->
+        <form class="etapa ativa" id="etapaEmail" novalidate>
+          <div class="field">
+            <label for="email">E-mail institucional</label>
+            <input type="email" id="email" placeholder="nome@ifpr.edu.br" autocomplete="username" />
+          </div>
+          <button class="btn" type="submit" id="btnContinuar"><span>Continuar</span> <i data-lucide="arrow-right"></i></button>
+        </form>
+
+        <!-- Etapa 2: senha -->
+        <form class="etapa" id="etapaSenha" novalidate>
+          <div class="email-fixo">
+            <span id="emailMostrado"></span>
+            <button class="link-btn" type="button" data-trocar>Trocar</button>
+          </div>
+          <div class="field">
+            <label for="senhaAdmin">Senha</label>
+            <div class="campo-senha">
+              <input type="password" id="senhaAdmin" placeholder="••••••••" autocomplete="current-password" />
+              <button type="button" class="ver-senha" aria-controls="senhaAdmin" aria-pressed="false" aria-label="Mostrar senha" title="Mostrar senha"><i data-lucide="eye"></i></button>
+            </div>
+          </div>
+          <button class="btn" type="submit" id="btnEntrarAdmin"><i data-lucide="lock-open"></i> <span>Entrar no painel</span></button>
+          <div class="acoes-extra">
+            <button class="link-btn" type="button" id="btnEsqueci"><span>Esqueci minha senha</span></button>
+          </div>
+        </form>
+
+        <!-- Etapa 3: e-mail enviado -->
+        <div class="etapa" id="etapaEnviado">
+          <div class="info-msg" id="msgEnviado"></div>
+          <div class="acoes-extra">
+            <button class="link-btn" type="button" data-trocar>Usar outro e-mail</button>
+            <button class="link-btn" type="button" id="btnReenviar">Reenviar e-mail</button>
+          </div>
+        </div>
+
+        <div class="erro-msg" id="erroAdmin" role="alert"></div>
+        <p class="nota"><i data-lucide="mail-check"></i> No primeiro acesso você recebe um link por e-mail para cadastrar sua senha.</p>
+      </div>
     </div>
+  </section>
+</main>
 
-    <button class="btn-login" id="btnLogin">Entrar no Portal</button>
-
-    <div class="erro-msg" id="erroMsg"></div>
-
-    <p class="ifpr-note">
-      Utilize as mesmas credenciais que você usa<br>para acessar o SUAP IFPR.
-    </p>
-  </div>
-</div>
+<footer class="rodape">Instituto Federal do Paraná · Campus Assis Chateaubriand</footer>
 
 <script>
-  const btn = document.getElementById('btnLogin');
-  const erroMsg = document.getElementById('erroMsg');
 
-  async function fazerLogin() {
-    const matricula = document.getElementById('matricula').value.trim();
-    const senha = document.getElementById('senha').value;
-
-    if (!matricula || !senha) {
-      mostrarErro('Preencha matrícula e senha.');
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = 'Autenticando…';
-    erroMsg.style.display = 'none';
-
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ matricula, senha }),
+  // ── Mostrar / ocultar senha ───────────────────────────────────
+  function configurarVerSenha() {
+    document.querySelectorAll('.ver-senha').forEach(function (btn) {
+      if (btn.dataset.pronto) return;
+      btn.dataset.pronto = '1';
+      btn.addEventListener('click', function () {
+        var input = document.getElementById(btn.getAttribute('aria-controls'));
+        var mostrar = input.type === 'password';
+        input.type = mostrar ? 'text' : 'password';
+        btn.setAttribute('aria-pressed', mostrar ? 'true' : 'false');
+        btn.setAttribute('aria-label', mostrar ? 'Ocultar senha' : 'Mostrar senha');
+        btn.title = mostrar ? 'Ocultar senha' : 'Mostrar senha';
+        btn.innerHTML = '<i data-lucide="' + (mostrar ? 'eye-off' : 'eye') + '"></i>';
       });
-      const data = await res.json();
+    });
+  }
+  // Volta a esconder (ex.: ao trocar de etapa ou depois de enviar)
+  function esconderSenhas() {
+    document.querySelectorAll('.ver-senha[aria-pressed="true"]').forEach(function (b) { b.click(); });
+  }
+  configurarVerSenha();
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 
-      if (res.ok && data.sucesso) {
-        window.location.href = '/';
-      } else {
-        mostrarErro(data.erro || 'Erro ao autenticar.');
-      }
-    } catch (e) {
-      mostrarErro('Erro de conexão. Verifique sua internet.');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Entrar no Portal';
-    }
+  async function post(url, body) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data };
   }
 
-  function mostrarErro(msg) {
-    erroMsg.textContent = msg;
-    erroMsg.style.display = 'block';
+  function mostrarErro(el, msg) { el.textContent = msg; el.style.display = 'block'; }
+  function esconderErro(el) { el.style.display = 'none'; }
+
+  async function carregando(btn, texto, fn, erroEl) {
+    const span = btn.querySelector('span');
+    const original = span.textContent;
+    btn.disabled = true; span.textContent = texto;
+    try { await fn(); }
+    catch (e) { mostrarErro(erroEl, 'Erro de conexão. Verifique sua internet.'); }
+    finally { btn.disabled = false; span.textContent = original; }
   }
 
-  btn.addEventListener('click', fazerLogin);
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') fazerLogin();
+  // ── Abas no celular ─────────────────────────────────────────
+  function mostrarLado(lado) {
+    document.querySelectorAll('.abas button').forEach((b) => b.classList.toggle('ativa', b.dataset.lado === lado));
+    $('ladoAluno').classList.toggle('ativo', lado === 'aluno');
+    $('ladoAdmin').classList.toggle('ativo', lado === 'admin');
+  }
+  document.querySelectorAll('.abas button').forEach((b) => b.addEventListener('click', () => mostrarLado(b.dataset.lado)));
+
+  // ── ALUNO ───────────────────────────────────────────────────
+  $('formAluno').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const erro = $('erroAluno');
+    const matricula = $('matricula').value.trim();
+    const senha = $('senhaAluno').value;
+    if (!matricula || !senha) { mostrarErro(erro, 'Preencha matrícula e senha.'); return; }
+    esconderErro(erro);
+
+    await carregando($('btnAluno'), 'Autenticando…', async () => {
+      const { ok, data } = await post('/api/auth/login', { matricula, senha });
+      if (ok && data.sucesso) window.location.href = '/';
+      else mostrarErro(erro, data.erro || 'Erro ao autenticar.');
+    }, erro);
   });
+
+  // ── SERVIDOR (admin) ────────────────────────────────────────
+  const erroAdmin = $('erroAdmin');
+  let emailAtual = '';
+
+  function irPara(etapa) {
+    document.querySelectorAll('#ladoAdmin .etapa').forEach((el) => el.classList.remove('ativa'));
+    $({ email: 'etapaEmail', senha: 'etapaSenha', enviado: 'etapaEnviado' }[etapa]).classList.add('ativa');
+    esconderErro(erroAdmin);
+    if (etapa === 'email') $('email').focus();
+    if (etapa === 'senha') { esconderSenhas(); $('emailMostrado').textContent = emailAtual; $('senhaAdmin').value = ''; $('senhaAdmin').focus(); }
+  }
+
+  function mostrarEnviado(html) { $('msgEnviado').innerHTML = html; irPara('enviado'); }
+
+  $('etapaEmail').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = $('email').value.trim().toLowerCase();
+    if (!email) { mostrarErro(erroAdmin, 'Informe seu e-mail institucional.'); return; }
+    esconderErro(erroAdmin);
+
+    await carregando($('btnContinuar'), 'Verificando…', async () => {
+      const { ok, data } = await post('/api/admin/login/email', { email });
+      if (!ok) { mostrarErro(erroAdmin, data.erro || 'Não foi possível verificar o e-mail.'); return; }
+      emailAtual = email;
+      if (data.etapa === 'senha') irPara('senha');
+      else mostrarEnviado(
+        `É seu primeiro acesso! Enviamos um link <strong>"Cadastrar sua senha"</strong> para <strong>${esc(email)}</strong>.<br><br>
+         Abra o e-mail (confira também o spam), crie sua senha e você já entra no painel. O link vale por 48 horas.`);
+    }, erroAdmin);
+  });
+
+  $('etapaSenha').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const senha = $('senhaAdmin').value;
+    if (!senha) { mostrarErro(erroAdmin, 'Digite sua senha.'); return; }
+    esconderErro(erroAdmin);
+
+    await carregando($('btnEntrarAdmin'), 'Entrando…', async () => {
+      const { ok, data } = await post('/api/admin/login', { email: emailAtual, senha });
+      if (ok && data.sucesso) window.location.href = '/admin';
+      else mostrarErro(erroAdmin, data.erro || 'E-mail ou senha incorretos.');
+    }, erroAdmin);
+  });
+
+  $('btnEsqueci').addEventListener('click', async () => {
+    await carregando($('btnEsqueci'), 'Enviando…', async () => {
+      await post('/api/admin/senha/esqueci', { email: emailAtual });
+      mostrarEnviado(`Enviamos um link para <strong>redefinir sua senha</strong> para <strong>${esc(emailAtual)}</strong>.<br><br>
+        Confira também a caixa de spam. O link vale por 48 horas.`);
+    }, erroAdmin);
+  });
+
+  $('btnReenviar').addEventListener('click', async () => {
+    const btn = $('btnReenviar');
+    btn.disabled = true; btn.textContent = 'Enviando…';
+    try { await post('/api/admin/senha/esqueci', { email: emailAtual }); } catch (e) { /* ignore */ }
+    btn.textContent = 'E-mail reenviado ✓';
+    setTimeout(() => { btn.disabled = false; btn.textContent = 'Reenviar e-mail'; }, 60000);
+  });
+
+  document.querySelectorAll('[data-trocar]').forEach((b) => b.addEventListener('click', () => irPara('email')));
+
+  // /login?admin (vindo do painel ou de link antigo) abre direto o lado do servidor
+  if (new URLSearchParams(location.search).has('admin')) {
+    mostrarLado('admin');
+    setTimeout(() => $('email').focus(), 50);
+  }
 </script>
+
 <!-- Ícones (Lucide) -->
-<script src="https://unpkg.com/lucide@0.330.0/dist/umd/lucide.min.js"></script>
+<script src="/lucide.min.js"></script>
 <script>
   (function () {
     let agendado = false;
@@ -280,18 +486,18 @@
       agendado = true;
       requestAnimationFrame(() => { agendado = false; window.lucide.createIcons(); });
     };
-    const iniciar = () => {
-      desenhar();
-      new MutationObserver(desenhar).observe(document.body, { childList: true, subtree: true });
-    };
-    // Espera o script do CDN carregar (defensivo: funciona mesmo se o
-    // <script> do Lucide ainda não tiver executado quando este rodar).
-    if (window.lucide) iniciar();
-    else {
-      const t = setInterval(() => { if (window.lucide) { clearInterval(t); iniciar(); } }, 50);
-      setTimeout(() => clearInterval(t), 8000);
-    }
+    desenhar();
+    new MutationObserver(desenhar).observe(document.body, { childList: true, subtree: true });
   })();
+</script>
+
+<!-- PWA: permite instalar o IFPlenus como app (ícone na tela inicial) -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js').catch(function () { /* sem PWA, o site funciona igual */ });
+    });
+  }
 </script>
 </body>
 </html>

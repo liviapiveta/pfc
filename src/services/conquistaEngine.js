@@ -2,6 +2,8 @@ const Conquista = require('../models/Conquista');
 const ConquistaUsuario = require('../models/ConquistaUsuario');
 const User = require('../models/User');
 const Solicitacao = require('../models/Solicitacao');
+const { calcularNivel } = require('./niveis');
+const { notificarAluno } = require('./notificacoes');
 
 /**
  * conquistaEngine — o "motor" das conquistas AUTOMÁTICAS.
@@ -14,13 +16,24 @@ const Solicitacao = require('../models/Solicitacao');
  * confirmados; User.pontos é só um cache que recalculamos a cada mudança.
  */
 
-const recalcularPontosAluno = async (matricula) => {
+const recalcularPontosAluno = async (matricula, { notificar = true } = {}) => {
   const r = await ConquistaUsuario.aggregate([
     { $match: { matricula, status: 'confirmada' } },
     { $group: { _id: null, total: { $sum: '$pontos' } } },
   ]);
   const total = r[0]?.total || 0;
-  await User.updateOne({ matricula }, { $set: { pontos: total } });
+  // Devolve o documento ANTERIOR para saber se o aluno subiu de nível
+  const antes = await User.findOneAndUpdate({ matricula }, { $set: { pontos: total } }, { projection: { pontos: 1 } }).lean();
+
+  if (notificar && antes) {
+    const nivelAntes = calcularNivel(antes.pontos || 0);
+    const nivelAgora = calcularNivel(total);
+    if (nivelAgora.nivel > nivelAntes.nivel) {
+      await notificarAluno(matricula, 'nivel', {
+        nivel: nivelAgora.nivel, nome: nivelAgora.nome, pontos: total, proximo: nivelAgora.proximoNome,
+      });
+    }
+  }
   return total;
 };
 
@@ -48,6 +61,7 @@ const concederAutomatica = async ({ matricula, conquistaDoc, contexto = {} }) =>
     if (err.code === 11000) return { concedida: false };
     throw err;
   }
+  await notificarAluno(matricula, 'conquista', { nome: conquistaDoc.nome, pontos: conquistaDoc.pontos });
   await recalcularPontosAluno(matricula);
   return { concedida: true };
 };

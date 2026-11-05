@@ -1,4 +1,5 @@
 const suapService = require('../services/suapService');
+const User = require('../models/User');
 const Projeto = require('../models/Projeto');
 const Evento = require('../models/Evento');
 const Solicitacao = require('../models/Solicitacao');
@@ -51,10 +52,16 @@ const getProjetosExtensao = (req, res) =>
 
 const getCalendario = async (req, res) => {
   try {
-    const [eventosSuap, eventosLocais] = await Promise.all([
-      suapService.getEventosDoCampus(req.user.suapToken),
+    // Se o SUAP falhar, ainda mostramos os eventos cadastrados no painel
+    // (antes, qualquer erro do SUAP fazia o calendário inteiro dar 500).
+    const [suap, eventosLocais] = await Promise.all([
+      suapService.getEventosDoCampus(req.user.suapToken).then(
+        (v) => ({ ok: true, v }),
+        (e) => { console.warn('Calendário: SUAP indisponível:', e.response?.status || e.message); return { ok: false, v: [] }; }
+      ),
       Evento.find().sort({ data_inicio: 1 }).lean(),
     ]);
+    const eventosSuap = suap.v;
 
     return res.json([
       ...(Array.isArray(eventosSuap) ? eventosSuap : []),
@@ -63,16 +70,25 @@ const getCalendario = async (req, res) => {
   } catch (err) { return handleError(res, err, 'eventos'); }
 };
 
+/**
+ * PUT /api/preferencias — { notificarEmail?: boolean, privacidadeRanking?: 'nome'|'anonimo'|'oculto' }
+ * (tema/acessibilidade ficam só no navegador — ver portal.js)
+ */
 const updatePreferencias = async (req, res) => {
   try {
-    const { anoLetivoAtual, periodoLetivoAtual, temaEscuro } = req.body;
-    const pref = req.user.preferencias || {};
-    if (anoLetivoAtual !== undefined) pref.anoLetivoAtual = anoLetivoAtual;
-    if (periodoLetivoAtual !== undefined) pref.periodoLetivoAtual = periodoLetivoAtual;
-    if (temaEscuro !== undefined) pref.temaEscuro = temaEscuro;
-    req.user.preferencias = pref;
-    await req.user.save();
-    return res.json({ sucesso: true, preferencias: pref });
+    const { notificarEmail, privacidadeRanking } = req.body || {};
+    const dados = {};
+    if (notificarEmail !== undefined) {
+      if (typeof notificarEmail !== 'boolean') return res.status(400).json({ erro: 'notificarEmail deve ser verdadeiro ou falso' });
+      dados.notificarEmail = notificarEmail;
+    }
+    if (privacidadeRanking !== undefined) {
+      if (!['nome', 'anonimo', 'oculto'].includes(privacidadeRanking)) return res.status(400).json({ erro: 'Opção de privacidade inválida' });
+      dados.privacidadeRanking = privacidadeRanking;
+    }
+    if (!Object.keys(dados).length) return res.status(400).json({ erro: 'Nada para salvar' });
+    await User.updateOne({ _id: req.user._id }, { $set: dados });
+    return res.json({ sucesso: true, ...dados });
   } catch (err) {
     return res.status(500).json({ erro: 'Erro ao salvar preferências' });
   }
@@ -233,7 +249,7 @@ const solicitarParticipacaoSuap = async (req, res) => {
 
     // Título vindo do espelho local (se algum aluno já carregou o projeto)
     const cache = await ProjetoSuapCache.findOne({ suapId, tipo }).lean();
-    const titulo = cache?.titulo || req.body.titulo || '(projeto do SUAP)';
+    const titulo = String(cache?.titulo || req.body.titulo || '(projeto do SUAP)').slice(0, 300);
 
     const solicitacao = await Solicitacao.create({
       origem: 'suap',
@@ -308,7 +324,11 @@ const handleError = (res, err, contexto) => {
   );
 
   if (status === 401) {
-    return res.status(401).json({ erro: 'Token SUAP expirado. Faça login novamente.' });
+    // A sessão do SUAP morreu: derruba também a sessão do IFPlenus. Sem isso
+    // o portal ia para /login, o servidor via o cookie ainda válido e mandava
+    // de volta para / — um loop de redirecionamento infinito.
+    res.clearCookie('authToken');
+    return res.status(401).json({ erro: 'Sua sessão do SUAP expirou. Faça login novamente.' });
   }
   if (status === 403) {
     // "Host not in allowlist" = o IP do servidor não está liberado no SUAP
@@ -324,12 +344,9 @@ const handleError = (res, err, contexto) => {
     return res.status(404).json({ erro: `${contexto} não encontrado` });
   }
 
-  return res.status(500).json({
-    erro: `Erro ao buscar ${contexto}`,
-    detalhe: typeof body === 'string'
-      ? body
-      : body?.detail ?? body?.message ?? err.message,
-  });
+  // Falha do SUAP (fora do ar, timeout, erro interno) → 502, sem repassar
+  // o HTML/mensagem interna do SUAP para o navegador.
+  return res.status(502).json({ erro: `O SUAP não respondeu ao buscar ${contexto}. Tente novamente.` });
 };
 
 module.exports = {

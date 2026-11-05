@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IFPlenus — Cadastrar senha</title>
+  <link rel="icon" type="image/png" href="/images/if-logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --verde: #44d883;
+      --verde-escuro: #36c172;
+      --verde-glow: rgba(68,216,131,0.35);
+      --bg: #1b1b1f;
+      --card: #26262b;
+      --texto: #f4f5f7;
+      --texto-2: #c2c6cf;
+      --cinza: #8b909b;
+      --borda: rgba(255,255,255,0.1);
+      --input-bg: #1f1f24;
+      --erro: #ff6b6b;
+      --amarelo: #f5b942;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--texto);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+    }
+
+    .login-wrap { width: 100%; max-width: 440px; padding: 2rem; }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.6rem;
+      color: #fff;
+      letter-spacing: -0.5px;
+      margin-bottom: 0.6rem;
+    }
+    .logo span { color: var(--verde); }
+
+    .admin-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(245,185,66,0.12);
+      border: 1px solid rgba(245,185,66,0.45);
+      color: var(--amarelo);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.25rem 0.7rem;
+      border-radius: 99px;
+      margin-bottom: 2rem;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .login-box {
+      background: var(--card);
+      border-radius: 18px;
+      border: 1px solid var(--borda);
+      padding: 2rem;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    }
+
+    .login-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1.4rem;
+      color: var(--texto);
+      margin-bottom: 0.3rem;
+    }
+    .login-sub { color: var(--cinza); font-size: 0.85rem; margin-bottom: 1.8rem; }
+
+    .field { margin-bottom: 1.1rem; }
+    .field label {
+      display: block; font-size: 0.8rem; font-weight: 500;
+      color: var(--texto-2); margin-bottom: 0.35rem; letter-spacing: 0.3px;
+    }
+    .field input {
+      width: 100%;
+      border: 1.5px solid var(--borda);
+      border-radius: 10px;
+      padding: 0.72rem 1rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.93rem;
+      color: var(--texto);
+      background: var(--input-bg);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input::placeholder { color: var(--cinza); }
+    .field input:focus { border-color: var(--amarelo); }
+
+    .btn-login {
+      width: 100%;
+      background: var(--verde);
+      color: #06281a;
+      border: none;
+      border-radius: 10px;
+      padding: 0.82rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.97rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 0.4rem;
+      letter-spacing: 0.2px;
+    }
+    .btn-login:hover { background: var(--verde-escuro); }
+    .btn-login:active { transform: scale(0.98); }
+    .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .erro-msg {
+      background: rgba(255,107,107,0.12);
+      border: 1px solid rgba(255,107,107,0.4);
+      color: var(--erro);
+      border-radius: 8px;
+      padding: 0.65rem 1rem;
+      font-size: 0.83rem;
+      margin-top: 0.9rem;
+      display: none;
+    }
+
+    .back-link {
+      display: block; text-align: center; margin-top: 1.4rem;
+      color: var(--cinza); font-size: 0.8rem; text-decoration: none;
+    }
+    .back-link:hover { color: var(--verde); }
+
+
+    .info-msg {
+      background: rgba(68,216,131,0.1);
+      border: 1px solid rgba(68,216,131,0.4);
+      color: #bff3d4;
+      border-radius: 10px;
+      padding: 0.9rem 1rem;
+      font-size: 0.85rem;
+      line-height: 1.55;
+    }
+    .info-msg strong { color: #fff; }
+    .email-fixo {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+      background: var(--input-bg); border: 1.5px solid var(--borda); border-radius: 10px;
+      padding: 0.62rem 0.9rem; font-size: 0.88rem; color: var(--texto-2); margin-bottom: 1.1rem;
+      word-break: break-all;
+    }
+    .link-btn {
+      background: none; border: none; color: var(--verde); font-family: inherit;
+      font-size: 0.8rem; cursor: pointer; padding: 0; white-space: nowrap;
+    }
+    .link-btn:hover { text-decoration: underline; }
+    .link-btn:disabled { color: var(--cinza); cursor: default; text-decoration: none; }
+    .acoes-extra { display: flex; justify-content: space-between; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+    .etapa { display: none; }
+    .etapa.ativa { display: block; }
+
+    @media (max-width: 480px) { .login-wrap { padding: 1rem; } }
+
+    /* Ícones (Lucide) — herdam tamanho (1em) e cor (currentColor) do contexto */
+    svg.lucide { width:1em; height:1em; display:inline-block; vertical-align:-0.125em; flex-shrink:0; stroke-width:2; }
+
+    /* Mostrar / ocultar senha */
+    .campo-senha { position: relative; }
+    .campo-senha input { padding-right: 3.1rem !important; }
+    .ver-senha {
+      position: absolute; top: 50%; right: 0.4rem; transform: translateY(-50%);
+      width: 2.4rem; height: 2.4rem; border-radius: 9px; border: none; background: transparent;
+      color: var(--cinza); cursor: pointer; display: grid; place-items: center; font-size: 1.1rem;
+    }
+    .ver-senha:hover { color: var(--texto); background: rgba(255,255,255,0.06); }
+    .ver-senha:focus-visible { outline: 2px solid var(--cor, var(--verde, #44d883)); outline-offset: 1px; color: var(--texto); }
+    .campo-senha input::-ms-reveal, .campo-senha input::-ms-clear { display: none; } /* Edge: evita 2 olhos */
+  </style>
+</head>
+<body>
+
+<main class="login-wrap">
+  <div class="logo">
+    <img src="/images/if-logo.png" width="30" height="30" alt="Instituto Federal" style="object-fit:contain;display:block" />
+    <span>IF<span style="color:var(--verde)">Plenus</span></span>
+  </div>
+  <div class="admin-badge"><i data-lucide="lock"></i> Área Administrativa</div>
+
+  <div class="login-box">
+    <h1 class="login-title" id="titulo">Cadastrar sua senha</h1>
+    <p class="login-sub" id="sub">Validando link…</p>
+
+    <div class="etapa" id="etapaForm">
+      <div class="email-fixo"><span id="emailMostrado"></span></div>
+      <div class="field">
+        <label for="senha">Nova senha</label>
+        <div class="campo-senha">
+          <input type="password" id="senha" placeholder="Mínimo 8 caracteres" autocomplete="new-password" />
+          <button type="button" class="ver-senha" aria-controls="senha" aria-pressed="false" aria-label="Mostrar senha" title="Mostrar senha"><i data-lucide="eye"></i></button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="confirmar">Confirmar senha</label>
+        <div class="campo-senha">
+          <input type="password" id="confirmar" placeholder="Repita a senha" autocomplete="new-password" />
+          <button type="button" class="ver-senha" aria-controls="confirmar" aria-pressed="false" aria-label="Mostrar senha" title="Mostrar senha"><i data-lucide="eye"></i></button>
+        </div>
+      </div>
+      <button class="btn-login" id="btnSalvar">Salvar senha e entrar</button>
+    </div>
+
+    <div class="etapa" id="etapaInvalido">
+      <div class="info-msg" style="background:rgba(255,107,107,0.1);border-color:rgba(255,107,107,0.4);color:#ffc9c9;">
+        Este link é inválido, já foi usado ou expirou (validade de 48 horas).<br><br>
+        Volte à tela de login e digite seu e-mail novamente para receber um novo link.
+      </div>
+      <a class="btn-login" href="/login?admin" style="display:block;text-align:center;text-decoration:none;margin-top:1rem;">Ir para o login</a>
+    </div>
+
+    <div class="erro-msg" id="erroMsg"></div>
+  </div>
+
+  <a class="back-link" href="/login?admin"><i data-lucide="arrow-left"></i> Voltar ao login</a>
+</main>
+
+<script>
+
+  // ── Mostrar / ocultar senha ───────────────────────────────────
+  function configurarVerSenha() {
+    document.querySelectorAll('.ver-senha').forEach(function (btn) {
+      if (btn.dataset.pronto) return;
+      btn.dataset.pronto = '1';
+      btn.addEventListener('click', function () {
+        var input = document.getElementById(btn.getAttribute('aria-controls'));
+        var mostrar = input.type === 'password';
+        input.type = mostrar ? 'text' : 'password';
+        btn.setAttribute('aria-pressed', mostrar ? 'true' : 'false');
+        btn.setAttribute('aria-label', mostrar ? 'Ocultar senha' : 'Mostrar senha');
+        btn.title = mostrar ? 'Ocultar senha' : 'Mostrar senha';
+        btn.innerHTML = '<i data-lucide="' + (mostrar ? 'eye-off' : 'eye') + '"></i>';
+      });
+    });
+  }
+  // Volta a esconder (ex.: ao trocar de etapa ou depois de enviar)
+  function esconderSenhas() {
+    document.querySelectorAll('.ver-senha[aria-pressed="true"]').forEach(function (b) { b.click(); });
+  }
+  configurarVerSenha();
+  const $ = (id) => document.getElementById(id);
+  const token = new URLSearchParams(location.search).get('token') || '';
+  const SENHA_MIN = 8;
+
+  function mostrarErro(msg) { $('erroMsg').textContent = msg; $('erroMsg').style.display = 'block'; }
+  function mostrar(id) { document.querySelectorAll('.etapa').forEach((e) => e.classList.remove('ativa')); $(id).classList.add('ativa'); }
+
+  (async () => {
+    if (!token) { $('sub').textContent = 'Link inválido'; mostrar('etapaInvalido'); return; }
+    try {
+      const res = await fetch(`/api/admin/senha/token/${encodeURIComponent(token)}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.valido) { $('sub').textContent = 'Link inválido'; mostrar('etapaInvalido'); return; }
+
+      const primeiroNome = String(data.nome || '').split(' ')[0];
+      $('titulo').textContent = data.redefinir ? 'Redefinir sua senha' : 'Cadastrar sua senha';
+      $('sub').textContent = `Olá, ${primeiroNome}! Crie a senha que você usará para entrar no painel.`;
+      $('emailMostrado').textContent = data.email;
+      mostrar('etapaForm');
+      $('senha').focus();
+    } catch (e) {
+      $('sub').textContent = '';
+      mostrarErro('Erro de conexão. Recarregue a página.');
+    }
+  })();
+
+  async function salvar() {
+    const senha = $('senha').value;
+    const confirmar = $('confirmar').value;
+    $('erroMsg').style.display = 'none';
+
+    if (senha.length < SENHA_MIN) { mostrarErro(`A senha precisa ter pelo menos ${SENHA_MIN} caracteres.`); return; }
+    if (senha !== confirmar) { mostrarErro('As senhas não coincidem.'); return; }
+
+    const btn = $('btnSalvar');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    try {
+      const res = await fetch('/api/admin/senha/definir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ token, senha }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.sucesso) { window.location.href = '/admin'; return; }
+      mostrarErro(data.erro || 'Não foi possível salvar a senha.');
+    } catch (e) {
+      mostrarErro('Erro de conexão. Verifique sua internet.');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Salvar senha e entrar';
+    }
+  }
+
+  $('btnSalvar').addEventListener('click', salvar);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && $('etapaForm').classList.contains('ativa')) salvar(); });
+</script>
+<!-- Ícones (Lucide) -->
+<script src="/lucide.min.js"></script>
+<script>
+  (function () {
+    let agendado = false;
+    const desenhar = () => {
+      if (!window.lucide || agendado) return;
+      agendado = true;
+      requestAnimationFrame(() => { agendado = false; window.lucide.createIcons(); });
+    };
+    const iniciar = () => {
+      desenhar();
+      new MutationObserver(desenhar).observe(document.body, { childList: true, subtree: true });
+    };
+    // Espera o script do CDN carregar (defensivo: funciona mesmo se o
+    // <script> do Lucide ainda não tiver executado quando este rodar).
+    if (window.lucide) iniciar();
+    else {
+      const t = setInterval(() => { if (window.lucide) { clearInterval(t); iniciar(); } }, 50);
+      setTimeout(() => clearInterval(t), 8000);
+    }
+  })();
+</script>
+</body>
+</html>

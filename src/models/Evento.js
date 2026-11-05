@@ -16,6 +16,10 @@ const eventoSchema = new mongoose.Schema(
     local: { type: String, default: '' },
     campus: { type: String, default: '' },
     link_suap: { type: String, default: null },
+
+    // Quem cadastrou no painel (professor só gerencia o que é dele)
+    criadoPor: { type: String, default: null },       // id da conta Admin
+    criadoPorEmail: { type: String, default: '', lowercase: true, trim: true },
   },
   { timestamps: true }
 );

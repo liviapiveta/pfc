@@ -17,6 +17,16 @@ const SUAP_BASE = SUAP_BASE_URL.endsWith('/')
   ? SUAP_BASE_URL
   : SUAP_BASE_URL + '/';
 
+// O SUAP (nginx/WAF) bloqueia com 403 requisições que se identificam
+// como "axios/x.y". Enviamos cabeçalhos de navegador em TODAS as chamadas.
+const HEADERS_NAVEGADOR = {
+  'User-Agent':
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+  Accept: 'application/json, text/plain, */*',
+  'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+};
+Object.assign(axios.defaults.headers.common, HEADERS_NAVEGADOR);
+
 /**
  * Cliente axios autenticado.
  * IMPORTANTE: todos os paths passados para .get()/.post() devem ser
@@ -35,17 +45,19 @@ const suapClient = (token) =>
 // ── AUTH ──────────────────────────────────────────────────────
 
 const autenticar = async (matricula, senha) => {
+  // timeout: sem ele, um SUAP travado deixava o login "Autenticando…" até a
+  // Vercel derrubar a função
   const { data } = await axios.post(`${SUAP_BASE}token/pair`, {
     username: matricula,
     password: senha,
-  });
+  }, { timeout: 15000 });
   return { access: data.access, refresh: data.refresh };
 };
 
 const refreshToken = async (refresh) => {
   const { data } = await axios.post(`${SUAP_BASE}token/refresh`, {
     refresh,
-  });
+  }, { timeout: 10000 });
   return data.access;
 };
 
