@@ -151,7 +151,7 @@ const criarConquista = async (req, res) => {
   try {
     const { nome, pontos, origem } = req.body;
 
-    if (!nome || !nome.trim()) {
+    if (!nome || !String(nome).trim()) {
       return res.status(400).json({ erro: 'O nome da conquista é obrigatório' });
     }
     if (!pontosValidos(pontos)) {

@@ -32,8 +32,23 @@ const comLinkSeguro = (body = {}) => {
 
 const normEmail = (e) => String(e || '').trim().toLowerCase();
 
-const baseUrl = (req) =>
-  (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
+/**
+ * Endereço do site usado nos links dos e-mails.
+ * NUNCA usa o cabeçalho Host da requisição em produção: quem faz o pedido
+ * controla esse cabeçalho, e poderia fazer o e-mail "Redefinir senha"
+ * (verdadeiro, enviado pelo IFPlenus) apontar para um site falso e roubar o token.
+ * Ordem: 1º endereço de APP_URL → domínio de produção da Vercel → (só em
+ * desenvolvimento) o host da requisição.
+ */
+const baseUrl = (req) => {
+  const doEnv = String(process.env.APP_URL || '').split(',')[0].trim();
+  if (doEnv) return doEnv.replace(/\/+$/, '');
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('APP_URL não configurado — defina o endereço do site nas variáveis de ambiente');
+  }
+  return `${req.protocol}://${req.get('host')}`;
+};
 
 /** Gera token, salva e envia o e-mail "Cadastrar/Redefinir senha" */
 const enviarLinkParaConta = async (req, conta, { forcar = false } = {}) => {
@@ -417,8 +432,11 @@ const criarProjeto = async (req, res) => {
     if (tipo !== 'pesquisa' && tipo !== 'extensao') {
       return res.status(400).json({ erro: 'Tipo de projeto inválido' });
     }
-    if (!titulo || !titulo.trim()) {
+    if (!titulo || !String(titulo).trim()) {
       return res.status(400).json({ erro: 'O título é obrigatório' });
+    }
+    if (req.body.dt_inicio && req.body.dt_final && String(req.body.dt_final) < String(req.body.dt_inicio)) {
+      return res.status(400).json({ erro: 'A data final não pode ser antes da data de início' });
     }
 
     const proj = await Projeto.create(comLinkSeguro(req.body));
@@ -492,11 +510,14 @@ const getEvento = async (req, res) => {
 const criarEvento = async (req, res) => {
   try {
     const { nome, data_inicio } = req.body;
-    if (!nome || !nome.trim()) {
+    if (!nome || !String(nome).trim()) {
       return res.status(400).json({ erro: 'O nome do evento é obrigatório' });
     }
     if (!data_inicio) {
       return res.status(400).json({ erro: 'A data de início é obrigatória' });
+    }
+    if (req.body.data_fim && String(req.body.data_fim) < String(data_inicio)) {
+      return res.status(400).json({ erro: 'A data de fim não pode ser antes da data de início' });
     }
     const ev = await Evento.create(comLinkSeguro(req.body));
     return res.status(201).json(ev);

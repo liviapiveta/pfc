@@ -63,7 +63,7 @@
     }
 
     .sidebar-logo h1 span { color: var(--verde); }
-    .sidebar-logo p { font-size: 0.7rem; color: rgba(255,255,255,0.35); margin-top: 0.2rem; }
+    .sidebar-logo p { font-size: 0.7rem; color: rgba(255,255,255,0.62); margin-top: 0.2rem; }
 
     .admin-pill {
       margin: 0.75rem 1.5rem;
@@ -123,7 +123,7 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      color: rgba(255,255,255,0.4);
+      color: rgba(255,255,255,0.68);
       font-size: 0.82rem;
       cursor: pointer;
       transition: color 0.15s;
@@ -853,10 +853,10 @@
         </p>
         <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;">
           <div class="field" style="flex:1;min-width:200px;margin:0;">
-            <input type="search" id="buscaContas" placeholder="Buscar por nome, e-mail ou área…" oninput="filtrarContas()" />
+            <input type="search" id="buscaContas" aria-label="Buscar contas" placeholder="Buscar por nome, e-mail ou área…" oninput="filtrarContas()" />
           </div>
           <div class="field" style="margin:0;">
-            <select id="filtroCargoContas" onchange="filtrarContas()">
+            <select id="filtroCargoContas" aria-label="Filtrar por cargo" onchange="filtrarContas()">
               <option value="">Todos os cargos</option>
               <option value="professor">Docentes</option>
               <option value="substituto">Substitutos</option>
@@ -1258,7 +1258,7 @@ const renderTabelaSolicitacoes = (dados) => {
       <td data-label="Status">${badge(s.status)}</td>
       <td data-label="Ações" class="td-acoes">
         ${s.status !== 'aceito'   ? `<button class="btn-edit" onclick="decidirSolicitacao('${s._id}','aceito')"><i data-lucide="check"></i> Aceitar</button>` : ''}
-        ${s.status !== 'recusado' ? `<button class="btn-del" onclick="decidirSolicitacao('${s._id}','recusado')"><i data-lucide="x"></i> Recusar</button>` : ''}
+        ${s.status !== 'recusado' ? `<button class="btn-del" onclick="decidirSolicitacao('${s._id}','recusado', ${s.status === 'aceito'})"><i data-lucide="x"></i> Recusar</button>` : ''}
       </td>
     </tr>`).join('');
 
@@ -1272,7 +1272,10 @@ const renderTabelaSolicitacoes = (dados) => {
   </div>`;
 };
 
-const decidirSolicitacao = async (id, status) => {
+const decidirSolicitacao = async (id, status, eraAceita = false) => {
+  // Recusar uma participação JÁ aceita pode tirar conquistas (e pontos) do aluno
+  if (eraAceita && status === 'recusado' &&
+      !confirm('Esta participação já foi aceita. Recusar agora pode remover conquistas e pontos que o aluno ganhou por ela. Continuar?')) return;
   try {
     await apiJSON(`/api/admin/solicitacoes/${id}`, {
       method: 'PUT',
@@ -1541,6 +1544,8 @@ const salvarItem = async () => {
         link_suap:    document.getElementById('f_link').value.trim() || null,
       };
       if (!body.nome || !body.data_inicio) { mostrarToast('Preencha os campos obrigatórios.', 'erro'); return; }
+      if (body.data_fim && body.data_fim < body.data_inicio) { mostrarToast('A data de fim não pode ser antes da data de início.', 'erro'); return; }
+      if (body.link_suap && !urlSegura(body.link_suap)) { mostrarToast('O link precisa começar com http:// ou https://', 'erro'); return; }
     } else {
       body = {
         titulo:             document.getElementById('f_titulo').value.trim(),
@@ -1555,6 +1560,8 @@ const salvarItem = async () => {
         tipo,
       };
       if (!body.titulo) { mostrarToast('O título é obrigatório.', 'erro'); return; }
+      if (body.dt_inicio && body.dt_final && body.dt_final < body.dt_inicio) { mostrarToast('A data final não pode ser antes da data de início.', 'erro'); return; }
+      if (body.link_suap && !urlSegura(body.link_suap)) { mostrarToast('O link precisa começar com http:// ou https://', 'erro'); return; }
     }
 
     const isEdit = !!state.editandoId;
@@ -2076,7 +2083,8 @@ const abrirConceder = (id) => {
 // Logout
 // ─────────────────────────────────────────────────────
 const fazerLogout = async () => {
-  await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' });
+  try { await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' }); }
+  catch (e) { /* sai mesmo sem resposta */ }
   window.location.href = '/login?admin';
 };
 </script>

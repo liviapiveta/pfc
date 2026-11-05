@@ -41,31 +41,111 @@ const linkProjetoSuap = (p, tipo) => {
   return null;
 };
 
-// ── Tema (claro / escuro) ──────────────────────────────────────
-const THEME_KEY = 'ifplenus-tema';
+// ── Aparência e acessibilidade ─────────────────────────────────
+// Tudo fica salvo SÓ neste navegador (localStorage). Quem nunca mexeu
+// sempre entra no tema escuro. (O head do index.html aplica estas mesmas
+// preferências antes da página aparecer, para não "piscar" outro tema.)
+const ACESS_KEY = 'ifplenus-acess';
+const TEMAS = [
+  { id: 'dark',      nome: 'Escuro',              desc: 'Padrão do IFPlenus', cores: ['#1b1b1f', '#26262b', '#44d883'] },
+  { id: 'light',     nome: 'Claro',               desc: 'Fundo claro',        cores: ['#f3f8f4', '#fbfdfb', '#198754'] },
+  { id: 'hc-escuro', nome: 'Alto contraste escuro', desc: 'Preto, branco e amarelo', cores: ['#000000', '#ffffff', '#ffe500'] },
+  { id: 'hc-claro',  nome: 'Alto contraste claro',  desc: 'Branco, preto e azul',    cores: ['#ffffff', '#000000', '#0033a0'] },
+  { id: 'daltonico', nome: 'Daltonismo',          desc: 'Azul e laranja no lugar de verde e vermelho', cores: ['#1b1b1f', '#56b4e9', '#e69f00'] },
+];
+const ACESS_PADRAO = { tema: 'dark', texto: 'normal', fonte: false, espaco: false, links: false, movimento: false };
 
-const getTema = () => document.documentElement.getAttribute('data-theme') || 'dark';
-
-const aplicarTema = (tema, persistir = true) => {
-  const t = tema === 'light' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', t);
-
-  // Atualiza o controle segmentado, se estiver na tela
-  document.querySelectorAll('.seg-option').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tema === t);
-  });
-
-  if (persistir) {
-    try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* ignore */ }
-    // Sincroniza com o servidor (melhor esforço; não bloqueia a UI)
-    fetch('/api/preferencias', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ temaEscuro: t === 'dark' }),
-    }).catch(() => {});
-  }
+const lerAcess = () => {
+  try { return { ...ACESS_PADRAO, ...(JSON.parse(localStorage.getItem(ACESS_KEY) || '{}') || {}) }; }
+  catch (e) { return { ...ACESS_PADRAO }; }
 };
+
+const aplicarAcess = (p) => {
+  const d = document.documentElement;
+  d.setAttribute('data-theme', TEMAS.some(t => t.id === p.tema) ? p.tema : 'dark');
+  const attr = (nome, valor) => valor ? d.setAttribute(nome, valor) : d.removeAttribute(nome);
+  attr('data-texto', p.texto !== 'normal' ? p.texto : null);
+  attr('data-fonte', p.fonte ? 'legivel' : null);
+  attr('data-espaco', p.espaco ? 'amplo' : null);
+  attr('data-links', p.links ? 'destaque' : null);
+  attr('data-movimento', p.movimento ? 'reduzido' : null);
+  if (p.fonte && !document.getElementById('fonteLegivel')) {
+    const l = document.createElement('link');
+    l.id = 'fonteLegivel'; l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap';
+    document.head.appendChild(l);
+  }
+  // Atualiza os controles do painel, se estiver aberto
+  document.querySelectorAll('[data-acess-tema]').forEach(b => {
+    const ativo = b.dataset.acessTema === p.tema;
+    b.classList.toggle('active', ativo); b.setAttribute('aria-checked', ativo);
+  });
+  document.querySelectorAll('[data-acess-texto]').forEach(b => {
+    const ativo = b.dataset.acessTexto === p.texto;
+    b.classList.toggle('active', ativo); b.setAttribute('aria-checked', ativo);
+  });
+  ['fonte', 'espaco', 'links', 'movimento'].forEach(k => {
+    const el = document.getElementById(`acess-${k}`);
+    if (el) el.checked = !!p[k];
+  });
+};
+
+const definirAcess = (chave, valor) => {
+  const p = { ...lerAcess(), [chave]: valor };
+  try { localStorage.setItem(ACESS_KEY, JSON.stringify(p)); } catch (e) { /* modo privado */ }
+  aplicarAcess(p);
+};
+
+const restaurarAcess = () => {
+  try { localStorage.removeItem(ACESS_KEY); } catch (e) { /* ignore */ }
+  aplicarAcess({ ...ACESS_PADRAO });
+  aviso('Aparência restaurada para o padrão.', 'ok');
+};
+
+const painelAcessibilidade = () => {
+  const p = lerAcess();
+  const temas = TEMAS.map(t => `
+    <button type="button" class="acess-tema ${p.tema === t.id ? 'active' : ''}" role="radio" aria-checked="${p.tema === t.id}"
+            data-acess-tema="${t.id}" onclick="definirAcess('tema','${t.id}')">
+      <span class="acess-amostra" aria-hidden="true">${t.cores.map(c => `<span style="background:${c}"></span>`).join('')}</span>
+      <span class="acess-tema-nome">${t.nome}</span>
+      <span class="acess-tema-desc">${t.desc}</span>
+    </button>`).join('');
+  const tamanhos = [['normal', 'A', 'Normal'], ['grande', 'A', 'Grande'], ['muito-grande', 'A', 'Muito grande']]
+    .map(([id, letra, rotulo], i) => `
+      <button type="button" class="seg-option ${p.texto === id ? 'active' : ''}" role="radio" aria-checked="${p.texto === id}"
+              data-acess-texto="${id}" onclick="definirAcess('texto','${id}')" aria-label="Texto ${rotulo}">
+        <span style="font-size:${0.85 + i * 0.18}rem;font-weight:700">${letra}</span> ${rotulo}
+      </button>`).join('');
+  const chave = (id, titulo, desc) => `
+    <label class="acess-chave" for="acess-${id}">
+      <span><strong>${titulo}</strong><small>${desc}</small></span>
+      <input type="checkbox" id="acess-${id}" role="switch" ${p[id] ? 'checked' : ''} onchange="definirAcess('${id}', this.checked)" />
+      <span class="acess-switch" aria-hidden="true"></span>
+    </label>`;
+  return `
+    <div class="config-secao">
+      <div class="config-secao-titulo"><i data-lucide="palette"></i> Tema</div>
+      <div class="acess-temas" role="radiogroup" aria-label="Tema">${temas}</div>
+    </div>
+    <div class="config-secao">
+      <div class="config-secao-titulo"><i data-lucide="accessibility"></i> Acessibilidade</div>
+      <div class="config-bloco acess-bloco">
+        <div class="acess-linha">
+          <strong>Tamanho do texto</strong>
+          <div class="seg-toggle" role="radiogroup" aria-label="Tamanho do texto">${tamanhos}</div>
+        </div>
+        ${chave('fonte', 'Fonte de leitura fácil', 'Atkinson Hyperlegible: criada pelo Braille Institute para baixa visão, com letras fáceis de distinguir.')}
+        ${chave('espaco', 'Espaçamento de texto maior', 'Mais espaço entre linhas, letras e palavras.')}
+        ${chave('links', 'Destacar links e botões', 'Sublinha os links e contorna tudo o que é clicável.')}
+        ${chave('movimento', 'Reduzir animações', 'Desliga transições e efeitos de movimento.')}
+        <button type="button" class="acess-restaurar" onclick="restaurarAcess()"><i data-lucide="rotate-ccw"></i> Restaurar padrão</button>
+      </div>
+    </div>`;
+};
+
+// Aplica já ao carregar (garante os controles sincronizados com o head)
+aplicarAcess(lerAcess());
 
 // ── Utilidades ─────────────────────────────────────────────────
 const api = async (url) => {
@@ -209,14 +289,6 @@ document.querySelectorAll('[data-skel]').forEach(el => { el.innerHTML = esquelet
     if (!me) return;
     state.usuario = me;
 
-    // Tema: localStorage tem prioridade; se não houver, usa a preferência salva no servidor
-    try {
-      const salvoLocal = localStorage.getItem(THEME_KEY);
-      if (!salvoLocal && me.preferencias && typeof me.preferencias.temaEscuro === 'boolean') {
-        aplicarTema(me.preferencias.temaEscuro ? 'dark' : 'light', false);
-      }
-    } catch (e) { /* ignore */ }
-
     document.getElementById('userAvatar').textContent = (me.nome || 'A')[0].toUpperCase();
     document.getElementById('userName').textContent   = me.nome;
     document.getElementById('userMat').textContent    = me.matricula;
@@ -309,7 +381,6 @@ const carregarDados = async () => {
     const vinculo = d.vinculo || {};
     const inicial = (d.nome_usual || d.nome || 'A')[0].toUpperCase();
     const primeiroNome = String(d.nome_usual || d.nome || 'Aluno').trim().split(/\s+/)[0];
-    const temaAtual = getTema();
 
     // Mostra o campus do aluno logado ao lado da logo (barra lateral)
     const campusRaw = String(vinculo.campus || d.campus || '').trim();
@@ -330,23 +401,7 @@ const carregarDados = async () => {
         </div>
       </div>
 
-      <div class="config-secao">
-        <div class="config-secao-titulo"><i data-lucide="palette"></i> Aparência</div>
-        <div class="config-bloco">
-          <div class="pref-row">
-            <div class="pref-text">
-              <h4>Tema</h4>
-              <p>Escolha entre o tema claro e o escuro.</p>
-            </div>
-            <div class="seg-toggle" role="group" aria-label="Tema">
-              <button type="button" class="seg-option ${temaAtual === 'light' ? 'active' : ''}"
-                      data-tema="light" onclick="aplicarTema('light')"><i data-lucide="sun"></i> Claro</button>
-              <button type="button" class="seg-option ${temaAtual === 'dark' ? 'active' : ''}"
-                      data-tema="dark" onclick="aplicarTema('dark')"><i data-lucide="moon"></i> Escuro</button>
-            </div>
-          </div>
-        </div>
-      </div>
+      ${painelAcessibilidade()}
 
       <div class="config-secao">
         <div class="config-secao-titulo"><i data-lucide="graduation-cap"></i> Dados acadêmicos</div>
