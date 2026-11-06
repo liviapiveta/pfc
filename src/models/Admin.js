@@ -33,6 +33,10 @@ const adminSchema = new mongoose.Schema(
     tokenSenhaExpira: { type: Date, default: null },
     ultimoEnvioEmail: { type: Date, default: null },
 
+    // Quando a pessoa abriu cada aba do painel pela última vez
+    // (para os marcadores de "novidade" no menu). Ex.: { presencas: Date }
+    vistoEm: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
+
     // Proteção contra força bruta: 5 senhas erradas → bloqueia 15 min
     tentativasFalhas: { type: Number, default: 0 },
     bloqueadoAte: { type: Date, default: null },

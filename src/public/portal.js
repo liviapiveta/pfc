@@ -364,6 +364,42 @@ menuToggleEl?.addEventListener('click', () => {
 });
 sidebarOverlayEl?.addEventListener('click', fecharSidebar);
 
+
+// ── Card "Como funciona" (um por aba) ──────────────────────────
+// Texto curto para quem está usando pela primeira vez. "Entendi" recolhe
+// o card (fica salvo neste navegador) e sobra só um botão "Como funciona?".
+const INFO_ABAS = {
+  dashboard: { ic: 'layout-dashboard', titulo: 'Seu resumo', texto: 'Aqui você vê de relance seus <strong>pontos</strong>, seu <strong>nível</strong>, sua posição no ranking e os eventos. Você ganha pontos com conquistas: participando de projetos, indo a eventos e tirando boas notas.' },
+  projetos: { ic: 'folder-open', titulo: 'Como entrar num projeto', texto: 'Escolha <strong>Pesquisa</strong> ou <strong>Extensão</strong>, encontre um projeto e clique em <strong>“+ Fazer parte”</strong>. O professor responsável aceita ou recusa — você é avisado aqui e por e-mail. Ser aceito vale pontos.' },
+  eventos: { ic: 'ticket', titulo: 'Como validar sua presença', texto: 'Foi a um evento? Clique em <strong>“Validar participação”</strong> e envie o <strong>certificado</strong> ou o <strong>QR Code do seu e-mail de inscrição</strong>. Presença validada vale pontos e entra na sua trajetória.' },
+  conquistas: { ic: 'trophy', titulo: 'Como funcionam as conquistas', texto: 'Cada conquista vale pontos. Algumas chegam <strong>sozinhas</strong> (notas, projetos, eventos) e outras são dadas por um <strong>professor</strong>. As que você ainda não tem mostram como ganhar.' },
+  ranking: { ic: 'trending-up', titulo: 'Como o ranking funciona', texto: 'Os alunos ficam em ordem de <strong>pontos</strong>. No empate, fica na frente quem chegou primeiro àquele total. Em <strong>Configurações</strong> você escolhe aparecer com nome, como anônimo ou ficar oculto.' },
+  trajetoria: { ic: 'route', titulo: 'Sua história no campus', texto: 'Tudo o que você conquistou aqui fica registrado: <strong>conquistas</strong>, <strong>projetos</strong> e <strong>eventos</strong>, do mais recente ao mais antigo. Dá para imprimir e usar no currículo.' },
+};
+const _infoOcultos = () => { try { return JSON.parse(localStorage.getItem('ifplenus-info-ocultos') || '[]'); } catch (e) { return []; } };
+const cardInfo = (aba) => {
+  const i = INFO_ABAS[aba];
+  if (!i) return '';
+  const fechado = _infoOcultos().includes(aba);
+  return `<div class="info-aba ${fechado ? 'fechado' : ''}" data-info="${aba}">
+    <button type="button" class="info-reabrir" onclick="alternarInfo('${aba}', false)" aria-expanded="false"><i data-lucide="help-circle"></i> Como funciona esta página?</button>
+    <div class="info-card" role="note">
+      <span class="info-ic"><i data-lucide="${i.ic}"></i></span>
+      <div class="info-txt"><strong class="info-titulo">${i.titulo}</strong><p>${i.texto}</p></div>
+      <button type="button" class="info-ok" onclick="alternarInfo('${aba}', true)">Entendi</button>
+    </div>
+  </div>`;
+};
+const alternarInfo = (aba, fechar) => {
+  try {
+    const set = new Set(_infoOcultos());
+    fechar ? set.add(aba) : set.delete(aba);
+    localStorage.setItem('ifplenus-info-ocultos', JSON.stringify([...set]));
+  } catch (e) { /* sem armazenamento: só recolhe nesta visita */ }
+  document.querySelectorAll(`.info-aba[data-info="${aba}"]`).forEach(c => c.classList.toggle('fechado', fechar));
+  if (!fechar) document.querySelector(`.info-aba[data-info="${aba}"] .info-ok`)?.focus();
+};
+
 // ── Navegação ──────────────────────────────────────────────────
 // Menu acessível pelo teclado: os itens são <div>, então ganham papel de
 // botão, Tab e Enter/Espaço (antes só funcionavam com o mouse/toque)
@@ -565,6 +601,7 @@ const renderProjetosShell = () => {
   const aba = (area, label) =>
     `<button class="${state.projArea === area ? 'ativo' : ''}" onclick="trocarAreaProjetos('${area}')">${label}</button>`;
   el.innerHTML = `
+    ${cardInfo('projetos')}
     <div class="proj-area-tabs">
       ${aba('pesquisa', 'Pesquisa')}
       ${aba('extensao', 'Extensão')}
@@ -613,12 +650,13 @@ const renderAreaProjetos = async (area) => {
 
     const adminCards = (Array.isArray(internos) && internos.length)
       ? internos.map(p => renderProjetoInterno(p, area, meta.class, meta.label)).join('')
-      : `<div class="proj-vazio">Nenhum projeto adicionado pela administração ainda.</div>`;
+      : `<div class="proj-vazio">Nenhum projeto cadastrado pelo campus ainda.</div>`;
 
-    // Situações existentes (para o filtro)
-    const situacoes = [...new Set([...(Array.isArray(suap) ? suap : []), ...(Array.isArray(internos) ? internos : [])]
-      .map(p => String(p.situacao || '').trim()).filter(Boolean))].sort();
     const f = state.projFiltro || {};
+    const nSuap = Array.isArray(suap) ? suap.length : 0;
+    const nAdmin = Array.isArray(internos) ? internos.length : 0;
+    const abaFonte = (v, rot, ic, n) =>
+      `<button type="button" role="tab" class="ev-filtro ${(f.fonte || '') === v ? 'ativo' : ''}" aria-selected="${(f.fonte || '') === v}" data-fonte-aba="${v}" onclick="trocarFonteProjetos('${v}')">${ic ? `<i data-lucide="${ic}"></i>` : ''}${rot}<span>${n}</span></button>`;
 
     cont.innerHTML = `
       <div class="proj-filtros" role="search">
@@ -627,26 +665,22 @@ const renderAreaProjetos = async (area) => {
           <span class="sr-only">Buscar projetos</span>
           <input type="search" id="projBusca" placeholder="Buscar por título, coordenador ou assunto…" value="${esc(f.texto || '')}" oninput="filtrarProjetos()" />
         </label>
-        <select id="projSituacao" onchange="filtrarProjetos()" aria-label="Filtrar por situação">
-          <option value="">Todas as situações</option>
-          ${situacoes.map(sit => `<option value="${esc(normalizarTexto(sit))}" ${f.situacao === normalizarTexto(sit) ? 'selected' : ''}>${esc(sit)}</option>`).join('')}
-        </select>
-        <select id="projFonte" onchange="filtrarProjetos()" aria-label="Filtrar por origem">
-          <option value="">Sistema e Admin</option>
-          <option value="suap" ${f.fonte === 'suap' ? 'selected' : ''}>Só do Sistema (SUAP)</option>
-          <option value="admin" ${f.fonte === 'admin' ? 'selected' : ''}>Só do Admin</option>
-        </select>
         <span class="proj-contagem" id="projContagem" aria-live="polite"></span>
       </div>
+      <div class="ev-filtros proj-fontes" role="tablist" aria-label="De onde vêm os projetos">
+        ${abaFonte('', 'Todos', '', nSuap + nAdmin)}
+        ${abaFonte('suap', 'SUAP', 'server', nSuap)}
+        ${abaFonte('admin', 'Do campus', 'user-cog', nAdmin)}
+      </div>
       <div class="proj-fonte" data-fonte="suap">
-        <div class="proj-fonte-titulo"><i data-lucide="server"></i> Projetos do Sistema</div>
+        <div class="proj-fonte-titulo"><i data-lucide="server"></i> Projetos do SUAP</div>
         <div class="proj-lista">${suapCards}</div>
-        <div class="proj-vazio proj-sem-resultado" hidden>Nenhum projeto do sistema com esses filtros.</div>
+        <div class="proj-vazio proj-sem-resultado" hidden>Nenhum projeto do SUAP com essa busca.</div>
       </div>
       <div class="proj-fonte" data-fonte="admin">
-        <div class="proj-fonte-titulo"><i data-lucide="user-cog"></i> Projetos Adicionados pelo Admin</div>
+        <div class="proj-fonte-titulo"><i data-lucide="user-cog"></i> Projetos do campus (cadastrados no painel)</div>
         <div class="proj-lista">${adminCards}</div>
-        <div class="proj-vazio proj-sem-resultado" hidden>Nenhum projeto do admin com esses filtros.</div>
+        <div class="proj-vazio proj-sem-resultado" hidden>Nenhum projeto do campus com essa busca.</div>
       </div>`;
     filtrarProjetos();
   } catch (e) {
@@ -656,14 +690,24 @@ const renderAreaProjetos = async (area) => {
 };
 
 // ── Busca e filtros dos projetos (no próprio navegador, sem nova consulta) ──
-const atributosFiltro = (titulo, coord, resumo, situacao) =>
-  `data-busca="${esc(normalizarTexto([titulo, coord, resumo].filter(Boolean).join(' ')))}" data-situacao="${esc(normalizarTexto(situacao || ''))}"`;
+const atributosFiltro = (titulo, coord, resumo) =>
+  `data-busca="${esc(normalizarTexto([titulo, coord, resumo].filter(Boolean).join(' ')))}"`;
+
+// Abas "Todos / Do SUAP / Do campus" (antes era um menu de seleção escondido)
+const trocarFonteProjetos = (fonte) => {
+  state.projFiltro = { ...(state.projFiltro || {}), fonte };
+  document.querySelectorAll('[data-fonte-aba]').forEach(b => {
+    const ativo = b.dataset.fonteAba === fonte;
+    b.classList.toggle('ativo', ativo);
+    b.setAttribute('aria-selected', String(ativo));
+  });
+  filtrarProjetos();
+};
 
 const filtrarProjetos = () => {
   const texto = normalizarTexto(document.getElementById('projBusca')?.value || '').trim();
-  const situacao = document.getElementById('projSituacao')?.value || '';
-  const fonte = document.getElementById('projFonte')?.value || '';
-  state.projFiltro = { texto: document.getElementById('projBusca')?.value || '', situacao, fonte };
+  const fonte = state.projFiltro?.fonte || '';
+  state.projFiltro = { texto: document.getElementById('projBusca')?.value || '', fonte };
 
   let visiveis = 0, total = 0;
   document.querySelectorAll('#projetosArea .proj-fonte').forEach(grupo => {
@@ -674,8 +718,7 @@ const filtrarProjetos = () => {
     cards.forEach(card => {
       total++;
       const ok = mostrarGrupo &&
-        (!texto || texto.split(/\s+/).every(t => card.dataset.busca.includes(t))) &&
-        (!situacao || card.dataset.situacao === situacao);
+        (!texto || texto.split(/\s+/).every(t => card.dataset.busca.includes(t)));
       card.hidden = !ok;
       if (ok) { noGrupo++; visiveis++; }
     });
@@ -683,7 +726,7 @@ const filtrarProjetos = () => {
     if (vazio) vazio.hidden = !(cards.length && !noGrupo);
   });
   const cont = document.getElementById('projContagem');
-  if (cont) cont.textContent = (texto || situacao || fonte) ? `${visiveis} de ${total} projeto(s)` : '';
+  if (cont) cont.textContent = texto ? `${visiveis} de ${total} projeto(s)` : '';
 };
 
 // Card de um projeto vindo do SUAP (sistema).
@@ -694,7 +737,7 @@ const renderProjetoSuap = (p, area, meta) => {
     ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(titulo)}</a>`
     : esc(titulo);
   return `
-    <div class="projeto-card" ${atributosFiltro(titulo, p.nome_coordenador, p.resumo, p.situacao)}>
+    <div class="projeto-card" ${atributosFiltro(titulo, p.nome_coordenador, p.resumo)}>
       <span class="projeto-tipo ${meta.class}">${meta.label}</span>
       <div class="projeto-titulo">${tituloHtml}</div>
       <div class="projeto-detalhe">
@@ -732,7 +775,7 @@ const renderProjetoInterno = (p, area, tipoClass, tipoLabel) => {
     ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(titulo)}</a>`
     : esc(titulo);
   return `
-    <div class="projeto-card projeto-admin" ${atributosFiltro(titulo, p.coordenador, p.resumo, p.situacao)}>
+    <div class="projeto-card projeto-admin" ${atributosFiltro(titulo, p.coordenador, p.resumo)}>
       <span class="projeto-tipo ${tipoClass}">${tipoLabel} · Administração</span>
       <div class="projeto-titulo">${tituloHtml}</div>
       ${p.resumo ? `<p class="projeto-resumo">${esc(p.resumo)}</p>` : ''}
@@ -829,15 +872,9 @@ const resetarSolicitacaoSuap = async (suapId, area) => {
   }
 };
 // ── EVENTOS + validação de presença ────────────────────────────
-// Cada evento mostra como validar a presença: enviando o certificado
-// (PDF/foto → um professor aprova) e/ou lendo o QR Code do evento (na hora).
+// Cada evento mostra UMA ação; as formas de validar (certificado ou QR Code
+// do e-mail de inscrição) aparecem quando o aluno clica em "Validar".
 state.evFiltro = 'todos';
-
-const ROTULO_PRESENCA = {
-  aprovada: { txt: 'Presença validada', cls: 'ok', ic: 'badge-check' },
-  pendente: { txt: 'Em análise', cls: 'espera', ic: 'hourglass' },
-  recusada: { txt: 'Validação recusada', cls: 'recusada', ic: 'x-circle' },
-};
 
 const _dataEv = (ev) => dataLocal(ev.data_inicio || ev.data);
 const _evAberto = (ev) => !!(ev.chave && (ev.validacao?.certificado || ev.validacao?.qrcode));
@@ -853,21 +890,45 @@ const _periodoEv = (ev) => {
 const acaoEvento = (ev) => {
   const p = ev.minhaPresenca;
   const chave = esc(ev.chave || '');
-  if (p && ROTULO_PRESENCA[p.status]) {
-    const r = ROTULO_PRESENCA[p.status];
-    const extra = p.status === 'recusada'
-      ? `<button type="button" class="btn-validar secundario" onclick="abrirValidacao('${chave}')"><i data-lucide="upload"></i> Validar de novo</button>`
-      : p.status === 'pendente'
-      ? `<button type="button" class="btn-link-ev" onclick="abrirValidacao('${chave}')">Reenviar</button>`
-      : '';
-    return `<span class="ev-status ${r.cls}"><i data-lucide="${r.ic}"></i> ${r.txt} · ${p.metodo === 'qrcode' ? 'QR Code' : 'certificado'}</span>
-      ${p.status === 'recusada' && p.motivo ? `<small class="ev-motivo">Motivo: ${esc(p.motivo)}</small>` : ''}${extra}`;
+  if (p?.status === 'aprovada') {
+    return `<span class="ev-status ok"><i data-lucide="badge-check"></i> Presença validada</span>`;
+  }
+  if (p?.status === 'pendente') {
+    return `<span class="ev-status espera"><i data-lucide="hourglass"></i> Em análise</span>
+      <button type="button" class="btn-link-ev" onclick="abrirValidacao('${chave}')">Reenviar</button>`;
+  }
+  if (p?.status === 'recusada') {
+    return `<span class="ev-status recusada" ${p.motivo ? `title="${esc(p.motivo)}"` : ''}><i data-lucide="x-circle"></i> Recusada</span>
+      <button type="button" class="btn-validar secundario" onclick="abrirValidacao('${chave}')">Tentar de novo</button>
+      ${p.motivo ? `<small class="ev-motivo">Motivo: ${esc(p.motivo)}</small>` : ''}`;
   }
   if (!_evAberto(ev)) return '';
   if (!ev.jaComecou) return '<span class="ev-status futuro"><i data-lucide="clock"></i> Validação abre no dia do evento</span>';
-  const soQrEncerrado = ev.validacao.qrcode && !ev.validacao.certificado && !ev.qrNoPrazo;
-  if (soQrEncerrado) return '<span class="ev-status futuro"><i data-lucide="qr-code"></i> QR Code encerrado</span>';
+  if (ev.validacao.qrcode && !ev.validacao.certificado && !ev.qrNoPrazo) return '<span class="ev-status futuro">Prazo de validação encerrado</span>';
   return `<button type="button" class="btn-validar" onclick="abrirValidacao('${chave}')"><i data-lucide="badge-check"></i> Validar participação</button>`;
+};
+
+// Cartão limpo: data, nome, quando/onde e UMA ação. As formas de validar
+// (certificado/QR) aparecem só quando o aluno clica em "Validar".
+const cartaoEvento = (ev) => {
+  const dt = _dataEv(ev);
+  const nome = esc(ev.nome || ev.titulo || 'Evento');
+  const link = urlSegura(ev.link_suap);
+  const meta = [
+    `<span><i data-lucide="calendar"></i> ${esc(_periodoEv(ev))}</span>`,
+    (ev.local || ev.localizacao) ? `<span><i data-lucide="map-pin"></i> ${esc(ev.local || ev.localizacao)}</span>` : '',
+  ].join('');
+  const premio = ev.conquista
+    ? `<span class="evc-premio" title="Ao validar: ${esc(ev.conquista.nome)}"><i data-lucide="star"></i> +${Number(ev.conquista.pontos) || 0} pts</span>` : '';
+  const acao = acaoEvento(ev);
+  return `<article class="evc ${ev.minhaPresenca?.status === 'aprovada' ? 'feito' : ''}">
+    <div class="evc-data" aria-hidden="true"><span class="m">${dt ? MESES[dt.getMonth()] : ''}</span><span class="d">${dt ? dt.getDate() : '—'}</span></div>
+    <div class="evc-corpo">
+      <h4>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${nome}</a>` : nome}</h4>
+      <p class="evc-meta">${meta}${ev.origem === 'suap' ? '<span class="evc-fonte">SUAP</span>' : ''}</p>
+      ${acao || premio ? `<div class="evc-acao">${acao}${premio}</div>` : ''}
+    </div>
+  </article>`;
 };
 
 const renderEventos = () => {
@@ -883,53 +944,35 @@ const renderEventos = () => {
     const ini = _dataEv(ev), fim = fimEv(ev);
     return (ini && ini.getFullYear() >= anoAtual) || (fim && fim.getFullYear() >= anoAtual);
   });
+  const ehParaValidar = (ev) => _evAberto(ev) && ev.jaComecou &&
+    (!ev.minhaPresenca || ev.minhaPresenca.status === 'recusada') &&
+    (ev.validacao.certificado || ev.qrNoPrazo);
   const filtros = {
-    todos:     () => true,
-    proximos:  (ev) => (fimEv(ev) || 0) >= hoje,
-    passados:  (ev) => (fimEv(ev) || hoje) < hoje,
-    validar:   (ev) => _evAberto(ev) && ev.jaComecou && (!ev.minhaPresenca || ev.minhaPresenca.status === 'recusada'),
+    todos: () => true,
+    validar: ehParaValidar,
     validados: (ev) => ev.minhaPresenca?.status === 'aprovada',
   };
-  const lista = base.filter(filtros[state.evFiltro] || filtros.todos)
-    .sort((a, b) => (_dataEv(b) || 0) - (_dataEv(a) || 0));
+  if (!filtros[state.evFiltro]) state.evFiltro = 'todos';
   const conta = (k) => base.filter(filtros[k]).length;
+  const aba = (k, rot, ic) => `<button type="button" role="tab" class="ev-filtro ${state.evFiltro === k ? 'ativo' : ''}" aria-selected="${state.evFiltro === k}" onclick="filtrarEventos('${k}')">${ic ? `<i data-lucide="${ic}"></i>` : ''}${rot}<span>${conta(k)}</span></button>`;
 
-  const chip = (k, rot) => `<button type="button" class="ev-filtro ${state.evFiltro === k ? 'ativo' : ''}" aria-pressed="${state.evFiltro === k}" onclick="filtrarEventos('${k}')">${rot}<span>${conta(k)}</span></button>`;
-
-  const cards = lista.map(ev => {
-    const dt = _dataEv(ev);
-    const nome = esc(ev.nome || ev.titulo || 'Evento');
-    const link = urlSegura(ev.link_suap);
-    const metodos = [
-      ev.validacao?.certificado ? '<span class="ev-tag"><i data-lucide="file-text"></i> Certificado</span>' : '',
-      ev.validacao?.qrcode ? '<span class="ev-tag"><i data-lucide="qr-code"></i> QR da inscrição</span>' : '',
-      ev.conquista ? `<span class="ev-tag premio" title="Conquista ao validar">${esc(ev.conquista.icone)} ${esc(ev.conquista.nome)} · +${Number(ev.conquista.pontos) || 0}</span>` : '',
-      ev.origem === 'suap' ? '<span class="ev-tag suap">SUAP</span>' : '',
-    ].join('');
-    return `<div class="evento-item">
-      <div class="evento-data">
-        <div class="mes">${dt ? MESES[dt.getMonth()] : ''}</div>
-        <div class="dia">${dt ? dt.getDate() : '—'}</div>
-      </div>
-      <div class="evento-info">
-        <h4>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${nome}</a>` : nome}</h4>
-        <p>${esc([_periodoEv(ev), ev.local || ev.localizacao, ev.campus].filter(Boolean).join(' · '))}</p>
-        ${metodos ? `<div class="ev-tags">${metodos}</div>` : ''}
-        <div class="evento-acao">${acaoEvento(ev)}</div>
-      </div>
-    </div>`;
-  }).join('');
+  const lista = base.filter(filtros[state.evFiltro]);
+  const proximos = lista.filter(ev => (fimEv(ev) || 0) >= hoje).sort((a, b) => (_dataEv(a) || 0) - (_dataEv(b) || 0));
+  const passados = lista.filter(ev => (fimEv(ev) || hoje) < hoje).sort((a, b) => (_dataEv(b) || 0) - (_dataEv(a) || 0));
+  const grupo = (titulo, itens) => itens.length
+    ? `<h3 class="evc-grupo">${titulo} <span>${itens.length}</span></h3><div class="evc-lista">${itens.map(cartaoEvento).join('')}</div>` : '';
 
   el.innerHTML = `
-    <div class="ev-topo">
-      <p class="ev-intro"><i data-lucide="info"></i><span>Participou de um evento? Valide sua presença enviando o <strong>certificado</strong> ou o <strong>QR Code que chegou no seu e-mail de inscrição</strong> — e ganhe pontos.</span></p>
-      <div class="ev-filtros" role="group" aria-label="Filtrar eventos">
-        ${chip('todos', 'Todos')}${chip('proximos', 'Próximos')}${chip('passados', 'Já aconteceram')}${chip('validar', 'Para validar')}${chip('validados', 'Validados')}
-      </div>
+    ${cardInfo('eventos')}
+    <div class="ev-filtros" role="tablist" aria-label="Filtrar eventos">
+      ${aba('todos', 'Todos', '')}${aba('validar', 'Para validar', 'badge-check')}${aba('validados', 'Validados', 'check-check')}
     </div>
     ${lista.length
-      ? `<div class="eventos-lista">${cards}</div>`
-      : `<div class="empty-state"><div class="icon"><i data-lucide="calendar"></i></div><p>${base.length ? 'Nenhum evento neste filtro.' : `Nenhum evento encontrado para ${anoAtual}.`}</p></div>`}`;
+      ? grupo('Hoje e próximos', proximos) + grupo('Já aconteceram', passados)
+      : `<div class="empty-state"><div class="icon"><i data-lucide="${state.evFiltro === 'validar' ? 'party-popper' : 'calendar'}"></i></div><p>${
+          state.evFiltro === 'validar' ? 'Nada para validar agora. 🎉'
+          : state.evFiltro === 'validados' ? 'Você ainda não validou presença em nenhum evento.'
+          : `Nenhum evento encontrado para ${anoAtual}.`}</p></div>`}`;
 };
 
 const filtrarEventos = (k) => { state.evFiltro = k; renderEventos(); };
@@ -1309,6 +1352,7 @@ const carregarConquistas = async () => {
       : `<div class="conq-vazio">Você já desbloqueou todas as conquistas disponíveis. Parabéns! <i data-lucide="party-popper"></i></div>`;
 
     el.innerHTML = `
+      ${cardInfo('conquistas')}
       <div class="conq-resumo">
         <span class="estrela"><i data-lucide="star"></i></span>
         <div>
@@ -1431,6 +1475,7 @@ const carregarDashboard = async () => {
 
     // ── Montagem ──
     el.innerHTML = `
+      ${cardInfo('dashboard')}
       <div class="dash-hero">
         <div class="dash-avatar">${esc(inicial)}</div>
         <div class="ola">
@@ -1817,20 +1862,12 @@ const renderRanking = async () => {
         <button class="${_rankEscopo === 'curso' ? 'ativo' : ''}" onclick="trocarEscopoRanking('curso')"><i data-lucide="graduation-cap"></i> Meu curso</button>
       </div>`;
 
-    // Aviso explicando o critério de classificação (e o desempate).
-    const rankInfo = `
-      <div class="rank-info">
-        <span class="ic"><i data-lucide="info"></i></span>
-        <p>O ranking ordena os alunos pelo total de <strong>estrelas (pontos)</strong>,
-           da maior para a menor. Em caso de <strong>empate de pontos</strong>, fica à
-           frente quem <strong>alcançou aquele total primeiro</strong> — ou seja, quem
-           teve a conquista mais recente concedida mais cedo. Permanecendo o empate
-           (alunos ainda sem pontos), a ordem é alfabética.</p>
-      </div>`;
+    // Card explicando o critério de classificação (e o desempate).
+    const rankInfo = cardInfo('ranking');
 
     // Caso o aluno não tenha curso registrado ainda
     if (dados.semCurso) {
-      el.innerHTML = toggle + `
+      el.innerHTML = rankInfo + toggle + `
         <div class="rank-vazio">
           Seu curso ainda não está registrado. Saia e entre de novo no portal
           para registrá-lo e habilitar o ranking do seu curso.
@@ -1891,7 +1928,7 @@ const renderRanking = async () => {
           </div>`).join('') + `</div>`;
     }
 
-    el.innerHTML = toggle + rankInfo + cabecalhoEu + lista;
+    el.innerHTML = rankInfo + toggle + cabecalhoEu + lista;
   } catch (e) {
     el.innerHTML = '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar o ranking.</p></div>';
   }
@@ -1907,90 +1944,103 @@ const irParaMinhaPosicao = () => {
 };
 
 // ── Minha Trajetória (histórico do aluno) ──────────────────────
+const TRAJ_TIPOS = {
+  conquista: { rot: 'Conquista', ic: 'trophy', cls: 't-conq' },
+  projeto:   { rot: 'Projeto',   ic: 'folder-check', cls: 't-proj' },
+  evento:    { rot: 'Evento',    ic: 'ticket', cls: 't-ev' },
+};
+state.trajFiltro = '';
+
 const carregarTrajetoria = async () => {
   state.loaded['trajetoria'] = true;
   const el = document.getElementById('trajetoriaContent');
   try {
     const dados = await api('/api/trajetoria');
     if (!dados) return;
-
-    const itens = Array.isArray(dados.trajetoria) ? dados.trajetoria : [];
-
-    // Estado vazio
-    if (!itens.length) {
-      el.innerHTML = `
-        <div class="traj-resumo">
-          <span class="ic"><i data-lucide="compass"></i></span>
-          <div>
-            <div class="total">0</div>
-            <div class="label">Sua trajetória ainda está começando</div>
-          </div>
-        </div>
-        <div class="traj-painel">
-          <div class="traj-vazio">
-            Assim que você desbloquear conquistas ou tiver uma participação em
-            projeto aceita, os marcos vão aparecer aqui — do mais recente para
-            o mais antigo. <i data-lucide="rocket"></i>
-          </div>
-        </div>`;
-      return;
-    }
-
-    const fmt = (iso) => {
-      const d = new Date(iso);
-      if (isNaN(d)) return { dia: '–', mes: '', hora: '' };
-      return {
-        dia: String(d.getDate()).padStart(2, '0'),
-        mes: MESES[d.getMonth()] || '',
-        hora: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
-      };
-    };
-
-    // Monta a timeline (mais recente no topo — já vem ordenado do backend)
-    const linhas = itens.map((it) => {
-      const { dia, mes, hora } = fmt(it.data);
-      const ehConquista = it.tipo === 'conquista';
-      const classeTipo = ehConquista ? 'traj-conquista' : 'traj-projeto';
-
-      // Selo à direita do título
-      let selo = '';
-      if (ehConquista) {
-        selo = it.pontos ? `<span class="traj-pts">+${it.pontos} pts</span>` : '';
-      } else if (it.projetoTipo === 'pesquisa' || it.projetoTipo === 'extensao') {
-        const rotulo = it.projetoTipo === 'pesquisa' ? 'Pesquisa' : 'Extensão';
-        selo = `<span class="traj-tag ${it.projetoTipo}">${rotulo}</span>`;
-      }
-
-      const icone = it.icone || (ehConquista ? '🏆' : '📌');
-
-      return `
-        <div class="dash-tl-item traj ${classeTipo}">
-          <div class="dash-tl-data">
-            <div class="dia">${dia}</div>
-            <div class="mes">${mes}</div>
-            ${hora ? `<div class="traj-hora">${hora}</div>` : ''}
-          </div>
-          <div class="dash-tl-corpo">
-            <div class="n"><span class="traj-icone">${esc(icone)}</span>${esc(it.titulo)} ${selo}</div>
-            <div class="s">${esc(it.descricao || '')}</div>
-          </div>
-        </div>`;
-    }).join('');
-
-    el.innerHTML = `
-      <div class="traj-resumo">
-        <span class="ic"><i data-lucide="compass"></i></span>
-        <div>
-          <div class="total">${itens.length}</div>
-          <div class="label">marco(s) na sua trajetória até agora</div>
-        </div>
-      </div>
-      <div class="traj-painel">
-        <div class="dash-timeline">${linhas}</div>
-      </div>`;
+    state.trajetoria = dados;
+    renderTrajetoria();
   } catch (e) {
-    el.innerHTML = '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar a sua trajetória.</p></div>';
+    delete state.loaded['trajetoria'];
+    el.innerHTML = '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar a trajetória.</p></div>';
   }
+};
+
+const filtrarTrajetoria = (t) => { state.trajFiltro = t; renderTrajetoria(); };
+
+const renderTrajetoria = () => {
+  const el = document.getElementById('trajetoriaContent');
+  const dados = state.trajetoria || {};
+  const itens = Array.isArray(dados.trajetoria) ? dados.trajetoria : [];
+  const r = dados.resumo || {
+    conquistas: itens.filter(i => i.tipo === 'conquista').length,
+    projetos: itens.filter(i => i.tipo === 'projeto').length,
+    eventos: itens.filter(i => i.tipo === 'evento').length,
+    pontos: itens.reduce((t, i) => t + (Number(i.pontos) || 0), 0),
+  };
+
+  const numeros = `
+    <div class="traj-numeros">
+      <div class="tn destaque"><i data-lucide="star"></i><strong>${r.pontos}</strong><span>pontos ganhos</span></div>
+      <div class="tn"><i data-lucide="trophy"></i><strong>${r.conquistas}</strong><span>conquista${r.conquistas === 1 ? '' : 's'}</span></div>
+      <div class="tn"><i data-lucide="folder-check"></i><strong>${r.projetos}</strong><span>projeto${r.projetos === 1 ? '' : 's'}</span></div>
+      <div class="tn"><i data-lucide="ticket"></i><strong>${r.eventos}</strong><span>evento${r.eventos === 1 ? '' : 's'}</span></div>
+    </div>`;
+
+  if (!itens.length) {
+    el.innerHTML = cardInfo('trajetoria') + numeros + `
+      <div class="empty-state traj-vazio-novo"><div class="icon"><i data-lucide="rocket"></i></div>
+        <p>Sua trajetória começa aqui. Assim que você ganhar uma conquista, entrar num projeto ou validar a presença num evento, ela aparece nesta linha do tempo.</p>
+        <button type="button" class="btn-validar secundario" onclick="irParaSecao('eventos')"><i data-lucide="ticket"></i> Ver eventos</button>
+      </div>`;
+    return;
+  }
+
+  const f = state.trajFiltro;
+  const aba = (k, rot, n) => `<button type="button" role="tab" class="ev-filtro ${f === k ? 'ativo' : ''}" aria-selected="${f === k}" onclick="filtrarTrajetoria('${k}')">${rot}<span>${n}</span></button>`;
+  const lista = itens.filter(i => !f || i.tipo === f);
+
+  // Agrupa por mês ("Novembro de 2026")
+  const NOMES_MES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const grupos = [];
+  lista.forEach(it => {
+    const d = new Date(it.data);
+    const chave = isNaN(d) ? 'sem-data' : `${d.getFullYear()}-${d.getMonth()}`;
+    let g = grupos.find(x => x.chave === chave);
+    if (!g) grupos.push(g = { chave, titulo: isNaN(d) ? 'Sem data' : `${NOMES_MES[d.getMonth()]} de ${d.getFullYear()}`, itens: [] });
+    g.itens.push(it);
+  });
+
+  const item = (it) => {
+    const t = TRAJ_TIPOS[it.tipo] || TRAJ_TIPOS.conquista;
+    const d = new Date(it.data);
+    const quando = isNaN(d) ? '' : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    const extra = it.tipo === 'conquista' && it.pontos
+      ? `<span class="traj-pts">+${it.pontos} pts</span>`
+      : it.projetoTipo ? `<span class="traj-tag ${esc(it.projetoTipo)}">${it.projetoTipo === 'pesquisa' ? 'Pesquisa' : 'Extensão'}</span>` : '';
+    return `<li class="ti ${t.cls}">
+      <span class="ti-ic" aria-hidden="true">${it.tipo === 'conquista' && it.icone ? esc(it.icone) : `<i data-lucide="${t.ic}"></i>`}</span>
+      <div class="ti-corpo">
+        <div class="ti-topo"><strong>${esc(it.titulo)}</strong>${extra}</div>
+        <p>${esc(it.descricao || t.rot)}</p>
+      </div>
+      <time class="ti-data" datetime="${esc(it.data || '')}">${quando}</time>
+    </li>`;
+  };
+
+  el.innerHTML = `
+    ${cardInfo('trajetoria')}
+    ${numeros}
+    <div class="traj-barra">
+      <div class="ev-filtros" role="tablist" aria-label="Filtrar trajetória">
+        ${aba('', 'Tudo', itens.length)}${aba('conquista', 'Conquistas', r.conquistas)}${aba('projeto', 'Projetos', r.projetos)}${aba('evento', 'Eventos', r.eventos)}
+      </div>
+      <button type="button" class="btn-link-ev traj-imprimir" onclick="window.print()"><i data-lucide="printer"></i> Imprimir</button>
+    </div>
+    ${lista.length ? grupos.map(g => `
+      <section class="traj-mes">
+        <h3>${g.titulo}</h3>
+        <ol class="traj-linha">${g.itens.map(item).join('')}</ol>
+      </section>`).join('') : '<div class="empty-state"><p>Nada desse tipo ainda.</p></div>'}`;
 };
 
 // ── Logout ─────────────────────────────────────────────────────

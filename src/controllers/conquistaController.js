@@ -708,7 +708,13 @@ const getTrajetoria = async (req, res) => {
       tipo: 'conquista',
       data: c.createdAt,
       titulo: c.nomeConquista || 'Conquista',
-      descricao: 'Conquista desbloqueada',
+      // Conta o PORQUÊ (antes era sempre "Conquista desbloqueada")
+      descricao: c.origem === 'admin'
+        ? 'Concedida por um professor'
+        : c.contexto?.evento ? `Pela presença em "${c.contexto.evento}"`
+        : c.contexto?.gatilho === 'projeto_aceito' ? 'Por participar de um projeto'
+        : c.contexto?.disciplina ? `Pela nota em ${c.contexto.disciplina}`
+        : 'Conquista desbloqueada',
       icone: c.conquista?.icone || '🏆',
       pontos: c.pontos || 0,
       origem: c.origem, // 'automatica' | 'admin'
@@ -732,7 +738,13 @@ const getTrajetoria = async (req, res) => {
       .filter((x) => x.data) // descarta itens sem data
       .sort((a, b) => new Date(b.data) - new Date(a.data));
 
-    return res.json({ total: trajetoria.length, trajetoria });
+    const resumo = {
+      conquistas: itensConquista.length,
+      projetos: itensProjeto.length,
+      eventos: itensEvento.length,
+      pontos: itensConquista.reduce((t, c) => t + (Number(c.pontos) || 0), 0),
+    };
+    return res.json({ total: trajetoria.length, resumo, trajetoria });
   } catch (err) {
     console.error('Erro ao montar trajetória:', err.message);
     return res.status(500).json({ erro: 'Erro ao buscar trajetória' });
