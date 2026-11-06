@@ -127,9 +127,12 @@ const sincronizarAluno = async (matricula, { notificar = true } = {}) => {
   // aluno — e a conquista que ele ganhou por ela também ("congelada")
   const congeladas = new Set(presencas.map((p) => chaveEvento(p)).filter((k) => !conqDoEvento.has(k.slice('evento:'.length))));
   const idsConqEvento = [...new Set([...conqDoEvento.values()].filter(Boolean).map(String))];
-  const conqEventoDocs = idsConqEvento.length
+  // Só valem conquistas próprias para eventos (uma de "projeto" escolhida
+  // antes desta regra existir deixa de ser dada pelo evento)
+  const { conquistaServeParaEvento } = require('./presencaService');
+  const conqEventoDocs = (idsConqEvento.length
     ? await Conquista.find({ _id: { $in: idsConqEvento }, ativa: true }).lean()
-    : [];
+    : []).filter(conquistaServeParaEvento);
   const docPorId = new Map([...regras, ...conqEventoDocs].map((c) => [String(c._id), c]));
 
   // ── O que o aluno DEVERIA ter ──

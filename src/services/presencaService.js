@@ -125,7 +125,18 @@ const nomeArquivoSeguro = (bruto, tipo) => {
   return nome;
 };
 
+/**
+ * Conquista que pode ser dada POR um evento: categoria "Evento" e que não seja
+ * regra automática de outra coisa (projeto, nota) nem "ao completar N eventos"
+ * (essa já é contada sozinha, somando todos os eventos).
+ */
+const conquistaServeParaEvento = (c) => !!c && c.categoria === 'evento' && (
+  c.origem !== 'automatica' ||
+  (c.regra?.tipo === 'evento_presenca' && !(parseInt(c.regra.valor, 10) > 0))
+);
+
 module.exports = {
+  conquistaServeParaEvento,
   PRAZO_QR_DIAS, limparQr, hashQr, linkInstitucional, avaliarQr, sugerirPadrao,
   hojeSP, diaDe, jaComecou, acontecendo, qrNoPrazo,
   lerChave, chaveDe,

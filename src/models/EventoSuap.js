@@ -25,6 +25,8 @@ const eventoSuapSchema = new mongoose.Schema(
 
     validacao: { type: require('./validacaoEvento'), default: () => ({}) },
     conquista: { type: mongoose.Schema.Types.ObjectId, ref: 'Conquista', default: null },
+    // Ocultado pelo painel (ex.: evento de teste no SUAP): o aluno não vê
+    oculto: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

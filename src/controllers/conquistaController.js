@@ -47,7 +47,8 @@ const dadosConquista = (body = {}, parcial = false) => {
     if (!pontosValidos(body.pontos)) return { erro: 'Pontos deve ser um número maior ou igual a 0' };
     d.pontos = Math.round(Number(body.pontos));
   }
-  if (body.ativa !== undefined) d.ativa = body.ativa !== false;
+  // "Ativa/Inativa" não existe mais: conquista que não serve mais é EXCLUÍDA
+  // (não fica no banco como registro morto). O campo é ignorado.
   if (body.origem !== undefined || !parcial) {
     d.origem = body.origem === 'automatica' ? 'automatica' : 'manual';
     if (d.origem === 'manual') d.regra = { tipo: null, valor: null };
@@ -66,6 +67,8 @@ const dadosConquista = (body = {}, parcial = false) => {
         return { erro: 'Conquista automática exige uma regra' };
       }
       d.regra = { tipo, valor: valor || null };
+      // A categoria acompanha a regra (uma regra de evento é, por definição, de evento)
+      d.categoria = { nota: 'academico', projeto_aceito: 'projeto', evento_presenca: 'evento' }[tipo];
     }
   }
   return { dados: d };
@@ -181,8 +184,13 @@ const getConquistas = async (req, res) => {
     if (req.query.ativa === 'true') filtro.ativa = true;
     if (req.query.ativa === 'false') filtro.ativa = false;
 
-    const lista = await Conquista.find(filtro).sort({ createdAt: -1 });
-    return res.json(lista);
+    const lista = await Conquista.find(filtro).sort({ createdAt: -1 }).lean();
+    const { conquistaServeParaEvento } = require('../services/presencaService');
+    return res.json(lista.map((c) => ({
+      ...c,
+      comoGanhar: comoGanhar(c),
+      paraEvento: conquistaServeParaEvento(c), // pode ser escolhida dentro de um evento
+    })));
   } catch (err) {
     console.error('Erro ao buscar conquistas:', err.message);
     return res.status(500).json({ erro: 'Erro ao buscar conquistas' });
@@ -257,8 +265,7 @@ const atualizarConquista = async (req, res) => {
  *  Exclui a conquista do catálogo E remove todas as concessões dela,
  *  recalculando os pontos de cada aluno afetado (para não sobrar
  *  pontuação "fantasma" de uma conquista que não existe mais).
- *  Se preferir só "tirar de circulação" sem apagar histórico, use
- *  ativa=false via PUT em vez de excluir.
+ *  (Não existe mais "desativar": conquista que não serve mais é excluída.)
  */
 const deletarConquista = async (req, res) => {
   try {
@@ -276,8 +283,12 @@ const deletarConquista = async (req, res) => {
     const c = await Conquista.findByIdAndDelete(req.params.id);
     if (!c) return res.status(404).json({ erro: 'Conquista não encontrada' });
 
-    // 3. Apaga todas as concessões dela
+    // 3. Apaga todas as concessões dela e tira dos eventos que a usavam
     await ConquistaUsuario.deleteMany({ conquista: req.params.id });
+    await Promise.all([
+      require('../models/Evento').updateMany({ conquista: c._id }, { $set: { conquista: null } }),
+      require('../models/EventoSuap').updateMany({ conquista: c._id }, { $set: { conquista: null } }),
+    ]);
 
     // 4. Recalcula os pontos de cada aluno que tinha a conquista
     await Promise.all(matriculasAfetadas.map(m => recalcularPontosAluno(m, { notificar: false })));

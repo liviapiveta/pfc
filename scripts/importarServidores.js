@@ -1,5 +1,5 @@
 /**
- * Importa a lista oficial de servidores (docentes + substitutos) no MongoDB
+ * Importa a lista oficial de servidores (docentes, substitutos e técnicos administrativos) no MongoDB
  * e garante a conta de desenvolvedor(a).
  * Uso:  npm run importar-servidores
  */

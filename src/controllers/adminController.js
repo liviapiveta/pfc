@@ -123,7 +123,7 @@ const verificarEmail = async (req, res) => {
     const conta = await Admin.findOne({ email });
     if (!conta || !conta.ativo) {
       return res.status(403).json({
-        erro: 'Este e-mail não tem permissão de acesso. O painel é restrito a docentes e substitutos do IFPR.',
+        erro: 'Este e-mail não tem permissão de acesso. O painel é restrito a servidores do IFPR (docentes, substitutos e técnicos administrativos).',
       });
     }
 
@@ -393,7 +393,7 @@ const deletarConta = async (req, res) => {
 };
 
 // ── Permissões: painel do professor ───────────────────────────
-// Desenvolvedor(a) vê e gerencia TUDO. Docentes e substitutos gerenciam só
+// Desenvolvedor(a) vê e gerencia TUDO. Docentes, substitutos e técnicos gerenciam só
 // os projetos/eventos que cadastraram (ou em que são o e-mail do coordenador)
 // e só as solicitações desses projetos.
 const ehDev = (req) => req.admin?.cargo === 'desenvolvedor';
