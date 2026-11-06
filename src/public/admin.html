@@ -724,6 +724,81 @@
     }
     .proj-area-tabs button:hover { border-color:var(--verde); color:#fff; }
     .proj-area-tabs button.ativo { background:var(--verde); color:#06281a; border-color:var(--verde); }
+
+    /* ── Eventos / presenças / QR / busca ── */
+    .sec-desc { color:var(--texto-2); font-size:0.85rem; margin-bottom:1rem; line-height:1.6; }
+    .cab-acoes { display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; }
+    .filtro-select { border:1.5px solid var(--borda); border-radius:9px; padding:0.45rem 0.7rem; background:var(--bg-2); color:var(--texto); font:inherit; font-size:0.84rem; }
+    .filtro-select:focus { outline:2px solid var(--verde); outline-offset:1px; }
+    .sub-cel { font-size:0.76rem; color:var(--cinza); }
+    .nav-badge { margin-left:auto; min-width:20px; height:20px; padding:0 6px; border-radius:99px; background:var(--amarelo); color:#3a2a00; font-size:0.7rem; font-weight:800; display:inline-grid; place-items:center; }
+    .nav-badge[hidden] { display:none; }
+    .pres-badge { display:inline-block; padding:0.2rem 0.6rem; border-radius:99px; font-size:0.72rem; font-weight:600; }
+    .pres-pend { background:rgba(245,185,66,0.14); color:#f5c469; }
+    .pres-ok   { background:rgba(68,216,131,0.16); color:#5fe39a; }
+    .pres-rec  { background:rgba(255,107,107,0.16); color:#ff8585; }
+    .pres-met, .ev-met { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.76rem; color:var(--texto-2); background:rgba(255,255,255,0.06); padding:0.15rem 0.5rem; border-radius:99px; white-space:nowrap; }
+    .pres-met svg, .ev-met svg { width:13px; height:13px; }
+    .btn-aprovar { border-color:rgba(68,216,131,0.5) !important; color:#5fe39a !important; }
+    .link-pend { background:none; border:none; color:#f5c469; font:inherit; font-size:0.76rem; text-decoration:underline; cursor:pointer; padding:0; }
+    .est-topo { display:flex; justify-content:space-between; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-bottom:1rem; color:var(--texto-2); font-size:0.88rem; }
+
+    .val-fieldset { border:1.5px solid var(--borda); border-radius:12px; padding:0.8rem 0.9rem; display:flex; flex-direction:column; gap:0.65rem; }
+    .val-fieldset legend { padding:0 0.35rem; font-size:0.78rem; font-weight:600; color:var(--texto-2); text-transform:uppercase; letter-spacing:0.3px; }
+    .check-linha { display:flex; gap:0.65rem; align-items:flex-start; cursor:pointer; text-transform:none !important; letter-spacing:0 !important; }
+    .check-linha input { width:18px !important; height:18px; margin-top:0.15rem; accent-color:var(--verde); flex-shrink:0; }
+    .check-linha span { display:flex; flex-direction:column; gap:0.1rem; }
+    .check-linha strong { color:var(--texto); font-size:0.88rem; font-weight:600; }
+    .check-linha small { color:var(--cinza); font-size:0.76rem; font-weight:400; line-height:1.45; }
+    .check-linha.sub { margin-left:1.6rem; }
+    .check-linha[hidden] { display:none; }
+
+    .qr-overlay { position:fixed; inset:0; z-index:600; background:rgba(0,0,0,0.6); display:none; place-items:center; padding:1rem; }
+    .qr-overlay.open { display:grid; }
+    .qr-caixa { background:var(--card); border-radius:20px; padding:1.6rem; width:min(560px,100%); max-height:94vh; overflow-y:auto; text-align:center; }
+    .qr-caixa:fullscreen { width:100%; max-height:none; border-radius:0; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#fff; color:#111; }
+    .qr-caixa:fullscreen .qr-svg svg { width:min(70vh,80vw); height:min(70vh,80vw); }
+    .qr-caixa:fullscreen .qr-titulo, .qr-caixa:fullscreen .qr-codigo { color:#111; }
+    .qr-caixa:fullscreen .qr-instrucao, .qr-caixa:fullscreen .qr-nota { color:#333; }
+    .qr-titulo { font-family:'Syne',sans-serif; font-size:1.25rem; color:var(--texto); margin-bottom:1rem; }
+    .qr-svg { display:inline-block; background:#fff; padding:0.6rem; border-radius:16px; }
+    .qr-svg svg { width:min(320px,70vw); height:min(320px,70vw); display:block; }
+    .qr-instrucao { margin-top:1rem; color:var(--texto-2); font-size:0.9rem; line-height:1.5; }
+    .qr-codigo { margin-top:0.6rem; font-family:'Syne',monospace; font-size:2rem; font-weight:800; letter-spacing:0.18em; color:var(--texto); }
+    .qr-nota { margin-top:0.5rem; color:var(--cinza); font-size:0.8rem; display:flex; justify-content:center; align-items:center; gap:0.35rem; }
+    .qr-nota svg { width:14px; height:14px; }
+    .qr-alerta { margin-top:0.8rem; background:rgba(245,185,66,0.14); color:#f5c469; padding:0.6rem 0.8rem; border-radius:10px; font-size:0.82rem; }
+    .qr-botoes { display:flex; flex-wrap:wrap; justify-content:center; gap:0.5rem; margin-top:1.3rem; }
+    .qr-caixa:fullscreen .qr-botoes { display:none; }
+
+    .topbar-dir { display:flex; align-items:center; gap:0.6rem; }
+    .topbar-busca { display:inline-flex; align-items:center; gap:0.45rem; cursor:pointer; font:inherit; font-size:0.84rem; padding:0.4rem 0.7rem; border-radius:999px; background:var(--bg-2); border:1px solid var(--borda); color:var(--texto-2); }
+    .topbar-busca svg { width:16px; height:16px; }
+    .topbar-busca:hover { border-color:var(--verde); color:var(--verde); }
+    .topbar-busca kbd, .busca-dialog kbd { font-family:inherit; font-size:0.68rem; font-weight:700; padding:0.1rem 0.35rem; border-radius:5px; border:1px solid var(--borda); background:var(--bg); color:var(--cinza); }
+    .busca-overlay { position:fixed; inset:0; z-index:700; background:rgba(0,0,0,0.5); display:none; justify-content:center; align-items:flex-start; padding:12vh 1rem 1rem; }
+    .busca-overlay.open { display:flex; }
+    .busca-dialog { width:min(560px,100%); background:var(--bg); border:1px solid var(--verde); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; max-height:70vh; box-shadow:0 30px 70px rgba(0,0,0,0.45); }
+    .busca-campo { display:flex; align-items:center; gap:0.6rem; padding:0.85rem 1rem; border-bottom:1px solid var(--borda); }
+    .busca-campo svg { color:var(--verde); width:20px; height:20px; }
+    .busca-campo input { flex:1; min-width:0; background:none; border:none; color:var(--texto); font:inherit; font-size:1rem; outline:none; }
+    .busca-resultados { list-style:none; overflow-y:auto; padding:0.4rem; }
+    .busca-item { display:flex; align-items:center; gap:0.7rem; padding:0.6rem 0.75rem; border-radius:10px; cursor:pointer; color:var(--texto); font-size:0.9rem; }
+    .busca-item svg { width:17px; height:17px; color:var(--cinza); }
+    .busca-item span { flex:1; }
+    .busca-item small { color:var(--cinza); font-size:0.74rem; }
+    .busca-item[aria-selected="true"] { background:var(--verde-claro); }
+    .busca-item[aria-selected="true"] svg { color:var(--verde); }
+    .busca-vazio { padding:1rem; color:var(--cinza); text-align:center; font-size:0.88rem; }
+    @media (max-width: 720px) { .topbar-busca span, .topbar-busca kbd { display:none; } .topbar-busca { padding:0.45rem; } .topbar-dir .badge-cargo { display:none; } }
+    @media print {
+      body > *:not(#qrOverlay) { display:none !important; }
+      #qrOverlay { position:static; display:block !important; background:#fff; padding:0; }
+      .qr-caixa { background:#fff; color:#000; box-shadow:none; width:100%; max-height:none; }
+      .qr-titulo, .qr-codigo { color:#000 !important; } .qr-instrucao, .qr-nota { color:#333 !important; }
+      .qr-svg svg { width:12cm; height:12cm; }
+      .qr-botoes, .qr-alerta { display:none !important; }
+    }
   </style>
 </head>
 <body>
@@ -744,7 +819,11 @@
       <span class="nav-icon"><i data-lucide="folder"></i></span> Projetos
     </div>
     <div class="nav-item" data-section="eventos">
-      <span class="nav-icon"><i data-lucide="calendar"></i></span> Eventos do Calendário
+      <span class="nav-icon"><i data-lucide="calendar"></i></span> Eventos
+    </div>
+    <div class="nav-item" data-section="presencas">
+      <span class="nav-icon"><i data-lucide="badge-check"></i></span> Presenças
+      <span class="nav-badge" id="badgePresencas" hidden></span>
     </div>
     <div class="nav-item" data-section="solicitacoes">
       <span class="nav-icon"><i data-lucide="mail"></i></span> Solicitações
@@ -779,7 +858,10 @@
       </button>
       <span class="topbar-title" id="topbarTitle">Visão Geral</span>
     </div>
-    <span class="topbar-badge" id="topbarAdminBadge"><i data-lucide="lock"></i> Administrador</span>
+    <div class="topbar-dir">
+      <button type="button" class="topbar-busca" onclick="abrirBuscaAdmin()" aria-label="Busca rápida (Ctrl+K)" title="Busca rápida (Ctrl+K)"><i data-lucide="search"></i><span>Buscar</span><kbd>Ctrl K</kbd></button>
+      <span class="topbar-badge" id="topbarAdminBadge"><i data-lucide="lock"></i> Administrador</span>
+    </div>
   </div>
 
   <div class="content">
@@ -795,7 +877,7 @@
         <p style="color:var(--texto-2);font-size:0.9rem;line-height:1.7;">
           Aqui você gerencia os dados que são exibidos no portal para os alunos. Use o menu lateral para
           cadastrar ou editar <strong>Projetos de Pesquisa</strong>, <strong>Projetos de Extensão</strong>
-          e <strong>Eventos do Calendário</strong>.<br><br>
+          e <strong>Eventos</strong> — e valida a presença dos alunos nos eventos (QR Code ou certificado).<br><br>
           Estes dados complementam as informações que vêm diretamente do SUAP, preenchendo lacunas
           ou adicionando registros locais.
         </p>
@@ -845,12 +927,39 @@
     <section class="section" id="section-eventos">
       <div class="card">
         <div class="card-header">
-          <span class="card-title">Eventos do Calendário</span>
+          <span class="card-title">Eventos</span>
           <button class="btn-add" onclick="abrirModal('evento')">+ Novo evento</button>
         </div>
+        <p class="sec-desc">
+          Em cada evento você escolhe como o aluno valida a presença: <strong>QR Code</strong> (validado na hora — projete ou imprima o código)
+          e/ou <strong>certificado</strong> (o aluno envia o PDF/foto e você aprova em <em>Presenças</em>).
+        </p>
         <div id="eventosList">
           <div data-skel="tabela"></div>
         </div>
+      </div>
+    </section>
+
+    <!-- PRESENÇAS EM EVENTOS -->
+    <section class="section" id="section-presencas">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Presenças em eventos</span>
+          <div class="cab-acoes">
+            <select id="presFiltro" class="filtro-select" aria-label="Filtrar presenças" onchange="carregarPresencas()">
+              <option value="pendente">Para analisar</option>
+              <option value="aprovada">Validadas</option>
+              <option value="recusada">Recusadas</option>
+              <option value="">Todas</option>
+            </select>
+            <button class="btn-edit" onclick="exportarCsv('presencas', { status: document.getElementById('presFiltro').value })"><i data-lucide="download"></i> Exportar CSV</button>
+          </div>
+        </div>
+        <p class="sec-desc">
+          Certificados enviados pelos alunos esperam sua aprovação. Presenças por QR Code já entram validadas
+          (você pode desfazer se algo estiver errado). Você vê os eventos que cadastrou e os eventos do SUAP.
+        </p>
+        <div id="presencasList"><div data-skel="tabela"></div></div>
       </div>
     </section>
 
@@ -859,6 +968,7 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Solicitações de Participação</span>
+          <button class="btn-edit" onclick="exportarCsv('solicitacoes')"><i data-lucide="download"></i> Exportar CSV</button>
         </div>
         <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
           Alunos que pediram para fazer parte dos projetos. Aceite para
@@ -915,6 +1025,8 @@
               <option value="solicitacao">Solicitações</option>
               <option value="projeto">Projetos</option>
               <option value="evento">Eventos</option>
+              <option value="presenca">Presenças</option>
+              <option value="exportar">Exportações</option>
               <option value="conta">Contas</option>
             </select>
           </div>
@@ -963,6 +1075,31 @@
 </main>
 
 <!-- MODAL -->
+<!-- QR Code do evento -->
+<div class="qr-overlay" id="qrOverlay" onclick="if (event.target === this) fecharQrEvento()">
+  <div class="qr-caixa" role="dialog" aria-modal="true" aria-label="QR Code de presença">
+    <div id="qrCorpo"></div>
+    <div class="qr-botoes">
+      <button class="btn-edit" onclick="qrTelaCheia()"><i data-lucide="maximize"></i> Tela cheia</button>
+      <button class="btn-edit" onclick="window.print()"><i data-lucide="printer"></i> Imprimir</button>
+      <button class="btn-edit" onclick="qrNovoCodigo()"><i data-lucide="refresh-cw"></i> Gerar novo código</button>
+      <button class="btn-primary" onclick="fecharQrEvento()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Busca rápida -->
+<div class="busca-overlay" id="buscaAdmin">
+  <div class="busca-dialog" role="dialog" aria-modal="true" aria-label="Busca rápida">
+    <div class="busca-campo">
+      <i data-lucide="search"></i>
+      <input type="text" id="buscaAdminInput" role="combobox" aria-expanded="true" aria-controls="buscaAdminRes" aria-autocomplete="list" placeholder="Ir para… criar… exportar…" autocomplete="off" spellcheck="false" />
+      <kbd>Esc</kbd>
+    </div>
+    <ul class="busca-resultados" id="buscaAdminRes" role="listbox" aria-label="Resultados"></ul>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalOverlay" onclick="fecharModalSeOverlay(event)">
   <div class="modal" id="modal">
     <div class="modal-header">
@@ -1074,7 +1211,8 @@ document.querySelectorAll('.nav-item').forEach(item => {
     const titles = {
       overview: 'Visão Geral',
       projetos: 'Projetos',
-      eventos:  'Eventos do Calendário',
+      eventos:  'Eventos',
+      presencas: 'Presenças em eventos',
       solicitacoes: 'Solicitações de Participação',
       conquistas: 'Conquistas',
       estatisticas: 'Estatísticas',
@@ -1150,6 +1288,7 @@ const carregarLista = async (tipo) => {
   if (tipo === 'contas')     return carregarContas();
   if (tipo === 'estatisticas') return carregarEstatisticas();
   if (tipo === 'historico')  return carregarHistorico(1);
+  if (tipo === 'presencas')  return carregarPresencas();
 
   const elMap = { eventos: 'eventosList', solicitacoes: 'solicitacoesList' };
   const el = document.getElementById(elMap[tipo]);
@@ -1307,29 +1446,44 @@ const renderTabelaProjetos = (dados, tipo) => {
 };
 
 const renderTabelaEventos = (dados) => {
-  const rows = dados.map(ev => `
+  const rows = dados.map(ev => {
+    const v = ev.validacao || {};
+    const p = ev.presencas || {};
+    const metodos = [
+      v.certificado !== false ? '<span class="ev-met" title="Aceita certificado"><i data-lucide="file-text"></i> Certificado</span>' : '',
+      v.qrcode ? `<span class="ev-met" title="Aceita QR Code"><i data-lucide="qr-code"></i> QR${v.qrDinamico ? ' dinâmico' : ''}</span>` : '',
+    ].filter(Boolean).join(' ') || '<span class="sub-cel">Sem validação</span>';
+    return `
     <tr>
-      <td data-label="Nome">${esc(ev.nome)}</td>
-      <td data-label="Data Início" style="font-size:0.8rem">${esc(dataBR(ev.data_inicio))}</td>
-      <td data-label="Data Fim" style="font-size:0.8rem">${esc(dataBR(ev.data_fim))}</td>
+      <td data-label="Nome">${esc(ev.nome)}${ev.conquista ? `<br><span class="sub-cel">${esc(ev.conquista.icone || '🏆')} ${esc(ev.conquista.nome)} · +${Number(ev.conquista.pontos) || 0}</span>` : ''}</td>
+      <td data-label="Data" style="font-size:0.8rem">${esc(dataBR(ev.data_inicio))}${ev.data_fim && ev.data_fim !== ev.data_inicio ? ` – ${esc(dataBR(ev.data_fim))}` : ''}</td>
       <td data-label="Local" style="font-size:0.8rem;color:var(--cinza)">${esc(ev.local || '—')}</td>
+      <td data-label="Validação">${metodos}</td>
+      <td data-label="Presenças" style="font-size:0.8rem">${p.aprovada || 0} validada(s)${p.pendente ? `<br><button class="link-pend" onclick="irParaPresencas()">${p.pendente} para analisar</button>` : ''}</td>
       <td data-label="Ações" class="td-acoes">
         ${ev.podeEditar === false ? '<span class="sem-acao" title="Só quem cadastrou (ou a desenvolvedora) pode editar">Cadastrado por outra pessoa</span>' : `
+        ${v.qrcode ? `<button class="btn-edit" onclick="abrirQrEvento('${ev._id}')"><i data-lucide="qr-code"></i> QR Code</button>` : ''}
         <button class="btn-edit" onclick="editarEvento('${ev._id}')"><i data-lucide="pencil"></i> Editar</button>
         <button class="btn-del" onclick="deletarItem('evento', '${ev._id}')"><i data-lucide="trash-2"></i> Excluir</button>`}
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
   return `<div class="table-wrap">
     <table class="items-table">
       <thead>
         <tr>
-          <th>Nome</th><th>Data Início</th><th>Data Fim</th><th>Local</th><th>Ações</th>
+          <th>Nome</th><th>Data</th><th>Local</th><th>Validação</th><th>Presenças</th><th>Ações</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
   </div>`;
+};
+
+const irParaPresencas = () => {
+  const f = document.getElementById('presFiltro'); if (f) f.value = 'pendente';
+  document.querySelector('.nav-item[data-section="presencas"]')?.click();
 };
 
 
@@ -1365,6 +1519,10 @@ const carregarEstatisticas = async () => {
     const maxEvo = Math.max(1, ...d.evolucao.map(m => m.conquistas));
 
     el.innerHTML = `
+      <div class="est-topo">
+        <span>Números do IFPlenus no campus.</span>
+        <button class="btn-edit" onclick="exportarCsv('ranking')"><i data-lucide="download"></i> Exportar ranking (CSV)</button>
+      </div>
       <div class="stats-row">
         <div class="stat-card"><div class="stat-label">Alunos no IFPlenus</div><div class="stat-value">${t.alunos ?? 0}</div></div>
         <div class="stat-card"><div class="stat-label">Ativos (7 dias)</div><div class="stat-value">${t.ativos7 ?? 0}</div></div>
@@ -1435,6 +1593,9 @@ const ACOES_LABEL = {
   'evento.criar': ['Criou o evento', 'plus'], 'evento.editar': ['Editou o evento', 'pencil'], 'evento.excluir': ['Excluiu o evento', 'trash-2'],
   'conta.criar': ['Criou a conta', 'user-plus'], 'conta.editar': ['Editou a conta', 'user-cog'], 'conta.excluir': ['Excluiu a conta', 'user-x'],
   'conta.convite': ['Enviou convite para', 'mail'], 'conta.importar': ['Importou a', 'download'],
+  'presenca.aprovar': ['Validou a presença em', 'badge-check'], 'presenca.recusar': ['Recusou a presença em', 'x-circle'],
+  'evento.novoqr': ['Gerou novo QR Code do evento', 'qr-code'],
+  'exportar.solicitacoes': ['Exportou solicitações', 'download'], 'exportar.ranking': ['Exportou o ranking', 'download'], 'exportar.presencas': ['Exportou presenças', 'download'],
 };
 let _histTimer = null;
 const agendarHistorico = () => { clearTimeout(_histTimer); _histTimer = setTimeout(() => carregarHistorico(1), 300); };
@@ -1621,6 +1782,19 @@ const formsEvento = (dados = {}) => `
       <label>Link para mais informações</label>
       <input type="url" id="f_link" value="${esc(dados.link_suap || '')}" placeholder="https://…" />
     </div>
+    <fieldset class="field full val-fieldset">
+      <legend>Como o aluno valida a presença</legend>
+      <label class="check-linha"><input type="checkbox" id="f_val_cert" ${dados.validacao?.certificado !== false ? 'checked' : ''} />
+        <span><strong>Enviando o certificado</strong><small>PDF ou foto. Fica pendente até você aprovar em Presenças.</small></span></label>
+      <label class="check-linha"><input type="checkbox" id="f_val_qr" ${dados.validacao?.qrcode ? 'checked' : ''} onchange="toggleQrEvento()" />
+        <span><strong>Lendo o QR Code do evento</strong><small>Validado na hora, só nos dias do evento. Você projeta ou imprime o QR.</small></span></label>
+      <label class="check-linha sub" id="f_val_qr_din_wrap" ${dados.validacao?.qrcode ? '' : 'hidden'}><input type="checkbox" id="f_val_qr_din" ${dados.validacao?.qrDinamico ? 'checked' : ''} />
+        <span><strong>QR dinâmico (muda a cada 30 s)</strong><small>Evita que um aluno mande foto do QR para quem não foi. Use projetado na tela — não serve para imprimir.</small></span></label>
+    </fieldset>
+    <div class="field full">
+      <label for="f_conquista_ev">Conquista ganha ao validar a presença</label>
+      <select id="f_conquista_ev"><option value="">Carregando…</option></select>
+    </div>
   </div>`;
 
 const abrirModal = (tipo, dados = {}) => {
@@ -1645,6 +1819,7 @@ const abrirModal = (tipo, dados = {}) => {
 
   document.getElementById('modalBody').innerHTML = corpo;
   document.getElementById('modalOverlay').classList.add('open');
+  if (tipo === 'evento') carregarConquistasParaEvento(dados.conquista?._id || dados.conquista);
 };
 
 const fecharModal = () => {
@@ -1744,6 +1919,8 @@ const salvarItem = async () => {
           regra = { tipo: 'nota', valor: document.getElementById('f_regra_valor_nota_c').value };
         } else if (rtipo === 'projeto_aceito') {
           regra = { tipo: 'projeto_aceito', valor: document.getElementById('f_regra_valor_proj_c').value || null };
+        } else if (rtipo === 'evento_presenca') {
+          regra = { tipo: 'evento_presenca', valor: String(Math.max(1, parseInt(document.getElementById('f_regra_valor_ev_c').value, 10) || 1)) };
         }
       }
 
@@ -1786,6 +1963,12 @@ const salvarItem = async () => {
         local:        document.getElementById('f_local').value.trim(),
         campus:       document.getElementById('f_campus_ev').value.trim(),
         link_suap:    document.getElementById('f_link').value.trim() || null,
+        validacao: {
+          certificado: document.getElementById('f_val_cert').checked,
+          qrcode:      document.getElementById('f_val_qr').checked,
+          qrDinamico:  document.getElementById('f_val_qr').checked && document.getElementById('f_val_qr_din').checked,
+        },
+        conquista:    document.getElementById('f_conquista_ev').value || null,
       };
       if (!body.nome || !body.data_inicio) { mostrarToast('Preencha os campos obrigatórios.', 'erro'); return; }
       if (body.data_fim && body.data_fim < body.data_inicio) { mostrarToast('A data de fim não pode ser antes da data de início.', 'erro'); return; }
@@ -2208,7 +2391,17 @@ const formsConquista = (dados = {}) => `
       <select id="f_regra_tipo_c" onchange="toggleRegraConquista()">
         <option value="nota"           ${dados?.regra?.tipo==='nota'?'selected':''}>Tirar um conceito/nota…</option>
         <option value="projeto_aceito" ${dados?.regra?.tipo==='projeto_aceito'?'selected':''}>Ter participação aceita em projeto</option>
+        <option value="evento_presenca" ${dados?.regra?.tipo==='evento_presenca'?'selected':''}>Ter presença validada em eventos</option>
       </select>
+
+      <div id="f_regra_ev_wrap" style="margin-top:0.6rem;display:${dados?.regra?.tipo==='evento_presenca'?'block':'none'}">
+        <label>Quantidade de eventos</label>
+        <input type="number" id="f_regra_valor_ev_c" min="1" max="100" step="1" value="${esc(dados?.regra?.tipo==='evento_presenca' ? (dados.regra.valor || '1') : '1')}" />
+        <p style="color:var(--cinza);font-size:0.74rem;margin-top:0.35rem">
+          Concedida uma vez quando o aluno somar esta quantidade de presenças validadas (ex.: 5 = "Frequentador de eventos").
+          Para dar pontos em CADA evento, escolha a conquista no próprio evento.
+        </p>
+      </div>
 
       <div id="f_regra_nota_wrap" style="margin-top:0.6rem;display:${(!dados?.regra?.tipo||dados?.regra?.tipo==='nota')?'block':'none'}">
         <label>Nota mínima (concede com nota igual ou acima deste valor)</label>
@@ -2243,6 +2436,8 @@ const toggleRegraConquista = () => {
   const projWrap = document.getElementById('f_regra_proj_wrap');
   if (notaWrap) notaWrap.style.display = tipo === 'nota' ? 'block' : 'none';
   if (projWrap) projWrap.style.display = tipo === 'projeto_aceito' ? 'block' : 'none';
+  const evWrap = document.getElementById('f_regra_ev_wrap');
+  if (evWrap) evWrap.style.display = tipo === 'evento_presenca' ? 'block' : 'none';
 };
 
 // Formulário de concessão (matrícula do aluno)
@@ -2327,6 +2522,255 @@ const abrirConceder = (id) => {
 // ─────────────────────────────────────────────────────
 // Logout
 // ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────
+// Presenças em eventos (certificados enviados pelos alunos)
+// ─────────────────────────────────────────────────────
+const ROT_PRES = {
+  pendente: ['Em análise', 'pres-pend'],
+  aprovada: ['Validada', 'pres-ok'],
+  recusada: ['Recusada', 'pres-rec'],
+};
+
+const carregarPresencas = async () => {
+  const el = document.getElementById('presencasList');
+  if (!el) return;
+  el.innerHTML = esqueletoAdmin();
+  const status = document.getElementById('presFiltro')?.value ?? 'pendente';
+  try {
+    const dados = await apiJSON(`/api/admin/presencas${status ? `?status=${status}` : ''}`);
+    if (!dados) return;
+    if (!status || status === 'pendente') atualizarBadgePresencas(status === 'pendente' ? dados.length : dados.filter(p => p.status === 'pendente').length);
+    if (!dados.length) {
+      el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>${status === 'pendente' ? 'Nenhum certificado esperando análise. 🎉' : 'Nada por aqui ainda.'}</p></div>`;
+      return;
+    }
+    const rows = dados.map(p => {
+      const [rot, cls] = ROT_PRES[p.status] || ROT_PRES.pendente;
+      const metodo = p.metodo === 'qrcode'
+        ? '<span class="pres-met"><i data-lucide="qr-code"></i> QR Code</span>'
+        : `<button class="btn-edit" onclick="verCertificado('${p._id}')"><i data-lucide="file-text"></i> Ver certificado</button>`;
+      const acoes = !p.podeDecidir ? '<span class="sem-acao">Evento de outra pessoa</span>' : `
+        ${p.status !== 'aprovada' && p.metodo === 'certificado' ? `<button class="btn-edit btn-aprovar" onclick="decidirPresenca('${p._id}','aprovada')"><i data-lucide="check"></i> Aprovar</button>` : ''}
+        ${p.status !== 'recusada' ? `<button class="btn-del" onclick="decidirPresenca('${p._id}','recusada', ${p.status === 'aprovada'})"><i data-lucide="x"></i> ${p.status === 'aprovada' ? 'Desfazer' : 'Recusar'}</button>` : ''}`;
+      return `<tr>
+        <td data-label="Aluno">${esc(p.nomeAluno || '—')}<br><span class="sub-cel">${esc(p.matricula)}${p.curso ? ` · ${esc(p.curso)}` : ''}</span></td>
+        <td data-label="Evento">${esc(p.eventoNome)}<br><span class="sub-cel">${esc(dataBR(p.eventoData))}${p.origem === 'suap' ? ' · SUAP' : ''}</span></td>
+        <td data-label="Validação">${metodo}</td>
+        <td data-label="Enviado em" class="sub-cel">${esc(new Date(p.updatedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }))}</td>
+        <td data-label="Situação"><span class="pres-badge ${cls}">${rot}</span>${p.status === 'recusada' && p.motivo ? `<br><span class="sub-cel">${esc(p.motivo)}</span>` : ''}</td>
+        <td data-label="Ações" class="td-acoes">${acoes}</td>
+      </tr>`;
+    }).join('');
+    el.innerHTML = `<div class="table-wrap"><table class="items-table">
+      <thead><tr><th>Aluno</th><th>Evento</th><th>Validação</th><th>Enviado em</th><th>Situação</th><th>Ações</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
+  } catch (e) {
+    el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+  }
+};
+
+const atualizarBadgePresencas = (n) => {
+  const b = document.getElementById('badgePresencas');
+  if (!b) return;
+  b.textContent = n > 99 ? '99+' : String(n);
+  b.hidden = !n;
+  b.setAttribute('aria-label', `${n} certificado(s) para analisar`);
+};
+
+// Abre o certificado numa aba nova (o cookie de sessão vai junto)
+const verCertificado = (id) => window.open(`/api/admin/presencas/${encodeURIComponent(id)}/arquivo`, '_blank', 'noopener');
+
+const decidirPresenca = async (id, status, eraAprovada = false) => {
+  let motivo = '';
+  if (status === 'recusada') {
+    if (eraAprovada && !confirm('Esta presença já foi validada. Desfazer remove as conquistas e pontos que o aluno ganhou por ela. Continuar?')) return;
+    const m = prompt(eraAprovada ? 'Motivo (opcional, o aluno vê):' : 'Por que o certificado foi recusado? (o aluno vê, opcional)', '');
+    if (m === null) return;
+    motivo = m.trim();
+  }
+  try {
+    await apiJSON(`/api/admin/presencas/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, motivo }),
+    });
+    mostrarToast(status === 'aprovada' ? 'Presença validada!' : (eraAprovada ? 'Validação desfeita.' : 'Certificado recusado.'), 'sucesso');
+    carregarPresencas();
+  } catch (e) { mostrarToast(e.message, 'erro'); }
+};
+
+// ─────────────────────────────────────────────────────
+// QR Code do evento (projetar / imprimir)
+// ─────────────────────────────────────────────────────
+let _qrTimer = null;
+let _qrEventoId = null;
+
+const abrirQrEvento = async (id, novo = false) => {
+  _qrEventoId = id;
+  const ov = document.getElementById('qrOverlay');
+  const corpo = document.getElementById('qrCorpo');
+  ov.classList.add('open');
+  if (!novo) corpo.innerHTML = '<div class="qr-carregando"><span class="skel" style="width:260px;height:260px;display:block;border-radius:16px"></span></div>';
+  clearTimeout(_qrTimer);
+  try {
+    const d = await apiJSON(`/api/admin/eventos/${id}/qr`, novo ? { method: 'POST' } : {});
+    if (!d || _qrEventoId !== id) return;
+    corpo.innerHTML = `
+      <h3 class="qr-titulo">${esc(d.evento)}</h3>
+      <div class="qr-svg" role="img" aria-label="QR Code de presença do evento">${d.svg}</div>
+      <p class="qr-instrucao">Aponte a câmera do celular ou abra <strong>IFPlenus → Eventos → Validar participação</strong></p>
+      <div class="qr-codigo" aria-label="Código para digitar">${esc(d.codigo.replace(/(.{4})/, '$1 '))}</div>
+      ${d.dinamico ? `<p class="qr-nota"><i data-lucide="refresh-cw"></i> QR dinâmico: muda a cada 30 s <span id="qrConta"></span></p>` : '<p class="qr-nota"><i data-lucide="lock"></i> QR fixo — pode imprimir. Se vazar, gere um novo.</p>'}
+      ${d.acontecendo ? '' : '<p class="qr-alerta"><i data-lucide="alert-triangle"></i> O evento não está acontecendo hoje: os alunos só conseguem validar nos dias do evento.</p>'}`;
+    if (d.dinamico && d.expiraEm) {
+      const ajuste = Date.now() - d.agora; // diferença do relógio do computador para o servidor
+      const tique = () => {
+        const falta = Math.max(0, Math.ceil((d.expiraEm + ajuste - Date.now()) / 1000));
+        const c = document.getElementById('qrConta');
+        if (c) c.textContent = `· troca em ${falta}s`;
+        if (falta <= 0) { abrirQrEvento(id, false); return; }
+        _qrTimer = setTimeout(tique, 1000);
+      };
+      tique();
+    }
+  } catch (e) {
+    corpo.innerHTML = `<p class="qr-alerta"><i data-lucide="alert-triangle"></i> ${esc(e.message)}</p>`;
+  }
+};
+
+const fecharQrEvento = () => {
+  clearTimeout(_qrTimer);
+  _qrEventoId = null;
+  document.getElementById('qrOverlay')?.classList.remove('open');
+  if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+};
+
+const qrTelaCheia = () => {
+  const box = document.querySelector('#qrOverlay .qr-caixa');
+  if (!document.fullscreenElement) box?.requestFullscreen?.().catch(() => mostrarToast('Seu navegador não permitiu tela cheia.', 'erro'));
+  else document.exitFullscreen?.();
+};
+
+const qrNovoCodigo = () => {
+  if (!_qrEventoId) return;
+  if (!confirm('Gerar um código novo? O QR atual (inclusive impresso) deixa de funcionar.')) return;
+  abrirQrEvento(_qrEventoId, true);
+};
+
+// ─────────────────────────────────────────────────────
+// Exportar CSV
+// ─────────────────────────────────────────────────────
+const exportarCsv = async (tipo, params = {}) => {
+  const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
+  try {
+    const res = await api(`/api/admin/exportar/${tipo}${q ? `?${q}` : ''}`);
+    if (!res) return;
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.erro || `HTTP ${res.status}`); }
+    const blob = await res.blob();
+    const nome = (res.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/)?.[1] || `${tipo}.csv`;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = nome;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    mostrarToast('Planilha baixada!', 'sucesso');
+  } catch (e) { mostrarToast(`Não foi possível exportar: ${e.message}`, 'erro'); }
+};
+
+// ─────────────────────────────────────────────────────
+// Busca rápida (Ctrl+K / ⌘K / "/")
+// ─────────────────────────────────────────────────────
+const _normBusca = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const _itensBuscaAdmin = () => [
+  ...[...document.querySelectorAll('.sidebar .nav-item')].filter(n => n.style.display !== 'none').map(n => ({
+    titulo: n.textContent.replace(/\d+\+?$/, '').trim(), grupo: 'Ir para',
+    icone: n.querySelector('[data-lucide]')?.getAttribute('data-lucide') || 'arrow-right',
+    acao: () => n.click(),
+  })),
+  { titulo: 'Novo evento', grupo: 'Criar', icone: 'calendar-plus', acao: () => abrirModal('evento') },
+  { titulo: 'Novo projeto de pesquisa', grupo: 'Criar', icone: 'flask-conical', acao: () => abrirModal('pesquisa') },
+  { titulo: 'Novo projeto de extensão', grupo: 'Criar', icone: 'sprout', acao: () => abrirModal('extensao') },
+  { titulo: 'Certificados para analisar', grupo: 'Ações', icone: 'badge-check', termos: 'presenca aprovar', acao: () => document.querySelector('.nav-item[data-section="presencas"]')?.click() },
+  { titulo: 'Exportar solicitações (CSV)', grupo: 'Exportar', icone: 'download', termos: 'planilha excel', acao: () => exportarCsv('solicitacoes') },
+  { titulo: 'Exportar ranking (CSV)', grupo: 'Exportar', icone: 'download', termos: 'planilha excel pontos', acao: () => exportarCsv('ranking') },
+  { titulo: 'Exportar presenças nos eventos (CSV)', grupo: 'Exportar', icone: 'download', termos: 'planilha excel lista de presenca', acao: () => exportarCsv('presencas') },
+  { titulo: 'Sair do painel', grupo: 'Conta', icone: 'log-out', termos: 'logout', acao: () => fazerLogout() },
+];
+let _bSel = 0, _bLista = [], _bFoco = null;
+const abrirBuscaAdmin = () => {
+  const box = document.getElementById('buscaAdmin');
+  _bFoco = document.activeElement; _bSel = 0;
+  const inp = document.getElementById('buscaAdminInput');
+  inp.value = '';
+  desenharBuscaAdmin('');
+  box.classList.add('open');
+  inp.focus();
+};
+const desenharBuscaAdmin = (termo, soSel) => {
+  const ul = document.getElementById('buscaAdminRes');
+  if (!soSel) {
+    const p = _normBusca(termo).split(/\s+/).filter(Boolean);
+    _bLista = _itensBuscaAdmin().filter(i => p.every(w => _normBusca(`${i.titulo} ${i.grupo} ${i.termos || ''}`).includes(w)));
+    ul.innerHTML = _bLista.length
+      ? _bLista.map((i, n) => `<li role="option" id="bA-${n}" class="busca-item" data-n="${n}"><i data-lucide="${esc(i.icone)}"></i><span>${esc(i.titulo)}</span><small>${esc(i.grupo)}</small></li>`).join('')
+      : '<li class="busca-vazio">Nada encontrado.</li>';
+    ul.querySelectorAll('.busca-item').forEach(li => li.addEventListener('click', () => executarBuscaAdmin(Number(li.dataset.n))));
+  }
+  ul.querySelectorAll('.busca-item').forEach(li => li.setAttribute('aria-selected', String(Number(li.dataset.n) === _bSel)));
+  document.getElementById('buscaAdminInput').setAttribute('aria-activedescendant', _bLista.length ? `bA-${_bSel}` : '');
+  document.getElementById(`bA-${_bSel}`)?.scrollIntoView({ block: 'nearest' });
+};
+const executarBuscaAdmin = (n) => {
+  const it = _bLista[n]; if (!it) return;
+  fecharBuscaAdmin(true); it.acao();
+};
+const fecharBuscaAdmin = (foco = true) => {
+  const box = document.getElementById('buscaAdmin');
+  if (!box?.classList.contains('open')) return;
+  box.classList.remove('open');
+  if (foco) _bFoco?.focus?.();
+};
+document.getElementById('buscaAdminInput')?.addEventListener('input', (e) => { _bSel = 0; desenharBuscaAdmin(e.target.value); });
+document.getElementById('buscaAdminInput')?.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); _bSel = Math.min(_bLista.length - 1, _bSel + 1); desenharBuscaAdmin('', true); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); _bSel = Math.max(0, _bSel - 1); desenharBuscaAdmin('', true); }
+  else if (e.key === 'Enter') { e.preventDefault(); executarBuscaAdmin(_bSel); }
+  else if (e.key === 'Tab') e.preventDefault();
+});
+document.getElementById('buscaAdmin')?.addEventListener('click', (e) => { if (e.target.id === 'buscaAdmin') fecharBuscaAdmin(); });
+document.addEventListener('keydown', (e) => {
+  const digitando = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName) || e.target?.isContentEditable;
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'k') { e.preventDefault(); abrirBuscaAdmin(); }
+  else if (e.key === '/' && !digitando && !e.ctrlKey && !e.metaKey) { e.preventDefault(); abrirBuscaAdmin(); }
+  else if (e.key === 'Escape') {
+    if (document.getElementById('buscaAdmin')?.classList.contains('open')) fecharBuscaAdmin();
+    else if (document.getElementById('qrOverlay')?.classList.contains('open')) fecharQrEvento();
+  }
+});
+
+// Conquistas (ativas) para o formulário de evento — carrega uma vez
+let _conquistasParaEvento = null;
+const carregarConquistasParaEvento = async (selecionada) => {
+  const sel = document.getElementById('f_conquista_ev');
+  if (!sel) return;
+  try {
+    if (!_conquistasParaEvento) _conquistasParaEvento = (await apiJSON('/api/admin/conquistas?ativa=true')) || [];
+    const atual = selecionada ? String(selecionada) : '';
+    sel.innerHTML = '<option value="">Nenhuma (só registra a presença)</option>' +
+      _conquistasParaEvento.map(c => `<option value="${esc(c._id)}" ${String(c._id) === atual ? 'selected' : ''}>${esc(c.icone || '🏆')} ${esc(c.nome)} · +${Number(c.pontos) || 0} pts</option>`).join('');
+  } catch (e) {
+    sel.innerHTML = '<option value="">Não foi possível carregar as conquistas</option>';
+  }
+};
+
+const toggleQrEvento = () => {
+  const qr = document.getElementById('f_val_qr')?.checked;
+  const din = document.getElementById('f_val_qr_din_wrap');
+  if (din) din.hidden = !qr;
+};
+
+// Pendências na barra lateral (atualiza ao abrir o painel)
+apiJSON('/api/admin/presencas?status=pendente').then(d => Array.isArray(d) && atualizarBadgePresencas(d.filter(p => p.podeDecidir).length)).catch(() => {});
+
 const fazerLogout = async () => {
   try { await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' }); }
   catch (e) { /* sai mesmo sem resposta */ }

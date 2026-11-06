@@ -124,11 +124,11 @@ const painelAcessibilidade = () => {
       <span class="acess-switch" aria-hidden="true"></span>
     </label>`;
   return `
-    <div class="config-secao">
+    <div class="config-secao" id="config-tema">
       <div class="config-secao-titulo"><i data-lucide="palette"></i> Tema</div>
       <div class="acess-temas" role="radiogroup" aria-label="Tema">${temas}</div>
     </div>
-    <div class="config-secao">
+    <div class="config-secao" id="config-acessibilidade">
       <div class="config-secao-titulo"><i data-lucide="accessibility"></i> Acessibilidade</div>
       <div class="config-bloco acess-bloco">
         <div class="acess-linha">
@@ -154,13 +154,13 @@ const painelNotificacoesPrivacidade = () => {
       <span><strong>${titulo}</strong><small>${desc}</small></span>
     </label>`;
   return `
-    <div class="config-secao">
+    <div class="config-secao" id="config-notificacoes">
       <div class="config-secao-titulo"><i data-lucide="mail"></i> Notificações</div>
       <div class="config-bloco acess-bloco">
         <label class="acess-chave" for="pref-email">
           <span><strong>Receber atualizações por e-mail</strong>
             <small>${u.email
-              ? `Conquista nova, subida de nível e resposta das suas solicitações de projeto. Enviado para <strong>${esc(u.email)}</strong>.`
+              ? `Conquista nova, subida de nível, resposta das suas solicitações de projeto e dos certificados de eventos. Enviado para <strong>${esc(u.email)}</strong>.`
               : 'Não encontramos seu e-mail no SUAP. Ele é atualizado no próximo login.'}</small></span>
           <input type="checkbox" id="pref-email" role="switch" ${u.notificarEmail !== false ? 'checked' : ''} ${u.email ? '' : 'disabled'}
                  onchange="salvarPreferencia('notificarEmail', this.checked)" />
@@ -332,7 +332,9 @@ document.querySelectorAll('[data-skel]').forEach(el => { el.innerHTML = esquelet
     carregarSecao('dashboard');
     // Atalhos do app instalado (PWA): /?secao=ranking abre direto a seção
     const secaoInicial = new URLSearchParams(location.search).get('secao');
-    if (secaoInicial && document.querySelector(`.nav-item[data-section="${CSS.escape(secaoInicial)}"]`)) irParaSecao(secaoInicial);
+    if (secaoInicial === 'calendario' || (secaoInicial && document.querySelector(`.nav-item[data-section="${CSS.escape(secaoInicial)}"]`))) irParaSecao(secaoInicial);
+    // QR Code do evento lido pela câmera do celular → valida a presença
+    checkinPeloLink();
     // Depois que o painel aparece, mostra conquistas novas / subida de nível
     setTimeout(verificarNovidades, 1200);
     // Pré-carrega as Configurações (dados do SUAP) para abrirem na hora
@@ -376,7 +378,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     const titles = {
       dashboard: 'Dashboard',
       projetos:  'Projetos',
-      calendario:'Calendário Acadêmico',
+      eventos:   'Eventos',
       conquistas:'Conquistas',
       trajetoria:'Minha Trajetória',
       ranking:'Ranking',
@@ -402,7 +404,7 @@ const carregarSecao = (sec) => {
   switch(sec) {
     case 'dashboard':  carregarDashboard();  break;
     case 'projetos':   carregarProjetos();   break;
-    case 'calendario': carregarCalendario(); break;
+    case 'eventos':    carregarEventos();    break;
     case 'conquistas': carregarConquistas(); break;
     case 'trajetoria': carregarTrajetoria(); break;
     case 'ranking':    carregarRanking();    break;
@@ -430,7 +432,7 @@ const montarConfig = (d) => {
     </div>`;
 
   const dadosSuap = d ? `
-    <div class="config-secao">
+    <div class="config-secao" id="config-dados">
       <div class="config-secao-titulo"><i data-lucide="graduation-cap"></i> Dados acadêmicos</div>
       <div class="config-bloco">
         <div class="dados-grid">
@@ -527,7 +529,7 @@ const fecharConfig = () => {
 };
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { fecharNiveis(); fecharConfig(); }
+  if (e.key === 'Escape') { fecharValidacao(); fecharNiveis(); fecharConfig(); }
 });
 
 // ── PROJETOS (aba única: áreas Pesquisa/Extensão × fontes Sistema/Admin) ──
@@ -814,55 +816,486 @@ const resetarSolicitacaoSuap = async (suapId, area) => {
     travarBotoes(false);
   }
 };
-const carregarCalendario = async () => {
-  state.loaded['calendario'] = true;
+// ── EVENTOS + validação de presença ────────────────────────────
+// Cada evento mostra como validar a presença: enviando o certificado
+// (PDF/foto → um professor aprova) e/ou lendo o QR Code do evento (na hora).
+state.evFiltro = 'todos';
+
+const ROTULO_PRESENCA = {
+  aprovada: { txt: 'Presença validada', cls: 'ok', ic: 'badge-check' },
+  pendente: { txt: 'Certificado em análise', cls: 'espera', ic: 'hourglass' },
+  recusada: { txt: 'Certificado recusado', cls: 'recusada', ic: 'x-circle' },
+};
+
+const _dataEv = (ev) => dataLocal(ev.data_inicio || ev.data);
+const _evAberto = (ev) => !!(ev.chave && (ev.validacao?.certificado || ev.validacao?.qrcode));
+
+const _periodoEv = (ev) => {
+  if (ev.periodo_formatado) return ev.periodo_formatado;
+  const ini = formatarData(ev.data_inicio || ev.data);
+  const fim = ev.data_fim && ev.data_fim !== ev.data_inicio ? ` a ${formatarData(ev.data_fim)}` : '';
+  const hora = ev.hora_inicio ? ` · ${ev.hora_inicio}${ev.hora_fim ? `–${ev.hora_fim}` : ''}` : '';
+  return `${ini}${fim}${hora}`;
+};
+
+const acaoEvento = (ev) => {
+  const p = ev.minhaPresenca;
+  const chave = esc(ev.chave || '');
+  if (p && ROTULO_PRESENCA[p.status]) {
+    const r = ROTULO_PRESENCA[p.status];
+    const extra = p.status === 'recusada'
+      ? `<button type="button" class="btn-validar secundario" onclick="abrirValidacao('${chave}')"><i data-lucide="upload"></i> Validar de novo</button>`
+      : p.status === 'pendente'
+      ? `<button type="button" class="btn-link-ev" onclick="abrirValidacao('${chave}')">Trocar arquivo</button>`
+      : '';
+    return `<span class="ev-status ${r.cls}"><i data-lucide="${r.ic}"></i> ${r.txt}${p.status === 'aprovada' && p.metodo === 'qrcode' ? ' · QR' : ''}</span>
+      ${p.status === 'recusada' && p.motivo ? `<small class="ev-motivo">Motivo: ${esc(p.motivo)}</small>` : ''}${extra}`;
+  }
+  if (!_evAberto(ev)) return '';
+  if (!ev.jaComecou) return '<span class="ev-status futuro"><i data-lucide="clock"></i> Validação abre no dia do evento</span>';
+  const soQrEncerrado = ev.validacao.qrcode && !ev.validacao.certificado && !ev.acontecendo;
+  if (soQrEncerrado) return '<span class="ev-status futuro"><i data-lucide="qr-code"></i> QR Code encerrado</span>';
+  return `<button type="button" class="btn-validar" onclick="abrirValidacao('${chave}')"><i data-lucide="badge-check"></i> Validar participação</button>`;
+};
+
+const renderEventos = () => {
+  const el = document.getElementById('eventosContent');
+  if (!el) return;
+  const todos = state.eventos || [];
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const anoAtual = hoje.getFullYear();
+  const fimEv = (ev) => dataLocal(ev.data_fim) || _dataEv(ev);
+
+  // Ano atual + o que ainda vem (eventos de anos passados ficam de fora)
+  const base = todos.filter(ev => {
+    const ini = _dataEv(ev), fim = fimEv(ev);
+    return (ini && ini.getFullYear() >= anoAtual) || (fim && fim.getFullYear() >= anoAtual);
+  });
+  const filtros = {
+    todos:     () => true,
+    proximos:  (ev) => (fimEv(ev) || 0) >= hoje,
+    passados:  (ev) => (fimEv(ev) || hoje) < hoje,
+    validar:   (ev) => _evAberto(ev) && ev.jaComecou && (!ev.minhaPresenca || ev.minhaPresenca.status === 'recusada'),
+    validados: (ev) => ev.minhaPresenca?.status === 'aprovada',
+  };
+  const lista = base.filter(filtros[state.evFiltro] || filtros.todos)
+    .sort((a, b) => (_dataEv(b) || 0) - (_dataEv(a) || 0));
+  const conta = (k) => base.filter(filtros[k]).length;
+
+  const chip = (k, rot) => `<button type="button" class="ev-filtro ${state.evFiltro === k ? 'ativo' : ''}" aria-pressed="${state.evFiltro === k}" onclick="filtrarEventos('${k}')">${rot}<span>${conta(k)}</span></button>`;
+
+  const cards = lista.map(ev => {
+    const dt = _dataEv(ev);
+    const nome = esc(ev.nome || ev.titulo || 'Evento');
+    const link = urlSegura(ev.link_suap);
+    const metodos = [
+      ev.validacao?.certificado ? '<span class="ev-tag"><i data-lucide="file-text"></i> Certificado</span>' : '',
+      ev.validacao?.qrcode ? '<span class="ev-tag"><i data-lucide="qr-code"></i> QR Code</span>' : '',
+      ev.conquista ? `<span class="ev-tag premio" title="Conquista ao validar">${esc(ev.conquista.icone)} ${esc(ev.conquista.nome)} · +${Number(ev.conquista.pontos) || 0}</span>` : '',
+      ev.origem === 'suap' ? '<span class="ev-tag suap">SUAP</span>' : '',
+    ].join('');
+    return `<div class="evento-item">
+      <div class="evento-data">
+        <div class="mes">${dt ? MESES[dt.getMonth()] : ''}</div>
+        <div class="dia">${dt ? dt.getDate() : '—'}</div>
+      </div>
+      <div class="evento-info">
+        <h4>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${nome}</a>` : nome}</h4>
+        <p>${esc([_periodoEv(ev), ev.local || ev.localizacao, ev.campus].filter(Boolean).join(' · '))}</p>
+        ${metodos ? `<div class="ev-tags">${metodos}</div>` : ''}
+        <div class="evento-acao">${acaoEvento(ev)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="ev-topo">
+      <p class="ev-intro"><i data-lucide="info"></i><span>Participou de um evento? Valide sua presença enviando o <strong>certificado</strong> ou lendo o <strong>QR Code</strong> do evento — e ganhe pontos.</span></p>
+      <div class="ev-filtros" role="group" aria-label="Filtrar eventos">
+        ${chip('todos', 'Todos')}${chip('proximos', 'Próximos')}${chip('passados', 'Já aconteceram')}${chip('validar', 'Para validar')}${chip('validados', 'Validados')}
+      </div>
+    </div>
+    ${lista.length
+      ? `<div class="eventos-lista">${cards}</div>`
+      : `<div class="empty-state"><div class="icon"><i data-lucide="calendar"></i></div><p>${base.length ? 'Nenhum evento neste filtro.' : `Nenhum evento encontrado para ${anoAtual}.`}</p></div>`}`;
+};
+
+const filtrarEventos = (k) => { state.evFiltro = k; renderEventos(); };
+
+const carregarEventos = async () => {
+  state.loaded['eventos'] = true;
   try {
-    const anoAtual = new Date().getFullYear();
-    const eventos  = await api(`/api/calendario?ano=${anoAtual}`);
+    const eventos = await api('/api/eventos');
     if (!eventos) return;
+    state.eventos = Array.isArray(eventos) ? eventos : [];
+    renderEventos();
+  } catch (e) {
+    delete state.loaded['eventos'];
+    document.getElementById('eventosContent').innerHTML =
+      '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar os eventos.</p><button type="button" class="btn-validar secundario" onclick="carregarEventos()">Tentar de novo</button></div>';
+  }
+};
 
-    const el = document.getElementById('calendarioContent');
+// ── Modal "Validar participação" ───────────────────────────────
+let _focoAntesValidar = null;
+let _camera = null;          // { stream, raf }
+let _arquivoEscolhido = null; // Blob pronto para enviar
 
-    // Mantém só os eventos do ano presente (início OU fim no ano atual,
-    // para incluir eventos que atravessam a virada de ano).
-    const doAno = eventos.filter(ev => {
-      const ini = dataLocal(ev.data_inicio || ev.data)?.getFullYear();
-      const fim = dataLocal(ev.data_fim)?.getFullYear();
-      return ini === anoAtual || fim === anoAtual;
-    });
+const eventoPorChave = (chave) => (state.eventos || []).find(e => e.chave === chave);
 
-    if (!doAno.length) {
-      el.innerHTML = `<div class="empty-state"><div class="icon"><i data-lucide="calendar"></i></div><p>Nenhum evento encontrado para ${anoAtual}.</p></div>`;
+const abrirValidacao = (chave, aba) => {
+  const ev = eventoPorChave(chave);
+  if (!ev) { aviso('Evento não encontrado. Recarregue a página.', 'erro'); return; }
+  _focoAntesValidar = document.activeElement;
+  _arquivoEscolhido = null;
+
+  let modal = document.getElementById('validarModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'validarModal';
+    modal.className = 'niveis-overlay';
+    modal.addEventListener('click', (e) => { if (e.target === modal) fecharValidacao(); });
+    document.body.appendChild(modal);
+  }
+  const temCert = !!ev.validacao?.certificado;
+  const temQr = !!ev.validacao?.qrcode;
+  const inicial = aba || (temQr && ev.acontecendo ? 'qr' : (temCert ? 'cert' : 'qr'));
+
+  modal.innerHTML = `
+    <div class="niveis-dialog validar-dialog" role="dialog" aria-modal="true" aria-labelledby="validarTitulo">
+      <div class="niveis-head">
+        <h2 id="validarTitulo"><i data-lucide="badge-check"></i> Validar participação</h2>
+        <button type="button" class="config-fechar" onclick="fecharValidacao()" aria-label="Fechar"><i data-lucide="x"></i></button>
+      </div>
+      <div class="niveis-body">
+        <p class="val-evento"><strong>${esc(ev.nome || ev.titulo || 'Evento')}</strong><br><small>${esc(_periodoEv(ev))}</small></p>
+        ${ev.conquista ? `<p class="val-premio">${esc(ev.conquista.icone)} Ao validar você ganha <strong>${esc(ev.conquista.nome)}</strong> (+${Number(ev.conquista.pontos) || 0} pontos)</p>` : ''}
+        ${temCert && temQr ? `
+        <p class="val-pergunta">Como você quer validar?</p>
+        <div class="val-abas" role="tablist" aria-label="Forma de validação">
+          <button type="button" role="tab" id="abaCert" aria-controls="painelCert" class="val-aba" onclick="trocarAbaValidacao('cert')"><i data-lucide="file-text"></i><span><strong>Enviar certificado</strong><small>PDF ou foto · um professor confere</small></span></button>
+          <button type="button" role="tab" id="abaQr" aria-controls="painelQr" class="val-aba" onclick="trocarAbaValidacao('qr')"><i data-lucide="qr-code"></i><span><strong>QR Code do evento</strong><small>Validado na hora</small></span></button>
+        </div>` : ''}
+        ${temCert ? `
+        <div class="val-painel" id="painelCert" role="tabpanel" aria-labelledby="abaCert">
+          <label class="val-drop" for="inputCert" id="dropCert">
+            <i data-lucide="upload-cloud"></i>
+            <strong>Escolher o certificado</strong>
+            <small>PDF, JPG ou PNG · até 4 MB. Pode tirar uma foto com o celular.</small>
+            <input type="file" id="inputCert" accept="application/pdf,image/jpeg,image/png,image/webp" onchange="escolherCertificado(this.files[0])" />
+          </label>
+          <div class="val-arquivo" id="arquivoCert" hidden></div>
+          <div class="val-progresso" id="progCert" hidden><span></span></div>
+          <button type="button" class="btn-validar largo" id="btnEnviarCert" onclick="enviarCertificado('${esc(ev.chave)}')" disabled><i data-lucide="send"></i> Enviar certificado</button>
+          ${ev.minhaPresenca?.status === 'pendente' ? `<button type="button" class="btn-link-ev" onclick="cancelarPresenca('${esc(ev.chave)}')">Cancelar o envio atual</button>` : ''}
+        </div>` : ''}
+        ${temQr ? `
+        <div class="val-painel" id="painelQr" role="tabpanel" aria-labelledby="abaQr">
+          ${ev.acontecendo ? `
+          <div class="val-camera" id="cameraBox" hidden>
+            <video id="cameraVideo" playsinline muted></video>
+            <div class="val-mira" aria-hidden="true"></div>
+          </div>
+          <div class="val-qr-opcoes">
+            <button type="button" class="btn-validar" id="btnCamera" onclick="lerQrCamera('${esc(ev.chave)}')"><i data-lucide="camera"></i> Ler com a câmera</button>
+            <button type="button" class="btn-validar secundario" onclick="document.getElementById('inputQrFoto').click()"><i data-lucide="image"></i> Enviar foto do QR</button>
+            <input type="file" id="inputQrFoto" hidden tabindex="-1" accept="image/*" onchange="lerQrFoto(this.files[0], '${esc(ev.chave)}')" />
+          </div>
+          <form class="val-codigo" onsubmit="event.preventDefault(); fazerCheckin('${esc(ev.chave)}', this.codigo.value)">
+            <label for="inputCodigo">Ou digite o código que aparece embaixo do QR</label>
+            <div><input id="inputCodigo" name="codigo" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Ex.: K7M2QX9P" />
+            <button type="submit" class="btn-validar">Validar</button></div>
+          </form>
+          <p class="val-dica" id="qrStatus" role="status" aria-live="polite"></p>`
+          : `<p class="val-dica"><i data-lucide="clock"></i><span>O QR Code só pode ser lido durante o evento (${esc(_periodoEv(ev))}).${temCert ? ' Você ainda pode enviar o certificado.' : ''}</span></p>`}
+        </div>` : ''}
+      </div>
+    </div>`;
+
+  modal.classList.add('open');
+  document.body.classList.add('config-aberta');
+  trocarAbaValidacao(inicial);
+  setTimeout(() => modal.querySelector('.config-fechar')?.focus(), 50);
+};
+
+const trocarAbaValidacao = (aba) => {
+  pararCamera();
+  const cert = document.getElementById('painelCert');
+  const qr = document.getElementById('painelQr');
+  if (cert) cert.hidden = aba !== 'cert' && !!qr;
+  if (qr) qr.hidden = aba !== 'qr' && !!cert;
+  [['abaCert', 'cert'], ['abaQr', 'qr']].forEach(([id, a]) => {
+    const b = document.getElementById(id);
+    if (b) { b.setAttribute('aria-selected', String(a === aba)); b.classList.toggle('ativa', a === aba); }
+  });
+};
+
+const fecharValidacao = () => {
+  const modal = document.getElementById('validarModal');
+  if (!modal || !modal.classList.contains('open')) return;
+  pararCamera();
+  modal.classList.remove('open');
+  if (!document.getElementById('configDrawer')?.classList.contains('open')) document.body.classList.remove('config-aberta');
+  _focoAntesValidar?.focus?.();
+};
+
+// Atualiza um evento na lista e redesenha (sem recarregar tudo do servidor)
+const atualizarPresencaLocal = (chave, presenca) => {
+  const ev = eventoPorChave(chave);
+  if (ev) ev.minhaPresenca = presenca;
+  if (state.eventos) renderEventos();
+};
+
+// ── Certificado ──
+const TAM_MAX_CERT = 4 * 1024 * 1024;
+
+// Foto grande do celular → reduz para no máx. 2000 px em JPEG (fica < 1 MB)
+const reduzirImagem = (arquivo) => new Promise((resolve) => {
+  const url = URL.createObjectURL(arquivo);
+  const img = new Image();
+  img.onload = () => {
+    const escala = Math.min(1, 2000 / Math.max(img.width, img.height));
+    if (escala === 1 && arquivo.size <= 1.5 * 1024 * 1024) { URL.revokeObjectURL(url); return resolve(arquivo); }
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.width * escala); c.height = Math.round(img.height * escala);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(url);
+    c.toBlob((b) => resolve(b ? new File([b], (arquivo.name || 'certificado').replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : arquivo), 'image/jpeg', 0.85);
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); resolve(arquivo); };
+  img.src = url;
+});
+
+const tamanhoLegivel = (n) => n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
+
+const escolherCertificado = async (arquivo) => {
+  const box = document.getElementById('arquivoCert');
+  const btn = document.getElementById('btnEnviarCert');
+  _arquivoEscolhido = null;
+  if (btn) btn.disabled = true;
+  if (!arquivo || !box) return;
+  const tipos = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+  if (!tipos.includes(arquivo.type)) {
+    box.hidden = false; box.className = 'val-arquivo erro';
+    box.innerHTML = '<i data-lucide="alert-triangle"></i><span>Formato não aceito. Envie PDF, JPG ou PNG.</span>';
+    return;
+  }
+  const pronto = arquivo.type.startsWith('image/') ? await reduzirImagem(arquivo) : arquivo;
+  if (pronto.size > TAM_MAX_CERT) {
+    box.hidden = false; box.className = 'val-arquivo erro';
+    box.innerHTML = `<i data-lucide="alert-triangle"></i><span>O arquivo tem ${tamanhoLegivel(pronto.size)} — o máximo é 4 MB. Tente exportar o PDF em tamanho menor ou enviar uma foto.</span>`;
+    return;
+  }
+  _arquivoEscolhido = pronto;
+  box.hidden = false; box.className = 'val-arquivo';
+  const ehImg = pronto.type.startsWith('image/');
+  box.innerHTML = `${ehImg ? `<img alt="Prévia do certificado" src="${URL.createObjectURL(pronto)}" />` : '<i data-lucide="file-text"></i>'}
+    <span><strong>${esc(pronto.name || 'certificado')}</strong><small>${tamanhoLegivel(pronto.size)}</small></span>`;
+  if (btn) btn.disabled = false;
+};
+
+const enviarCertificado = (chave) => {
+  if (!_arquivoEscolhido) return;
+  const btn = document.getElementById('btnEnviarCert');
+  const prog = document.getElementById('progCert');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i data-lucide="loader"></i> Enviando…'; }
+  if (prog) { prog.hidden = false; prog.firstElementChild.style.width = '0%'; }
+
+  // XMLHttpRequest (e não fetch) para mostrar a barra de progresso do envio
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', `/api/eventos/${encodeURIComponent(chave)}/certificado`);
+  xhr.withCredentials = true;
+  xhr.setRequestHeader('Content-Type', _arquivoEscolhido.type);
+  xhr.setRequestHeader('X-Nome-Arquivo', encodeURIComponent(_arquivoEscolhido.name || 'certificado'));
+  xhr.upload.onprogress = (e) => { if (prog && e.lengthComputable) prog.firstElementChild.style.width = `${Math.round(e.loaded / e.total * 100)}%`; };
+  xhr.onload = () => {
+    let data = {};
+    try { data = JSON.parse(xhr.responseText || '{}'); } catch (e) { /* resposta não-JSON */ }
+    if (xhr.status === 401) { window.location.href = '/login'; return; }
+    if (xhr.status >= 200 && xhr.status < 300 && data.sucesso) {
+      atualizarPresencaLocal(chave, data.presenca);
+      fecharValidacao();
+      aviso('Certificado enviado! Você recebe um aviso quando um professor conferir.', 'ok');
       return;
     }
+    aviso(data.erro || 'Não foi possível enviar o certificado.', 'erro');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="send"></i> Enviar certificado'; }
+    if (prog) prog.hidden = true;
+  };
+  xhr.onerror = () => {
+    aviso('Erro de conexão ao enviar. Tente de novo.', 'erro');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="send"></i> Enviar certificado'; }
+    if (prog) prog.hidden = true;
+  };
+  xhr.send(_arquivoEscolhido);
+};
 
-    // Ordem decrescente: eventos mais próximos/recentes em cima, mais antigos embaixo.
-    const sorted = [...doAno].sort((a,b) =>
-      (dataLocal(b.data_inicio || b.data) || 0) - (dataLocal(a.data_inicio || a.data) || 0)
-    );
+const cancelarPresenca = async (chave) => {
+  try {
+    const r = await fetch(`/api/eventos/${encodeURIComponent(chave)}/presenca`, { method: 'DELETE', credentials: 'include' });
+    if (!r.ok) throw new Error();
+    atualizarPresencaLocal(chave, null);
+    fecharValidacao();
+    aviso('Envio cancelado.');
+  } catch (e) { aviso('Não foi possível cancelar agora.', 'erro'); }
+};
 
-    el.innerHTML = `<div class="eventos-lista">${sorted.map(ev => {
-      const dt = dataLocal(ev.data_inicio || ev.data);
-      return `<div class="evento-item">
-        <div class="evento-data">
-          <div class="mes">${dt ? MESES[dt.getMonth()] : ''}</div>
-          <div class="dia">${dt ? dt.getDate() : '—'}</div>
-        </div>
-        <div class="evento-info">
-          <h4>${urlSegura(ev.link_suap)
-            ? `<a href="${esc(urlSegura(ev.link_suap))}" target="_blank" rel="noopener">${esc(ev.nome || ev.titulo || 'Evento')}</a>`
-            : esc(ev.nome || ev.titulo || 'Evento')}</h4>
-          <p>${esc(
-            [ev.periodo_formatado, ev.local || ev.localizacao, ev.campus]
-              .filter(Boolean).join(' · ') || ev.tipo || ''
-          )}</p>
-        </div>
-      </div>`;
-    }).join('')}</div>`;
-  } catch(e) {
-    document.getElementById('calendarioContent').innerHTML =
-      '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar calendário.</p></div>';
+// ── QR Code ──
+let _jsQrCarregando = null;
+const carregarJsQr = () => {
+  if (window.jsQR) return Promise.resolve(window.jsQR);
+  if (!_jsQrCarregando) {
+    _jsQrCarregando = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = '/vendor/jsQR.min.js';
+      s.onload = () => resolve(window.jsQR);
+      s.onerror = () => { _jsQrCarregando = null; reject(new Error('jsQR')); };
+      document.head.appendChild(s);
+    });
   }
+  return _jsQrCarregando;
+};
+
+// O QR traz o link do portal: /?checkin=<chave>&c=<código>. Também aceita só o código.
+const codigoDoQr = (texto, chaveEsperada) => {
+  const t = String(texto || '').trim();
+  try {
+    const u = new URL(t);
+    const c = u.searchParams.get('c');
+    const k = u.searchParams.get('checkin');
+    if (c) return { codigo: c, outroEvento: !!(k && chaveEsperada && k !== chaveEsperada), chave: k };
+  } catch (e) { /* não é link */ }
+  return { codigo: t, outroEvento: false, chave: null };
+};
+
+const statusQr = (msg, tipo = '') => {
+  const el = document.getElementById('qrStatus');
+  if (el) { el.textContent = msg; el.className = `val-dica ${tipo}`; }
+};
+
+const pararCamera = () => {
+  if (!_camera) return;
+  cancelAnimationFrame(_camera.raf);
+  _camera.stream?.getTracks().forEach(t => t.stop());
+  _camera = null;
+  const box = document.getElementById('cameraBox');
+  if (box) box.hidden = true;
+  const btn = document.getElementById('btnCamera');
+  if (btn) btn.innerHTML = '<i data-lucide="camera"></i> Ler com a câmera';
+};
+
+const lerQrCamera = async (chave) => {
+  if (_camera) { pararCamera(); return; }
+  if (!navigator.mediaDevices?.getUserMedia) { statusQr('Seu navegador não libera a câmera. Use "Enviar foto do QR" ou digite o código.', 'erro'); return; }
+  try {
+    const [jsQR, stream] = await Promise.all([
+      carregarJsQr(),
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }),
+    ]);
+    const video = document.getElementById('cameraVideo');
+    const box = document.getElementById('cameraBox');
+    if (!video || !box) { stream.getTracks().forEach(t => t.stop()); return; }
+    box.hidden = false;
+    video.srcObject = stream;
+    await video.play();
+    _camera = { stream, raf: 0 };
+    document.getElementById('btnCamera').innerHTML = '<i data-lucide="x"></i> Fechar câmera';
+    statusQr('Aponte a câmera para o QR Code do evento…');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const quadro = () => {
+      if (!_camera) return;
+      if (video.readyState >= 2 && video.videoWidth) {
+        const esc_ = Math.min(1, 640 / video.videoWidth);
+        canvas.width = Math.round(video.videoWidth * esc_); canvas.height = Math.round(video.videoHeight * esc_);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const achou = jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height, { inversionAttempts: 'dontInvert' });
+        if (achou?.data) { pararCamera(); processarQr(achou.data, chave); return; }
+      }
+      _camera.raf = requestAnimationFrame(quadro);
+    };
+    _camera.raf = requestAnimationFrame(quadro);
+  } catch (e) {
+    pararCamera();
+    statusQr(e?.name === 'NotAllowedError'
+      ? 'Você não liberou a câmera. Libere nas permissões do navegador, ou envie uma foto do QR.'
+      : 'Não foi possível abrir a câmera. Envie uma foto do QR ou digite o código.', 'erro');
+  }
+};
+
+const lerQrFoto = async (arquivo, chave) => {
+  if (!arquivo) return;
+  statusQr('Lendo a foto…');
+  try {
+    const jsQR = await carregarJsQr();
+    const url = URL.createObjectURL(arquivo);
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    URL.revokeObjectURL(url);
+    // Tenta em dois tamanhos: QR pequeno na foto às vezes só aparece em resolução maior
+    for (const max of [1000, 2000]) {
+      const esc_ = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * esc_); c.height = Math.round(img.height * esc_);
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      const achou = jsQR(ctx.getImageData(0, 0, c.width, c.height).data, c.width, c.height);
+      if (achou?.data) { processarQr(achou.data, chave); return; }
+    }
+    statusQr('Não achamos um QR Code nessa foto. Tente uma foto mais de perto e sem reflexo.', 'erro');
+  } catch (e) {
+    statusQr('Não foi possível ler a foto.', 'erro');
+  } finally {
+    const inp = document.getElementById('inputQrFoto'); if (inp) inp.value = '';
+  }
+};
+
+const processarQr = (texto, chave) => {
+  const r = codigoDoQr(texto, chave);
+  if (r.outroEvento) { statusQr('Esse QR Code é de outro evento.', 'erro'); return; }
+  fazerCheckin(chave, r.codigo);
+};
+
+const fazerCheckin = async (chave, codigo) => {
+  const limpo = String(codigo || '').trim();
+  if (!limpo) { statusQr('Digite o código.', 'erro'); return; }
+  statusQr('Validando…');
+  try {
+    const r = await fetch(`/api/eventos/${encodeURIComponent(chave)}/checkin`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ codigo: limpo }),
+    });
+    if (r.status === 401) { window.location.href = '/login'; return false; }
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.sucesso) {
+      statusQr(data.erro || 'Não foi possível validar.', 'erro');
+      aviso(data.erro || 'Não foi possível validar.', 'erro');
+      return false;
+    }
+    if (data.presenca) atualizarPresencaLocal(chave, data.presenca);
+    fecharValidacao();
+    if (data.jaValidada) { aviso('Sua presença neste evento já estava validada.'); return true; }
+    aviso('Presença validada! 🎉', 'ok');
+    soltarConfetes(2400);
+    setTimeout(verificarNovidades, 1500);
+    return true;
+  } catch (e) {
+    statusQr('Erro de conexão. Tente de novo.', 'erro');
+    return false;
+  }
+};
+
+// Link do QR aberto pela câmera do celular: /?checkin=<chave>&c=<código>
+const checkinPeloLink = async () => {
+  const q = new URLSearchParams(location.search);
+  const chave = q.get('checkin');
+  const codigo = q.get('c');
+  if (!chave) return;
+  history.replaceState(null, '', location.pathname); // não repete ao recarregar
+  irParaSecao('eventos');
+  if (!codigo) return;
+  const ok = await fazerCheckin(chave, codigo);
+  if (ok) await carregarEventos();
 };
 
 // ── Conquistas (gamificação) ───────────────────────────────────
@@ -918,6 +1351,7 @@ const carregarConquistas = async () => {
 
 // ── Dashboard (painel inicial) ─────────────────────────────────
 const irParaSecao = (sec) => {
+  if (sec === 'calendario') sec = 'eventos'; // nome antigo da aba
   const item = document.querySelector(`.nav-item[data-section="${sec}"]`);
   if (item) item.click();
 };
@@ -930,7 +1364,7 @@ const carregarDashboard = async () => {
     const [dash, rank, eventos] = await Promise.all([
       api('/api/dashboard'),
       api('/api/ranking?escopo=geral').catch(() => null),
-      api('/api/calendario').catch(() => []),
+      api('/api/eventos').catch(() => []),
     ]);
     if (!dash) return;
 
@@ -1057,7 +1491,7 @@ const carregarDashboard = async () => {
         <div class="dash-painel">
           <div class="titulo">Próximos Eventos</div>
           <div class="dash-timeline">${timelineHtml}</div>
-          <button type="button" class="rodape-link" onclick="irParaSecao('calendario')">Ver Calendário</button>
+          <button type="button" class="rodape-link" onclick="irParaSecao('eventos')">Ver todos os eventos</button>
         </div>
       </div>
     `;
@@ -1179,8 +1613,6 @@ const verificarNovidades = async () => {
 
 let _focoAntesNiveis = null;
 
-
-
 const abrirNiveis = async () => {
 
   const dash = state.dash;
@@ -1188,8 +1620,6 @@ const abrirNiveis = async () => {
   if (!dash) return;
 
   _focoAntesNiveis = document.activeElement;
-
-
 
   let modal = document.getElementById('niveisModal');
 
@@ -1223,8 +1653,6 @@ const abrirNiveis = async () => {
 
   }
 
-
-
   const pontos = Number(dash.pontos) || 0;
 
   const atual = dash.nivel?.nivel || 1;
@@ -1234,8 +1662,6 @@ const abrirNiveis = async () => {
     ? dash.niveis
 
     : [{ nivel: atual, nome: dash.nivel?.nome || '', min: dash.nivel?.inicioFaixa || 0 }];
-
-
 
   const escada = niveis.map((nv, i) => {
 
@@ -1285,8 +1711,6 @@ const abrirNiveis = async () => {
 
   }).join('');
 
-
-
   document.getElementById('niveisBody').innerHTML = `
 
     <div class="nv-resumo">
@@ -1297,11 +1721,7 @@ const abrirNiveis = async () => {
 
     </div>
 
-
-
     <ol class="nv-escada">${escada}</ol>
-
-
 
     <h3 class="nv-subtitulo"><i data-lucide="sparkles"></i> Como ganhar pontos</h3>
 
@@ -1315,25 +1735,17 @@ const abrirNiveis = async () => {
 
     </ul>
 
-
-
     <h3 class="nv-subtitulo"><i data-lucide="target"></i> Próximas conquistas para você</h3>
 
     <div id="nvProximas">${esqueleto('lista', 2)}</div>
 
-
-
     <button type="button" class="nv-cta" onclick="fecharNiveis(); irParaSecao('conquistas')">Ver todas as conquistas <i data-lucide="arrow-right"></i></button>`;
-
-
 
   modal.classList.add('open');
 
   document.body.classList.add('config-aberta');
 
   setTimeout(() => modal.querySelector('.config-fechar')?.focus(), 50);
-
-
 
   // Sugestões: as conquistas disponíveis que valem menos pontos (mais fáceis primeiro)
 
@@ -1373,8 +1785,6 @@ const abrirNiveis = async () => {
 
 };
 
-
-
 const fecharNiveis = () => {
 
   const modal = document.getElementById('niveisModal');
@@ -1392,8 +1802,6 @@ const fecharNiveis = () => {
   _focoAntesNiveis?.focus?.();
 
 };
-
-
 
 // ── Ranking (gamificação) ──────────────────────────────────────
 let _rankEscopo = 'geral';
@@ -1604,3 +2012,113 @@ const logout = async () => {
   catch (e) { /* sai mesmo sem resposta */ }
   window.location.href = '/login';
 };
+
+// ── BUSCA RÁPIDA (Ctrl+K / ⌘K / "/") ───────────────────────────
+// Uma caixa que leva a qualquer lugar do portal: seções, configurações e ações.
+const _itensBusca = () => [
+  ...[...document.querySelectorAll('.sidebar .nav-item')].map(n => ({
+    titulo: n.textContent.trim(), grupo: 'Ir para', icone: n.querySelector('[data-lucide]')?.getAttribute('data-lucide') || 'arrow-right',
+    acao: () => irParaSecao(n.dataset.section),
+  })),
+  { titulo: 'Validar presença em um evento', grupo: 'Ações', icone: 'badge-check', termos: 'certificado qr code check-in', acao: () => { state.evFiltro = 'validar'; irParaSecao('eventos'); if (state.eventos) renderEventos(); } },
+  { titulo: 'Ver níveis e como subir', grupo: 'Ações', icone: 'award', termos: 'pontos nivel', acao: () => state.dash ? abrirNiveis() : irParaSecao('dashboard') },
+  { titulo: 'Minha posição no ranking', grupo: 'Ações', icone: 'trending-up', termos: 'onde estou', acao: () => irParaSecao('ranking') },
+  { titulo: 'Configurações', grupo: 'Configurações', icone: 'settings', acao: () => abrirConfig() },
+  { titulo: 'Tema (escuro, claro, alto contraste…)', grupo: 'Configurações', icone: 'palette', termos: 'cores modo escuro claro daltonismo', acao: () => abrirConfig('tema') },
+  { titulo: 'Acessibilidade', grupo: 'Configurações', icone: 'accessibility', termos: 'fonte texto tamanho animacoes', acao: () => abrirConfig('acessibilidade') },
+  { titulo: 'Notificações por e-mail', grupo: 'Configurações', icone: 'mail', termos: 'email avisos', acao: () => abrirConfig('notificacoes') },
+  { titulo: 'Privacidade no ranking', grupo: 'Configurações', icone: 'eye', termos: 'anonimo oculto', acao: () => abrirConfig('privacidade') },
+  { titulo: 'Meus dados do SUAP', grupo: 'Configurações', icone: 'user', termos: 'perfil curso matricula', acao: () => abrirConfig('dados') },
+  { titulo: 'Sair do IFPlenus', grupo: 'Conta', icone: 'log-out', termos: 'logout sair', acao: () => logout() },
+];
+
+let _buscaFoco = null;
+let _buscaSel = 0;
+let _buscaLista = [];
+
+const abrirBusca = () => {
+  let box = document.getElementById('buscaRapida');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'buscaRapida';
+    box.className = 'busca-overlay';
+    box.innerHTML = `
+      <div class="busca-dialog" role="dialog" aria-modal="true" aria-label="Busca rápida">
+        <div class="busca-campo">
+          <i data-lucide="search"></i>
+          <input type="text" id="buscaInput" role="combobox" aria-expanded="true" aria-controls="buscaResultados" aria-autocomplete="list"
+                 placeholder="Para onde você quer ir?" autocomplete="off" spellcheck="false" />
+          <kbd>Esc</kbd>
+        </div>
+        <ul class="busca-resultados" id="buscaResultados" role="listbox" aria-label="Resultados"></ul>
+        <div class="busca-rodape"><span><kbd>↑</kbd><kbd>↓</kbd> navegar</span><span><kbd>Enter</kbd> abrir</span><span><kbd>Ctrl</kbd>+<kbd>K</kbd> abre de qualquer lugar</span></div>
+      </div>`;
+    box.addEventListener('click', (e) => { if (e.target === box) fecharBusca(); });
+    document.body.appendChild(box);
+    const inp = box.querySelector('#buscaInput');
+    inp.addEventListener('input', () => { _buscaSel = 0; desenharBusca(inp.value); });
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); _buscaSel = Math.min(_buscaLista.length - 1, _buscaSel + 1); desenharBusca(inp.value, true); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); _buscaSel = Math.max(0, _buscaSel - 1); desenharBusca(inp.value, true); }
+      else if (e.key === 'Enter') { e.preventDefault(); executarBusca(_buscaSel); }
+      else if (e.key === 'Escape') { e.preventDefault(); fecharBusca(); }
+      else if (e.key === 'Tab') { e.preventDefault(); } // mantém o foco dentro da caixa
+    });
+  }
+  _buscaFoco = document.activeElement;
+  _buscaSel = 0;
+  const inp = box.querySelector('#buscaInput');
+  inp.value = '';
+  desenharBusca('');
+  box.classList.add('open');
+  inp.focus(); // na hora: quem digita rápido logo após Ctrl+K não perde letras
+};
+
+const desenharBusca = (termo, soSelecao) => {
+  const ul = document.getElementById('buscaResultados');
+  if (!ul) return;
+  if (!soSelecao) {
+    const t = normalizarTexto(termo).trim();
+    const palavras = t.split(/\s+/).filter(Boolean);
+    _buscaLista = _itensBusca().filter(i => {
+      const alvo = normalizarTexto(`${i.titulo} ${i.grupo} ${i.termos || ''}`);
+      return palavras.every(p => alvo.includes(p));
+    });
+    ul.innerHTML = _buscaLista.length
+      ? _buscaLista.map((i, n) => `<li role="option" id="busca-op-${n}" class="busca-item" data-n="${n}">
+          <i data-lucide="${esc(i.icone)}"></i><span>${esc(i.titulo)}</span><small>${esc(i.grupo)}</small></li>`).join('')
+      : '<li class="busca-vazio">Nada encontrado. Tente "eventos", "tema" ou "ranking".</li>';
+    ul.querySelectorAll('.busca-item').forEach(li => {
+      li.addEventListener('click', () => executarBusca(Number(li.dataset.n)));
+      li.addEventListener('mousemove', () => { if (_buscaSel !== Number(li.dataset.n)) { _buscaSel = Number(li.dataset.n); desenharBusca('', true); } });
+    });
+  }
+  ul.querySelectorAll('.busca-item').forEach(li => li.setAttribute('aria-selected', String(Number(li.dataset.n) === _buscaSel)));
+  const inp = document.getElementById('buscaInput');
+  if (inp) inp.setAttribute('aria-activedescendant', _buscaLista.length ? `busca-op-${_buscaSel}` : '');
+  document.getElementById(`busca-op-${_buscaSel}`)?.scrollIntoView({ block: 'nearest' });
+};
+
+const executarBusca = (n) => {
+  const item = _buscaLista[n];
+  if (!item) return;
+  // Devolve o foco ANTES da ação: assim, o painel que abrir lembra do
+  // elemento certo (e não da caixa de busca, que some) para devolver depois
+  fecharBusca(true);
+  fecharConfig(); fecharNiveis(); fecharValidacao();
+  item.acao();
+};
+
+const fecharBusca = (devolverFoco = true) => {
+  const box = document.getElementById('buscaRapida');
+  if (!box || !box.classList.contains('open')) return;
+  box.classList.remove('open');
+  if (box.contains(document.activeElement)) document.activeElement.blur();
+  if (devolverFoco) _buscaFoco?.focus?.();
+};
+
+document.addEventListener('keydown', (e) => {
+  const digitando = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName) || e.target?.isContentEditable;
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'k') { e.preventDefault(); abrirBusca(); }
+  else if (e.key === '/' && !digitando && !e.ctrlKey && !e.metaKey) { e.preventDefault(); abrirBusca(); }
+});

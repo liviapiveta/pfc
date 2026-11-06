@@ -39,6 +39,22 @@ router.post('/projetos-suap/:suapId/solicitar', auth, suapController.solicitarPa
 router.delete('/projetos-internos/:id/solicitacao', auth, suapController.cancelarSolicitacao);
 router.delete('/projetos-suap/:suapId/solicitacao', auth, suapController.cancelarSolicitacaoSuap);
 
+// ── Eventos e validação de presença (aluno) ───────────────────
+const presencaController = require('../controllers/presencaController');
+const { TIPOS_ARQUIVO, TAM_MAX_ARQUIVO } = require('../services/presencaService');
+const lerArquivo = express.raw({ type: TIPOS_ARQUIVO, limit: TAM_MAX_ARQUIVO });
+const corpoArquivo = (req, res, next) =>
+  lerArquivo(req, res, (err) => {
+    if (err?.type === 'entity.too.large') return res.status(413).json({ erro: 'O arquivo passa de 4 MB.' });
+    return next(err);
+  });
+// Por ALUNO (não por IP: no evento todos usam o mesmo Wi-Fi) — barra quem tenta adivinhar o código
+const limiteCheckin = limiteTaxa({ max: 15, chave: (req) => `${req.user?.matricula}|${req.params.chave}` });
+router.get('/eventos', auth, presencaController.listarEventos);
+router.post('/eventos/:chave/checkin', auth, limiteCheckin, presencaController.checkin);
+router.post('/eventos/:chave/certificado', auth, corpoArquivo, presencaController.enviarCertificado);
+router.delete('/eventos/:chave/presenca', auth, presencaController.cancelarPresenca);
+
 // ── Preferências (persistidas no MongoDB) ─────────────────────
 router.put('/preferencias', auth, suapController.updatePreferencias);
 
@@ -79,6 +95,19 @@ router.get('/admin/eventos/:id', adminAuth, adminController.getEvento);
 router.post('/admin/eventos', adminAuth, adminController.criarEvento);
 router.put('/admin/eventos/:id', adminAuth, adminController.atualizarEvento);
 router.delete('/admin/eventos/:id', adminAuth, adminController.deletarEvento);
+
+// QR Code do evento e presenças (certificados) para decidir
+router.get('/admin/eventos/:id/qr', adminAuth, presencaController.qrDoEvento);
+router.post('/admin/eventos/:id/qr', adminAuth, presencaController.qrDoEvento); // gera código novo
+router.get('/admin/presencas', adminAuth, presencaController.listarPresencas);
+router.get('/admin/presencas/:id/arquivo', adminAuth, presencaController.verArquivo);
+router.put('/admin/presencas/:id', adminAuth, presencaController.decidirPresenca);
+
+// Exportar CSV (cada um exporta só o que já vê no painel)
+const exportController = require('../controllers/exportController');
+router.get('/admin/exportar/solicitacoes', adminAuth, exportController.solicitacoes);
+router.get('/admin/exportar/ranking', adminAuth, exportController.ranking);
+router.get('/admin/exportar/presencas', adminAuth, exportController.presencas);
 
 // Solicitações de participação
 router.get('/admin/solicitacoes', adminAuth, adminController.getSolicitacoes);

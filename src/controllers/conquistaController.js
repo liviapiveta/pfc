@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Conquista = require('../models/Conquista');
 const ConquistaUsuario = require('../models/ConquistaUsuario');
 const Solicitacao = require('../models/Solicitacao');
+const Presenca = require('../models/Presenca');
 const User = require('../models/User');
 const { calcularNivel, NIVEIS } = require('../services/niveis');
 
@@ -598,7 +599,7 @@ const getTrajetoria = async (req, res) => {
   try {
     const matricula = req.user.matricula;
 
-    const [conquistas, participacoes] = await Promise.all([
+    const [conquistas, participacoes, presencas] = await Promise.all([
       ConquistaUsuario.find({ matricula, status: 'confirmada' })
         .populate('conquista', 'icone categoria')
         .sort({ createdAt: -1 })
@@ -606,7 +607,16 @@ const getTrajetoria = async (req, res) => {
       Solicitacao.find({ matricula, status: 'aceito' })
         .sort({ updatedAt: -1 })
         .lean(),
+      Presenca.find({ matricula, status: 'aprovada' }).sort({ decididoEm: -1 }).lean(),
     ]);
+
+    const itensEvento = presencas.map((p) => ({
+      tipo: 'evento',
+      data: p.decididoEm || p.updatedAt,
+      titulo: p.eventoNome || '(evento)',
+      descricao: p.metodo === 'qrcode' ? 'Presença validada por QR Code' : 'Presença validada por certificado',
+      icone: '🎟️',
+    }));
 
     const itensConquista = conquistas.map((c) => ({
       tipo: 'conquista',
@@ -632,7 +642,7 @@ const getTrajetoria = async (req, res) => {
       projetoTipo: s.tipo || null,
     }));
 
-    const trajetoria = [...itensConquista, ...itensProjeto]
+    const trajetoria = [...itensConquista, ...itensProjeto, ...itensEvento]
       .filter((x) => x.data) // descarta itens sem data
       .sort((a, b) => new Date(b.data) - new Date(a.data));
 
@@ -659,4 +669,6 @@ module.exports = {
   getTrajetoria,
   getNovidades,
   marcarNovidadesVistas,
+  _rankearAlunos,
+  _rankingVisivel,
 };

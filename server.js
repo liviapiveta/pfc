@@ -37,7 +37,8 @@ app.use((req, res, next) => {
     'X-Frame-Options': 'DENY',
     'Content-Security-Policy': "frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    // câmera liberada só para o próprio site (leitura do QR Code dos eventos)
+    'Permissions-Policy': 'camera=(self), microphone=(), geolocation=()',
   });
   next();
 });
@@ -55,10 +56,19 @@ const tokenValido = (token, campo) => {
   catch { return false; }
 };
 app.get('/admin.html', (req, res) => res.redirect('/admin'));
-app.get(['/', '/index.html'], (req, res, next) =>
-  tokenValido(req.cookies?.authToken, 'userId') ? next() : res.redirect('/login'));
+// "volta": depois do login, retoma o endereço pedido (ex.: QR Code de check-in
+// lido pela câmera do celular). Só caminhos deste site — nunca "//outro-site".
+const voltaSegura = (v) => {
+  const s = String(v || '');
+  return /^\/(?![\/\\])[^\s]*$/.test(s) && s.length < 500 ? s : '/';
+};
+app.get(['/', '/index.html'], (req, res, next) => {
+  if (tokenValido(req.cookies?.authToken, 'userId')) return next();
+  const temQuery = req.originalUrl.includes('?');
+  return res.redirect(temQuery ? `/login?volta=${encodeURIComponent(voltaSegura(req.originalUrl))}` : '/login');
+});
 app.get('/login', (req, res, next) =>
-  (!('admin' in req.query) && tokenValido(req.cookies?.authToken, 'userId')) ? res.redirect('/') : next());
+  (!('admin' in req.query) && tokenValido(req.cookies?.authToken, 'userId')) ? res.redirect(voltaSegura(req.query.volta)) : next());
 
 // ── Arquivos estáticos (não dependem do banco) ────────────────
 // Ficam ANTES da conexão com o Mongo: CSS, imagens e a tela de login
