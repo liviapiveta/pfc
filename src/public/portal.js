@@ -218,26 +218,6 @@ const esc = (s) => String(s ?? '—')
 const normalizarTexto = (s) =>
   String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
-const toFloat = (v) => {
-  if (v === null || v === undefined || v === '') return null;
-  const n = parseFloat(String(v).replace(',', '.'));
-  return isNaN(n) ? null : n;
-};
-
-// Formata nota: aceita letra (A,B,C,D) ou número
-const fmtNota = (v) => {
-  if (v === null || v === undefined || v === '') return '—';
-  const s = String(v).trim();
-  if (s === '0' || s === '0.0') return '0';
-  if (!s || s === 'null') return '—';
-  // Se for letra (conceito), retorna direto
-  if (/^[A-Ea-e]$/.test(s)) return s.toUpperCase();
-  // Se for número
-  const n = parseFloat(s.replace(',', '.'));
-  if (isNaN(n)) return s;
-  return Number.isInteger(n) ? String(n) : n.toFixed(1);
-};
-
 const formatarData = (d) => {
   if (!d) return '—';
   // Aceita "AAAA-MM-DD" e também datas ISO com horário (antes virava NaN/NaN/NaN)
@@ -1195,116 +1175,226 @@ const verificarNovidades = async () => {
   } catch (e) { /* novidades são opcionais */ }
 };
 
-// ── Janela "Níveis" (aberta pelo nível do dashboard) ───────────
-let _focoAntesNiveis = null;
-
-const abrirNiveis = async () => {
-  const dash = state.dash;
-  if (!dash) return;
-  _focoAntesNiveis = document.activeElement;
-
-  let modal = document.getElementById('niveisModal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'niveisModal';
-    modal.className = 'niveis-overlay';
-    modal.innerHTML = `
-      <div class="niveis-dialog" role="dialog" aria-modal="true" aria-labelledby="niveisTitulo">
-        <div class="niveis-head">
-          <h2 id="niveisTitulo"><i data-lucide="award"></i> Níveis do IFPlenus</h2>
-          <button type="button" class="config-fechar" onclick="fecharNiveis()" aria-label="Fechar"><i data-lucide="x"></i></button>
-        </div>
-        <div class="niveis-body" id="niveisBody"></div>
-      </div>`;
-    modal.addEventListener('click', (e) => { if (e.target === modal) fecharNiveis(); });
-    document.body.appendChild(modal);
-  }
-
-  const pontos = Number(dash.pontos) || 0;
-  const atual = dash.nivel?.nivel || 1;
-  const niveis = Array.isArray(dash.niveis) && dash.niveis.length
-    ? dash.niveis
-    : [{ nivel: atual, nome: dash.nivel?.nome || '', min: dash.nivel?.inicioFaixa || 0 }];
-
-  const escada = niveis.map((nv, i) => {
-    const prox = niveis[i + 1];
-    const estado = nv.nivel < atual ? 'feito' : nv.nivel === atual ? 'atual' : 'futuro';
-    const faixa = prox ? `${nv.min} a ${prox.min - 1} pts` : `${nv.min} pts ou mais`;
-    let detalhe = '';
-    if (estado === 'feito') detalhe = '<span class="nv-tag ok"><i data-lucide="check"></i> Alcançado</span>';
-    if (estado === 'atual') {
-      detalhe = prox
-        ? `<div class="nv-progresso"><div class="dash-barra"><span style="width:${Math.min(100, Math.max(0, dash.nivel?.progresso || 0))}%"></span></div>
-             <small>Faltam <strong>${prox.min - pontos} pts</strong> para ${esc(prox.nome)}</small></div>`
-        : '<span class="nv-tag ok"><i data-lucide="trophy"></i> Nível máximo!</span>';
-    }
-    if (estado === 'futuro') detalhe = `<span class="nv-tag"><i data-lucide="lock"></i> Faltam ${nv.min - pontos} pts</span>`;
-    return `
-      <li class="nv-item ${estado}">
-        <div class="nv-num">${estado === 'feito' ? '<i data-lucide="check"></i>' : nv.nivel}</div>
-        <div class="nv-info">
-          <div class="nv-nome">${esc(nv.nome)} ${estado === 'atual' ? '<span class="nv-voce">VOCÊ</span>' : ''}</div>
-          <div class="nv-faixa">${faixa}</div>
-          ${estado === 'atual' ? detalhe : ''}
-        </div>
-        ${estado !== 'atual' ? detalhe : ''}
-      </li>`;
-  }).join('');
-
-  document.getElementById('niveisBody').innerHTML = `
-    <div class="nv-resumo">
-      <div><div class="nv-pts"><i data-lucide="star"></i> ${pontos}</div><div class="nv-pts-l">seus pontos</div></div>
-      <div><div class="nv-pts">${esc(dash.nivel?.nome || '')}</div><div class="nv-pts-l">nível atual</div></div>
-    </div>
-
-    <ol class="nv-escada">${escada}</ol>
-
-    <h3 class="nv-subtitulo"><i data-lucide="sparkles"></i> Como ganhar pontos</h3>
-    <ul class="nv-dicas">
-      <li><span class="ic"><i data-lucide="medal"></i></span><div><strong>Desbloqueie conquistas</strong><p>Cada conquista vale pontos. Algumas são automáticas, outras são concedidas pelos professores.</p></div></li>
-      <li><span class="ic"><i data-lucide="folder"></i></span><div><strong>Participe de projetos</strong><p>Peça para entrar em projetos de pesquisa ou extensão na aba Projetos. Quando o professor aceitar, você pode ganhar conquistas.</p></div></li>
-      <li><span class="ic"><i data-lucide="graduation-cap"></i></span><div><strong>Capriche nas notas</strong><p>Conquistas de desempenho são liberadas sozinhas quando suas notas no SUAP atingem a meta.</p></div></li>
-    </ul>
-
-    <h3 class="nv-subtitulo"><i data-lucide="target"></i> Próximas conquistas para você</h3>
-    <div id="nvProximas">${esqueleto('lista', 2)}</div>
-
-    <button type="button" class="nv-cta" onclick="fecharNiveis(); irParaSecao('conquistas')">Ver todas as conquistas <i data-lucide="arrow-right"></i></button>`;
-
-  modal.classList.add('open');
-  document.body.classList.add('config-aberta');
-  setTimeout(() => modal.querySelector('.config-fechar')?.focus(), 50);
-
-  // Sugestões: as conquistas disponíveis que valem menos pontos (mais fáceis primeiro)
-  try {
-    const dados = await api('/api/minhas-conquistas');
-    const box = document.getElementById('nvProximas');
-    if (!dados || !box) return;
-    const disp = (dados.disponiveis || []).slice().sort((a, b) => (a.pontos || 0) - (b.pontos || 0)).slice(0, 3);
-    box.innerHTML = disp.length
-      ? `<div class="nv-sugestoes">${disp.map(c => `
-          <div class="nv-sug">
-            <span class="nv-sug-ic">${esc(c.icone || '🏆')}</span>
-            <div><strong>${esc(c.nome)}</strong>${c.descricao ? `<p>${esc(c.descricao)}</p>` : ''}</div>
-            <span class="nv-sug-pts">+${Number(c.pontos) || 0}</span>
-          </div>`).join('')}</div>`
-      : '<p class="nv-vazio">Você já desbloqueou todas as conquistas disponíveis. <i data-lucide="party-popper"></i></p>';
-  } catch (e) {
-    const box = document.getElementById('nvProximas');
-    if (box) box.innerHTML = '<p class="nv-vazio">Não foi possível carregar as conquistas agora.</p>';
-  }
-};
-
-const fecharNiveis = () => {
-  const modal = document.getElementById('niveisModal');
-  if (!modal || !modal.classList.contains('open')) return;
-  modal.classList.remove('open');
-  if (!document.getElementById('configDrawer')?.classList.contains('open')) {
-    document.body.classList.remove('config-aberta');
-  }
-  _focoAntesNiveis?.focus?.();
-};
-
+// ── Janela "Níveis" (aberta pelo nível do dashboard) ───────────
+
+let _focoAntesNiveis = null;
+
+
+
+const abrirNiveis = async () => {
+
+  const dash = state.dash;
+
+  if (!dash) return;
+
+  _focoAntesNiveis = document.activeElement;
+
+
+
+  let modal = document.getElementById('niveisModal');
+
+  if (!modal) {
+
+    modal = document.createElement('div');
+
+    modal.id = 'niveisModal';
+
+    modal.className = 'niveis-overlay';
+
+    modal.innerHTML = `
+
+      <div class="niveis-dialog" role="dialog" aria-modal="true" aria-labelledby="niveisTitulo">
+
+        <div class="niveis-head">
+
+          <h2 id="niveisTitulo"><i data-lucide="award"></i> Níveis do IFPlenus</h2>
+
+          <button type="button" class="config-fechar" onclick="fecharNiveis()" aria-label="Fechar"><i data-lucide="x"></i></button>
+
+        </div>
+
+        <div class="niveis-body" id="niveisBody"></div>
+
+      </div>`;
+
+    modal.addEventListener('click', (e) => { if (e.target === modal) fecharNiveis(); });
+
+    document.body.appendChild(modal);
+
+  }
+
+
+
+  const pontos = Number(dash.pontos) || 0;
+
+  const atual = dash.nivel?.nivel || 1;
+
+  const niveis = Array.isArray(dash.niveis) && dash.niveis.length
+
+    ? dash.niveis
+
+    : [{ nivel: atual, nome: dash.nivel?.nome || '', min: dash.nivel?.inicioFaixa || 0 }];
+
+
+
+  const escada = niveis.map((nv, i) => {
+
+    const prox = niveis[i + 1];
+
+    const estado = nv.nivel < atual ? 'feito' : nv.nivel === atual ? 'atual' : 'futuro';
+
+    const faixa = prox ? `${nv.min} a ${prox.min - 1} pts` : `${nv.min} pts ou mais`;
+
+    let detalhe = '';
+
+    if (estado === 'feito') detalhe = '<span class="nv-tag ok"><i data-lucide="check"></i> Alcançado</span>';
+
+    if (estado === 'atual') {
+
+      detalhe = prox
+
+        ? `<div class="nv-progresso"><div class="dash-barra"><span style="width:${Math.min(100, Math.max(0, dash.nivel?.progresso || 0))}%"></span></div>
+
+             <small>Faltam <strong>${prox.min - pontos} pts</strong> para ${esc(prox.nome)}</small></div>`
+
+        : '<span class="nv-tag ok"><i data-lucide="trophy"></i> Nível máximo!</span>';
+
+    }
+
+    if (estado === 'futuro') detalhe = `<span class="nv-tag"><i data-lucide="lock"></i> Faltam ${nv.min - pontos} pts</span>`;
+
+    return `
+
+      <li class="nv-item ${estado}">
+
+        <div class="nv-num">${estado === 'feito' ? '<i data-lucide="check"></i>' : nv.nivel}</div>
+
+        <div class="nv-info">
+
+          <div class="nv-nome">${esc(nv.nome)} ${estado === 'atual' ? '<span class="nv-voce">VOCÊ</span>' : ''}</div>
+
+          <div class="nv-faixa">${faixa}</div>
+
+          ${estado === 'atual' ? detalhe : ''}
+
+        </div>
+
+        ${estado !== 'atual' ? detalhe : ''}
+
+      </li>`;
+
+  }).join('');
+
+
+
+  document.getElementById('niveisBody').innerHTML = `
+
+    <div class="nv-resumo">
+
+      <div><div class="nv-pts"><i data-lucide="star"></i> ${pontos}</div><div class="nv-pts-l">seus pontos</div></div>
+
+      <div><div class="nv-pts">${esc(dash.nivel?.nome || '')}</div><div class="nv-pts-l">nível atual</div></div>
+
+    </div>
+
+
+
+    <ol class="nv-escada">${escada}</ol>
+
+
+
+    <h3 class="nv-subtitulo"><i data-lucide="sparkles"></i> Como ganhar pontos</h3>
+
+    <ul class="nv-dicas">
+
+      <li><span class="ic"><i data-lucide="medal"></i></span><div><strong>Desbloqueie conquistas</strong><p>Cada conquista vale pontos. Algumas são automáticas, outras são concedidas pelos professores.</p></div></li>
+
+      <li><span class="ic"><i data-lucide="folder"></i></span><div><strong>Participe de projetos</strong><p>Peça para entrar em projetos de pesquisa ou extensão na aba Projetos. Quando o professor aceitar, você pode ganhar conquistas.</p></div></li>
+
+      <li><span class="ic"><i data-lucide="graduation-cap"></i></span><div><strong>Capriche nas notas</strong><p>Conquistas de desempenho são liberadas sozinhas quando suas notas no SUAP atingem a meta.</p></div></li>
+
+    </ul>
+
+
+
+    <h3 class="nv-subtitulo"><i data-lucide="target"></i> Próximas conquistas para você</h3>
+
+    <div id="nvProximas">${esqueleto('lista', 2)}</div>
+
+
+
+    <button type="button" class="nv-cta" onclick="fecharNiveis(); irParaSecao('conquistas')">Ver todas as conquistas <i data-lucide="arrow-right"></i></button>`;
+
+
+
+  modal.classList.add('open');
+
+  document.body.classList.add('config-aberta');
+
+  setTimeout(() => modal.querySelector('.config-fechar')?.focus(), 50);
+
+
+
+  // Sugestões: as conquistas disponíveis que valem menos pontos (mais fáceis primeiro)
+
+  try {
+
+    const dados = await api('/api/minhas-conquistas');
+
+    const box = document.getElementById('nvProximas');
+
+    if (!dados || !box) return;
+
+    const disp = (dados.disponiveis || []).slice().sort((a, b) => (a.pontos || 0) - (b.pontos || 0)).slice(0, 3);
+
+    box.innerHTML = disp.length
+
+      ? `<div class="nv-sugestoes">${disp.map(c => `
+
+          <div class="nv-sug">
+
+            <span class="nv-sug-ic">${esc(c.icone || '🏆')}</span>
+
+            <div><strong>${esc(c.nome)}</strong>${c.descricao ? `<p>${esc(c.descricao)}</p>` : ''}</div>
+
+            <span class="nv-sug-pts">+${Number(c.pontos) || 0}</span>
+
+          </div>`).join('')}</div>`
+
+      : '<p class="nv-vazio">Você já desbloqueou todas as conquistas disponíveis. <i data-lucide="party-popper"></i></p>';
+
+  } catch (e) {
+
+    const box = document.getElementById('nvProximas');
+
+    if (box) box.innerHTML = '<p class="nv-vazio">Não foi possível carregar as conquistas agora.</p>';
+
+  }
+
+};
+
+
+
+const fecharNiveis = () => {
+
+  const modal = document.getElementById('niveisModal');
+
+  if (!modal || !modal.classList.contains('open')) return;
+
+  modal.classList.remove('open');
+
+  if (!document.getElementById('configDrawer')?.classList.contains('open')) {
+
+    document.body.classList.remove('config-aberta');
+
+  }
+
+  _focoAntesNiveis?.focus?.();
+
+};
+
+
+
 // ── Ranking (gamificação) ──────────────────────────────────────
 let _rankEscopo = 'geral';
 

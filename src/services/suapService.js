@@ -1,5 +1,6 @@
 const axios = require('axios');
 const NodeCache = require('node-cache');
+const crypto = require('crypto');
 
 const cache = new NodeCache({
   stdTTL: parseInt(process.env.CACHE_TTL) || 300,
@@ -62,7 +63,7 @@ const refreshToken = async (refresh) => {
 };
 
 const verifyToken = async (token) => {
-  const { data } = await axios.post(`${SUAP_BASE}token/verify`, { token });
+  const { data } = await axios.post(`${SUAP_BASE}token/verify`, { token }, { timeout: 10000 });
   return data;
 };
 
@@ -70,8 +71,12 @@ const verifyToken = async (token) => {
 
 const getCache = (key) => cache.get(key);
 const setCache = (key, data) => { cache.set(key, data); return data; };
+// A chave usa um hash do token INTEIRO. Antes eram só os 10 últimos
+// caracteres — dois alunos com finais iguais veriam os dados um do outro.
+const idToken = (token) =>
+  crypto.createHash('sha256').update(String(token)).digest('hex').slice(0, 24);
 const buildCacheKey = (prefix, token, extra = '') =>
-  `${prefix}_${token.slice(-10)}_${extra}`;
+  `${prefix}_${idToken(token)}_${extra}`;
 
 // ── DADOS ─────────────────────────────────────────────────────
 
@@ -519,11 +524,14 @@ const _projetoPertenceAoAluno = (projeto, ids) => {
     if (blob.includes(t)) return true;
   }
 
-  // Casa matrícula/CPF comparando apenas os dígitos (ignora formatação)
+  // Casa matrícula/CPF comparando os dígitos de CADA número do texto
+  // (ignora formatação como 123.456.789-00). Antes juntávamos todos os
+  // dígitos do projeto numa string só — números vizinhos (datas, ids)
+  // formavam o CPF/matrícula "por acaso" e o projeto aparecia para o aluno errado.
   if (ids.digitos.size) {
-    const blobDigitos = blob.replace(/\D/g, '');
-    for (const d of ids.digitos) {
-      if (blobDigitos.includes(d)) return true;
+    const numeros = blob.match(/\d[\d.\-/]*\d/g) || [];
+    for (const n of numeros) {
+      if (ids.digitos.has(n.replace(/\D/g, ''))) return true;
     }
   }
 
@@ -697,8 +705,9 @@ const getMensagens = async (token, status = 'nao-lidas') => {
 };
 
 const limparCache = (token) => {
-  const suffix = token.slice(-10);
-  cache.keys().filter((k) => k.includes(suffix)).forEach((k) => cache.del(k));
+  if (!token) return;
+  const id = `_${idToken(token)}_`;
+  cache.keys().filter((k) => k.includes(id)).forEach((k) => cache.del(k));
 };
 
 module.exports = {

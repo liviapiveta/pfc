@@ -178,13 +178,15 @@ const _listarProjetosSuap = async (req, res, tipo, fetchFn) => {
   try {
     const projetos = (await fetchFn(req.user.suapToken)) || [];
 
-    // Atualiza o espelho local — em segundo plano, sem travar a resposta.
-    Promise.all(
-      projetos
-        .filter(p => p && p.id != null)
-        .map(p => ProjetoSuapCache.updateOne(
-          { suapId: p.id, tipo },
-          {
+    // Atualiza o espelho local (usado pelo admin e para validar pedidos).
+    // Uma única ida ao banco (bulkWrite) e com await: em segundo plano a
+    // Vercel podia congelar a função antes de gravar.
+    const ops = projetos
+      .filter(p => p && p.id != null)
+      .map(p => ({
+        updateOne: {
+          filter: { suapId: p.id, tipo },
+          update: { $set: {
             suapId: p.id,
             tipo,
             titulo: p.titulo || '',
@@ -193,13 +195,17 @@ const _listarProjetosSuap = async (req, res, tipo, fetchFn) => {
             dt_inicio: p.dt_inicio || null,
             dt_final: p.dt_final || null,
             coordenador: p.nome_coordenador || '',
-            email_coordenador: p.email_coordenador || '',
+            email_coordenador: String(p.email_coordenador || '').trim().toLowerCase(),
             campus_nome: p.campus_nome_formatado || p.campus_nome || '',
             link_suap: linkProjetoSuap(p),
-          },
-          { upsert: true }
-        ))
-    ).catch(err => console.warn('Falha ao atualizar cache SUAP:', err.message));
+          } },
+          upsert: true,
+        },
+      }));
+    if (ops.length) {
+      await ProjetoSuapCache.bulkWrite(ops, { ordered: false })
+        .catch(err => console.warn('Falha ao atualizar cache SUAP:', err.message));
+    }
 
     // Anota o status da solicitação do aluno logado em cada projeto
     const ids = projetos.map(p => p?.id).filter(v => v != null);
@@ -233,7 +239,7 @@ const solicitarParticipacaoSuap = async (req, res) => {
     const suapId = Number(req.params.suapId);
     const { tipo } = req.body;
 
-    if (!Number.isFinite(suapId)) {
+    if (!Number.isInteger(suapId) || suapId <= 0) {
       return res.status(400).json({ erro: 'Projeto inválido' });
     }
     if (tipo !== 'pesquisa' && tipo !== 'extensao') {
@@ -247,9 +253,14 @@ const solicitarParticipacaoSuap = async (req, res) => {
       return res.status(200).json({ sucesso: true, status: jaExiste.status, jaSolicitado: true });
     }
 
-    // Título vindo do espelho local (se algum aluno já carregou o projeto)
+    // O projeto precisa existir no espelho local (gravado quando a lista é
+    // carregada). Antes aceitávamos QUALQUER id e o título vinha do próprio
+    // aluno — dava para criar pedidos falsos que apareciam no painel.
     const cache = await ProjetoSuapCache.findOne({ suapId, tipo }).lean();
-    const titulo = String(cache?.titulo || req.body.titulo || '(projeto do SUAP)').slice(0, 300);
+    if (!cache) {
+      return res.status(404).json({ erro: 'Projeto não encontrado. Recarregue a lista e tente de novo.' });
+    }
+    const titulo = String(cache.titulo || '(projeto do SUAP)').slice(0, 300);
 
     const solicitacao = await Solicitacao.create({
       origem: 'suap',
@@ -263,6 +274,9 @@ const solicitarParticipacaoSuap = async (req, res) => {
 
     return res.status(201).json({ sucesso: true, status: solicitacao.status });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(200).json({ sucesso: true, status: 'pendente', jaSolicitado: true });
+    }
     console.error('Erro ao solicitar participação (SUAP):', err.message);
     return res.status(500).json({ erro: 'Erro ao enviar solicitação' });
   }

@@ -28,7 +28,21 @@ app.use(cors({
   origin: (origin, cb) => cb(null, !origin || ORIGENS_PERMITIDAS.includes(origin)),
   credentials: true,
 }));
-app.use(express.json());
+// Cabeçalhos de segurança básicos (sem CSP de script, pois as páginas
+// usam scripts embutidos): impede o site de ser embutido em iframe de
+// terceiros (clickjacking) e o navegador de "adivinhar" tipos de arquivo.
+app.use((req, res, next) => {
+  res.set({
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Content-Security-Policy': "frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  });
+  next();
+});
+app.disable('x-powered-by');
+app.use(express.json({ limit: '200kb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
@@ -97,6 +111,9 @@ app.get('*', (req, res) => res.redirect('/'));
 
 // ── Error handler global ──────────────────────────────────────
 app.use((err, req, res, next) => {
+  // JSON malformado ou grande demais → erro do cliente, não 500
+  if (err.type === 'entity.parse.failed') return res.status(400).json({ erro: 'Dados enviados em formato inválido' });
+  if (err.type === 'entity.too.large') return res.status(413).json({ erro: 'Dados enviados grandes demais' });
   console.error('Erro não tratado:', err);
   res.status(500).json({ erro: 'Erro interno do servidor' });
 });
@@ -107,6 +124,7 @@ app.use((err, req, res, next) => {
 //    oficial de servidores (src/data/servidores.js). Depois disso, novas
 //    importações são feitas pelo botão "Importar lista IFPR" no painel.
 const seedAdmin = async () => {
+  await connectDB(); // na Vercel o seed roda antes de qualquer requisição conectar
   await garantirContaDev();
   const temServidores = await Admin.exists({ cargo: { $in: ['professor', 'substituto'] } });
   if (!temServidores) {
