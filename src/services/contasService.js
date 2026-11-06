@@ -15,7 +15,7 @@ const importarServidores = async () => {
           nome: s.nome,
           email: s.email.trim().toLowerCase(),
           area: s.area || '',
-          cargo: s.cargo === 'substituto' ? 'substituto' : 'professor',
+          cargo: ['substituto', 'tecnico'].includes(s.cargo) ? s.cargo : 'professor',
           ativo: true,
           senhaHash: null,
         },

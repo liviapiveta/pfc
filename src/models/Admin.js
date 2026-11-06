@@ -4,17 +4,18 @@ const crypto = require('crypto');
 
 /**
  * Conta de acesso ao painel administrativo.
- * Só podem entrar docentes, substitutos e o(a) desenvolvedor(a).
+ * Só podem entrar docentes, substitutos, técnicos administrativos e o(a) desenvolvedor(a).
  *
  * cargo:
  *  - 'professor'     → docente efetivo (acesso normal ao painel)
  *  - 'substituto'    → docente substituto (acesso normal ao painel)
+ *  - 'tecnico'       → técnico(a) administrativo(a) — coordenações, secretaria… (acesso normal)
  *  - 'desenvolvedor' → acesso normal + gerenciamento de contas
  *
  * A conta nasce SEM senha. No primeiro acesso, o servidor digita o
  * e-mail e recebe um link "Cadastrar sua senha" (token de uso único).
  */
-const CARGOS = ['professor', 'substituto', 'desenvolvedor'];
+const CARGOS = ['professor', 'substituto', 'tecnico', 'desenvolvedor'];
 const VALIDADE_TOKEN_MS = 48 * 60 * 60 * 1000; // 48h
 
 const adminSchema = new mongoose.Schema(

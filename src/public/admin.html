@@ -559,6 +559,7 @@
       background:var(--amarelo-claro); border:1px solid rgba(245,185,66,0.4); color:var(--texto-2); font-size:0.85rem; line-height:1.6; }
     .aviso-escopo > svg { color:#f5c469; flex-shrink:0; margin-top:0.2rem; }
     .sem-acao { font-size:0.75rem; color:var(--cinza); font-style:italic; }
+    .modal-footer .btn-excluir-modal { margin-right: auto; }
     .selos { display:inline-flex; flex-wrap:wrap; gap:0.3rem; justify-content:flex-end; min-width:0; }
     @media (min-width: 769px) { .selos { justify-content:flex-start; } }
     .qr-cont { display:inline-block; max-width:min(260px, 100%); font-family:monospace; font-size:0.74rem; color:var(--texto-2); background:rgba(255,255,255,0.05); padding:0.2rem 0.45rem; border-radius:6px; overflow-wrap:anywhere; margin-top:0.3rem; }
@@ -766,6 +767,16 @@
     .filtro-select { border:1.5px solid var(--borda); border-radius:9px; padding:0.45rem 0.7rem; background:var(--bg-2); color:var(--texto); font:inherit; font-size:0.84rem; }
     .filtro-select:focus { outline:2px solid var(--verde); outline-offset:1px; }
     .sub-cel { font-size:0.76rem; color:var(--cinza); }
+    .pres-barra { display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+    .pres-abas { display:flex; flex-wrap:wrap; gap:0.4rem; }
+    .pres-abas button { display:inline-flex; align-items:center; gap:0.4rem; cursor:pointer; font:inherit; font-size:0.84rem; font-weight:600; padding:0.5rem 0.9rem; border-radius:99px; border:1.5px solid var(--borda); background:var(--bg-2); color:var(--texto-2); min-height:36px; }
+    .pres-abas button svg { width:15px; height:15px; }
+    .pres-abas button span { font-size:0.72rem; padding:0.05rem 0.45rem; border-radius:99px; background:rgba(255,255,255,0.08); color:var(--cinza); }
+    .pres-abas button:hover { border-color:var(--verde); color:var(--texto); }
+    .pres-abas button.ativa { background:var(--verde); border-color:var(--verde); color:#06281a; }
+    .pres-abas button.ativa span { background:rgba(6,40,26,0.18); color:#06281a; }
+    .pres-busca { flex:1 1 220px; max-width:340px; min-height:36px; }
+    @media (max-width: 768px) { .pres-abas { width:100%; } .pres-abas button { flex:1 1 auto; justify-content:center; } .pres-busca { max-width:none; } }
     .nav-badge { margin-left:auto; min-width:20px; height:20px; padding:0 6px; border-radius:99px; background:var(--amarelo); color:#3a2a00; font-size:0.7rem; font-weight:800; display:inline-grid; place-items:center; }
     .nav-badge[hidden] { display:none; }
     .pres-badge { display:inline-block; padding:0.2rem 0.6rem; border-radius:99px; font-size:0.72rem; font-weight:600; white-space:nowrap; }
@@ -893,7 +904,7 @@
         </p>
         <p id="avisoEscopo" class="aviso-escopo" hidden>
           <i data-lucide="user-check"></i>
-          <span>Você está no <strong>painel do professor</strong>: gerencia os <strong>seus projetos</strong>
+          <span>Você está no <strong>painel do servidor</strong>: gerencia os <strong>seus projetos</strong>
           (cadastrados por você ou com o seu e-mail como coordenador) e as <strong>solicitações</strong> deles;
           edita os eventos que cadastrou; configura os eventos do SUAP; valida a <strong>presença</strong> de qualquer aluno;
           e concede conquistas.</span>
@@ -967,21 +978,23 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Presenças em eventos</span>
-          <div class="cab-acoes">
-            <select id="presFiltro" class="filtro-select" aria-label="Filtrar presenças" onchange="carregarPresencas()">
-              <option value="pendente">Para analisar</option>
-              <option value="aprovada">Validadas</option>
-              <option value="recusada">Recusadas</option>
-              <option value="">Todas</option>
-            </select>
-            <button class="btn-edit" onclick="exportarCsv('presencas', { status: document.getElementById('presFiltro').value })"><i data-lucide="download"></i> Exportar CSV</button>
-          </div>
+          <button class="btn-edit" onclick="exportarCsv('presencas', { status: state.presFiltro })"><i data-lucide="download"></i> Exportar CSV</button>
         </div>
         <p class="sec-desc">
           Qualquer professor pode decidir qualquer presença. <strong>Certificados</strong> sempre esperam aprovação.
           <strong>QR Codes da inscrição</strong> entram validados quando batem com o padrão do evento (ou têm link do IFPR);
           os que não batem com nada conhecido esperam você conferir. Dá para desfazer uma validação se algo estiver errado.
         </p>
+        <!-- Filtro visível em abas (antes era um menu escondido que abria em "Para analisar") -->
+        <div class="pres-barra">
+          <div class="pres-abas" role="tablist" aria-label="Filtrar presenças por situação" id="presAbas">
+            <button type="button" role="tab" data-f="" onclick="filtrarPresencas('')">Todas <span data-n=""></span></button>
+            <button type="button" role="tab" data-f="pendente" onclick="filtrarPresencas('pendente')"><i data-lucide="hourglass"></i> Para analisar <span data-n="pendente"></span></button>
+            <button type="button" role="tab" data-f="aprovada" onclick="filtrarPresencas('aprovada')"><i data-lucide="badge-check"></i> Validadas <span data-n="aprovada"></span></button>
+            <button type="button" role="tab" data-f="recusada" onclick="filtrarPresencas('recusada')"><i data-lucide="x-circle"></i> Recusadas <span data-n="recusada"></span></button>
+          </div>
+          <input type="search" id="presBusca" class="filtro-select pres-busca" placeholder="Buscar aluno, matrícula ou evento…" aria-label="Buscar presenças" oninput="desenharPresencas()" />
+        </div>
         <div id="presencasList"><div data-skel="tabela"></div></div>
       </div>
     </section>
@@ -1069,8 +1082,8 @@
           </div>
         </div>
         <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
-          Só podem entrar no painel <strong>docentes</strong>, <strong>substitutos</strong> e a
-          <strong>desenvolvedora</strong>. No primeiro acesso, a pessoa digita o e-mail na tela de login e
+          Só podem entrar no painel <strong>docentes</strong>, <strong>substitutos</strong>,
+          <strong>técnicos administrativos</strong> e a <strong>desenvolvedora</strong>. No primeiro acesso, a pessoa digita o e-mail na tela de login e
           recebe automaticamente um link <em>"Cadastrar sua senha"</em> (enviado por noreplyifplenus@gmail.com).
           Você também pode enviar o convite manualmente pelo botão <strong>Convite</strong>.
         </p>
@@ -1083,6 +1096,7 @@
               <option value="">Todos os cargos</option>
               <option value="professor">Docentes</option>
               <option value="substituto">Substitutos</option>
+              <option value="tecnico">Técnicos administrativos</option>
               <option value="desenvolvedor">Desenvolvedor(a)</option>
             </select>
           </div>
@@ -1258,7 +1272,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     if (me) {
       state.cargoAtual = me.cargo;
       state.contaId = me.id;
-      const cargoLabel = ({ desenvolvedor: 'Desenvolvedor(a)', substituto: 'Substituto(a)' })[me.cargo] || 'Docente';
+      const cargoLabel = ({ desenvolvedor: 'Desenvolvedor(a)', substituto: 'Substituto(a)', tecnico: 'Técnico(a) Adm.' })[me.cargo] || 'Docente';
       const primeiroNome = String(me.nome || '').trim().split(/\s+/)[0] || 'Admin';
       document.getElementById('topbarAdminBadge').innerHTML =
         `<i data-lucide="lock"></i> <span>${esc(primeiroNome)}</span><span class="badge-cargo"> · ${cargoLabel}</span>`;
@@ -1311,7 +1325,13 @@ const carregarLista = async (tipo) => {
   if (tipo === 'contas')     return carregarContas();
   if (tipo === 'estatisticas') return carregarEstatisticas();
   if (tipo === 'historico')  return carregarHistorico(1);
-  if (tipo === 'presencas')  return carregarPresencas();
+  if (tipo === 'presencas') {
+    // Pelo menu abre em "Todas"; pelo atalho "X para analisar" abre já filtrado
+    state.presFiltro = state._presProximo || '';
+    state._presProximo = null;
+    const busca = document.getElementById('presBusca'); if (busca) busca.value = '';
+    return carregarPresencas();
+  }
   if (tipo === 'eventos')    carregarEventosSuap();
 
   const elMap = { eventos: 'eventosList', solicitacoes: 'solicitacoesList' };
@@ -1525,7 +1545,7 @@ const carregarEventosSuap = async () => {
     const rows = dados.map(ev => {
       const p = ev.presencas || {};
       return `<tr>
-        <td data-label="Nome">${esc(ev.nome)}${ev.conquista ? `<br><span class="sub-cel">${esc(ev.conquista.icone || '🏆')} ${esc(ev.conquista.nome)} · +${Number(ev.conquista.pontos) || 0}</span>` : ''}</td>
+        <td data-label="Nome">${esc(ev.nome)}${ev.oculto ? ' <span class="pres-badge pres-rec" title="Os alunos não veem este evento">Oculto</span>' : ''}${ev.conquista ? `<br><span class="sub-cel">${esc(ev.conquista.icone || '🏆')} ${esc(ev.conquista.nome)} · +${Number(ev.conquista.pontos) || 0}</span>` : ''}</td>
         <td data-label="Data" style="font-size:0.8rem">${esc(dataBR(ev.data_inicio))}${ev.data_fim && ev.data_fim !== ev.data_inicio ? ` – ${esc(dataBR(ev.data_fim))}` : ''}</td>
         <td data-label="Validação"><span class="selos">${metodosValidacao(ev.validacao).filter(Boolean).join(' ') || '—'}</span></td>
         <td data-label="Presenças" style="font-size:0.8rem">${p.aprovada || 0} validada(s)${p.pendente ? `<br><button class="link-pend" onclick="irParaPresencas()">${p.pendente} para analisar</button>` : ''}</td>
@@ -1540,6 +1560,28 @@ const carregarEventosSuap = async () => {
   }
 };
 
+const excluirEventoDoModal = async (id) => {
+  if (!confirm(MSG_EXCLUIR.evento)) return;
+  try {
+    await apiJSON(`/api/admin/eventos/${id}`, { method: 'DELETE' });
+    fecharModal();
+    mostrarToast('Evento excluído.', 'sucesso');
+    await carregarLista('eventos');
+    const stats = await apiJSON('/api/admin/stats');
+    if (stats) atualizarStats(stats);
+  } catch (e) { mostrarToast(`Erro: ${e.message}`, 'erro'); }
+};
+
+const ocultarEventoSuap = async (suapId, ocultar) => {
+  if (ocultar && !confirm('Ocultar este evento do SUAP do portal dos alunos?\n\nEle continua no SUAP (não dá para apagar daqui) e as presenças já validadas continuam valendo. Você pode mostrar de novo quando quiser.')) return;
+  try {
+    await apiJSON(`/api/admin/eventos-suap/${suapId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ oculto: ocultar }) });
+    fecharModal();
+    mostrarToast(ocultar ? 'Evento ocultado do portal.' : 'Evento visível no portal de novo.', 'sucesso');
+    carregarEventosSuap();
+  } catch (e) { mostrarToast(`Erro: ${e.message}`, 'erro'); }
+};
+
 const configurarEventoSuap = (suapId) => {
   const ev = (state.eventosSuap || []).find(e => e.suapId === suapId);
   if (!ev) return;
@@ -1547,7 +1589,7 @@ const configurarEventoSuap = (suapId) => {
 };
 
 const irParaPresencas = () => {
-  const f = document.getElementById('presFiltro'); if (f) f.value = 'pendente';
+  state._presProximo = 'pendente';
   document.querySelector('.nav-item[data-section="presencas"]')?.click();
 };
 
@@ -1661,6 +1703,7 @@ const ACOES_LABEL = {
   'conta.convite': ['Enviou convite para', 'mail'], 'conta.importar': ['Importou a', 'download'],
   'presenca.aprovar': ['Validou a presença em', 'badge-check'], 'presenca.recusar': ['Recusou a presença em', 'x-circle'],
   'evento.configurar': ['Configurou o evento do SUAP', 'settings-2'],
+  'evento.ocultar': ['Ocultou do portal o evento do SUAP', 'eye-off'], 'evento.mostrar': ['Voltou a mostrar o evento do SUAP', 'eye'],
   'exportar.solicitacoes': ['Exportou solicitações', 'download'], 'exportar.ranking': ['Exportou o ranking', 'download'], 'exportar.presencas': ['Exportou presenças', 'download'],
 };
 let _histTimer = null;
@@ -1971,6 +2014,18 @@ const abrirModal = (tipo, dados = {}) => {
   ligarRotulos(document.getElementById('modalBody'));
   document.getElementById('modalOverlay').classList.add('open');
   if (tipo === 'evento' || tipo === 'evento-suap') carregarConquistasParaEvento(dados.conquista?._id || dados.conquista);
+  if (tipo === 'conquista') toggleRegraConquista();
+  // Editando um evento: botão "Excluir evento" no próprio formulário
+  // (antes só existia na tabela, e em telas médias ficava escondido)
+  if (tipo === 'evento' && dados._id && dados.podeEditar !== false) {
+    const footer = document.querySelector('#modalOverlay .modal-footer');
+    footer.insertAdjacentHTML('afterbegin', `<button class="btn-del btn-excluir-modal" onclick="excluirEventoDoModal('${esc(dados._id)}')"><i data-lucide="trash-2"></i> Excluir evento</button>`);
+  }
+  // Evento do SUAP: ocultar do portal (ele não pode ser apagado, pois vem do SUAP)
+  if (tipo === 'evento-suap') {
+    const footer = document.querySelector('#modalOverlay .modal-footer');
+    footer.insertAdjacentHTML('afterbegin', `<button class="btn-del btn-excluir-modal" onclick="ocultarEventoSuap(${Number(dados.suapId)}, ${!dados.oculto})"><i data-lucide="${dados.oculto ? 'eye' : 'eye-off'}"></i> ${dados.oculto ? 'Mostrar no portal' : 'Ocultar do portal'}</button>`);
+  }
 };
 
 const fecharModal = () => {
@@ -2082,7 +2137,6 @@ const salvarItem = async () => {
         icone:     document.getElementById('f_icone_c').value.trim() || '🏆',
         categoria: document.getElementById('f_categoria_c').value,
         pontos:    Number(document.getElementById('f_pontos_c').value) || 0,
-        ativa:     document.getElementById('f_ativa_c').value === 'true',
         origem,
         regra,
       };
@@ -2207,13 +2261,18 @@ const editarEvento = async (id) => {
 // ─────────────────────────────────────────────────────
 // Deletar
 // ─────────────────────────────────────────────────────
+const MSG_EXCLUIR = {
+  conquista: 'Excluir esta conquista?\n\nEla sai do catálogo e de TODOS os alunos que já a ganharam (os pontos dela são descontados). Não dá para desfazer.',
+  evento: 'Excluir este evento?\n\nEle some do portal. Presenças que ainda esperam análise são apagadas; presenças já validadas continuam no histórico dos alunos.',
+};
 const deletarItem = async (tipo, id) => {
-  if (!confirm('Tem certeza que deseja excluir este item?')) return;
+  if (!confirm(MSG_EXCLUIR[tipo] || 'Tem certeza que deseja excluir este projeto?')) return;
 
   try {
     if (tipo === 'conquista') {
-      await apiJSON(`/api/admin/conquistas/${id}`, { method: 'DELETE' });
-      mostrarToast('Conquista excluída.', 'sucesso');
+      const r = await apiJSON(`/api/admin/conquistas/${id}`, { method: 'DELETE' });
+      mostrarToast(r?.alunosAfetados ? `Conquista excluída (${r.alunosAfetados} aluno(s) tiveram os pontos recalculados).` : 'Conquista excluída.', 'sucesso');
+      _conquistasParaEvento = null;
       await carregarConquistas();
       return;
     }
@@ -2327,6 +2386,7 @@ const carregarContas = async () => {
 const CARGO_INFO = {
   professor:     { label: 'Docente',          bg: 'rgba(68,216,131,0.16)', cor: '#5fe39a' },
   substituto:    { label: 'Substituto(a)',    bg: 'rgba(245,185,66,0.16)', cor: '#f5c469' },
+  tecnico:       { label: 'Técnico(a) Administrativo(a)', bg: 'rgba(192,132,252,0.16)', cor: '#d8b4fe' },
   desenvolvedor: { label: 'Desenvolvedor(a)', bg: 'rgba(96,165,250,0.16)', cor: '#93c5fd' },
 };
 const pill = (txt, bg, cor) =>
@@ -2407,7 +2467,7 @@ const enviarConviteConta = async (id) => {
 };
 
 const importarServidores = async () => {
-  if (!confirm('Importar a lista oficial de docentes e substitutos do IFPR? Contas já existentes não são alteradas.')) return;
+  if (!confirm('Importar a lista oficial de servidores do IFPR (docentes, substitutos e técnicos administrativos)? Contas já existentes não são alteradas.')) return;
   try {
     const r = await apiJSON('/api/admin/contas/importar', { method: 'POST' });
     mostrarToast(r.novas ? `${r.novas} contas novas importadas!` : 'Todas as contas da lista já estavam cadastradas.', 'sucesso');
@@ -2448,6 +2508,7 @@ const formsConta = (dados = {}) => `
       <select id="f_cargo_conta">
         <option value="professor" ${!dados.cargo || dados.cargo === 'professor' ? 'selected' : ''}>Docente</option>
         <option value="substituto" ${dados.cargo === 'substituto' ? 'selected' : ''}>Substituto(a)</option>
+        <option value="tecnico" ${dados.cargo === 'tecnico' ? 'selected' : ''}>Técnico(a) Administrativo(a)</option>
         <option value="desenvolvedor" ${dados.cargo === 'desenvolvedor' ? 'selected' : ''}>Desenvolvedor(a)</option>
       </select>
     </div>
@@ -2469,20 +2530,20 @@ const formsConta = (dados = {}) => `
 
 const renderTabelaConquistas = (dados) => {
   const rows = dados.map(c => {
-    const ativa = c.ativa
-      ? `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(68,216,131,0.16);color:#5fe39a">Ativa</span>`
-      : `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:99px;font-size:0.72rem;font-weight:600;background:rgba(139,144,155,0.18);color:#aab">Inativa</span>`;
+    // Só conquistas desativadas na versão antiga ainda podem aparecer assim
+    const antiga = c.ativa === false
+      ? ` <span style="display:inline-block;padding:0.12rem 0.5rem;border-radius:99px;font-size:0.7rem;font-weight:600;background:rgba(139,144,155,0.18);color:#c3c6cd" title="Desativada numa versão antiga do painel. Os alunos não veem. Exclua se não for mais usar.">Desativada</span>`
+      : '';
     const autoBadge = c.origem === 'automatica'
       ? ` <span style="display:inline-block;padding:0.12rem 0.5rem;border-radius:99px;font-size:0.66rem;font-weight:600;background:rgba(96,165,250,0.16);color:#93c5fd" title="Concedida automaticamente pelo sistema"><i data-lucide="settings"></i> Auto</span>`
       : '';
     return `
     <tr>
-      <td data-label="Conquista">${esc(c.icone || '🏆')} ${esc(c.nome)}${autoBadge}</td>
+      <td data-label="Conquista">${esc(c.icone || '🏆')} ${esc(c.nome)}${autoBadge}${antiga}${c.comoGanhar ? `<br><span class="sub-cel">${esc(c.comoGanhar)}</span>` : ''}</td>
       <td data-label="Categoria" style="font-size:0.8rem;color:var(--cinza)">${esc(catLabel(c.categoria))}</td>
       <td data-label="Pontos" style="font-weight:700;color:#f5c469"><i data-lucide="star"></i> ${Number(c.pontos) || 0}</td>
-      <td data-label="Status">${ativa}</td>
       <td data-label="Ações" class="td-acoes">
-        ${c.origem === 'automatica'
+        ${c.origem === 'automatica' || c.ativa === false
           ? ''
           : `<button class="btn-add" onclick="abrirConceder('${c._id}')"><i data-lucide="medal"></i> Conceder</button>`}
         ${state.cargoAtual === 'desenvolvedor' ? `
@@ -2495,7 +2556,7 @@ const renderTabelaConquistas = (dados) => {
   return `<div class="table-wrap">
     <table class="items-table">
       <thead>
-        <tr><th>Conquista</th><th>Categoria</th><th>Pontos</th><th>Status</th><th>Ações</th></tr>
+        <tr><th>Conquista</th><th>Categoria</th><th>Pontos</th><th>Ações</th></tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
@@ -2523,19 +2584,14 @@ const formsConquista = (dados = {}) => `
     </div>
     <div class="field">
       <label>Categoria</label>
-      <select id="f_categoria_c">
+      <select id="f_categoria_c" aria-describedby="f_categoria_dica">
         <option value="academico" ${dados.categoria==='academico'?'selected':''}>Acadêmico</option>
         <option value="projeto"   ${dados.categoria==='projeto'?'selected':''}>Projeto</option>
         <option value="evento"    ${dados.categoria==='evento'?'selected':''}>Evento</option>
         <option value="especial"  ${(dados.categoria||'especial')==='especial'?'selected':''}>Especial</option>
       </select>
-    </div>
-    <div class="field">
-      <label>Status</label>
-      <select id="f_ativa_c">
-        <option value="true"  ${dados.ativa!==false?'selected':''}>Ativa</option>
-        <option value="false" ${dados.ativa===false?'selected':''}>Inativa</option>
-      </select>
+      <p class="ajuda" id="f_categoria_dica" hidden>Definida pela regra automática.</p>
+      <p class="ajuda">Só conquistas da categoria <strong>Evento</strong> podem ser escolhidas dentro de um evento.</p>
     </div>
     <div class="field">
       <label>Como é concedida</label>
@@ -2600,6 +2656,17 @@ const toggleRegraConquista = () => {
   if (projWrap) projWrap.style.display = tipo === 'projeto_aceito' ? 'block' : 'none';
   const evWrap = document.getElementById('f_regra_ev_wrap');
   if (evWrap) evWrap.style.display = tipo === 'evento_presenca' ? 'block' : 'none';
+
+  // Automática: a categoria vem da regra (regra de evento = categoria Evento)
+  const cat = document.getElementById('f_categoria_c');
+  const dica = document.getElementById('f_categoria_dica');
+  const daRegra = { nota: 'academico', projeto_aceito: 'projeto', evento_presenca: 'evento' }[tipo];
+  if (cat) {
+    const travar = origem === 'automatica' && !!daRegra;
+    if (travar) cat.value = daRegra;
+    cat.disabled = travar;
+    if (dica) dica.hidden = !travar;
+  }
 };
 
 // Formulário de concessão (matrícula do aluno)
@@ -2693,20 +2760,54 @@ const ROT_PRES = {
   recusada: ['Recusada', 'pres-rec'],
 };
 
+state.presFiltro = '';
+state.presencas = [];
+
 const carregarPresencas = async () => {
   const el = document.getElementById('presencasList');
   if (!el) return;
   el.innerHTML = esqueletoAdmin();
-  const status = document.getElementById('presFiltro')?.value ?? 'pendente';
   try {
-    const dados = await apiJSON(`/api/admin/presencas${status ? `?status=${status}` : ''}`);
+    // Carrega TODAS de uma vez; as abas e a busca filtram aqui mesmo (sem esperar o servidor)
+    const dados = await apiJSON('/api/admin/presencas');
     if (!dados) return;
-    if (!status || status === 'pendente') atualizarBadgePresencas(status === 'pendente' ? dados.length : dados.filter(p => p.status === 'pendente').length);
-    if (!dados.length) {
-      el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>${status === 'pendente' ? 'Nada esperando análise. 🎉' : 'Nada por aqui ainda.'}</p></div>`;
-      return;
-    }
-    const rows = dados.map(p => {
+    state.presencas = dados;
+    atualizarBadgePresencas(dados.filter(p => p.status === 'pendente').length);
+    desenharPresencas();
+  } catch (e) {
+    el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+  }
+};
+
+const filtrarPresencas = (f) => { state.presFiltro = f; desenharPresencas(); };
+
+const desenharPresencas = () => {
+  const el = document.getElementById('presencasList');
+  if (!el) return;
+  const todas = state.presencas || [];
+  const conta = { '': todas.length, pendente: 0, aprovada: 0, recusada: 0 };
+  todas.forEach(p => { conta[p.status] = (conta[p.status] || 0) + 1; });
+  document.querySelectorAll('#presAbas [role=tab]').forEach(b => {
+    const ativa = b.dataset.f === state.presFiltro;
+    b.classList.toggle('ativa', ativa);
+    b.setAttribute('aria-selected', String(ativa));
+    const n = b.querySelector('[data-n]');
+    if (n) n.textContent = conta[b.dataset.f] ?? 0;
+  });
+
+  const termo = _normBusca(document.getElementById('presBusca')?.value || '').trim();
+  const lista = todas.filter(p => (!state.presFiltro || p.status === state.presFiltro) &&
+    (!termo || _normBusca(`${p.nomeAluno} ${p.matricula} ${p.eventoNome} ${p.curso}`).includes(termo)));
+
+  if (!lista.length) {
+    el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>${
+      termo ? 'Nada encontrado para essa busca.'
+      : state.presFiltro === 'pendente' ? 'Nada esperando análise. 🎉'
+      : todas.length ? 'Nenhuma presença nesta situação.'
+      : 'Nenhuma presença ainda. Elas aparecem aqui quando os alunos validam a participação nos eventos.'}</p></div>`;
+    return;
+  }
+    const rows = lista.map(p => {
       const [rot, cls] = ROT_PRES[p.status] || ROT_PRES.pendente;
       // Só vira link se o QR for um endereço COMPLETO (texto solto não vira link para o próprio site)
       const linkQr = p.metodo === 'qrcode' && /^https?:\/\//i.test(p.qrConteudo || '') ? urlSegura(p.qrConteudo) : null;
@@ -2730,9 +2831,6 @@ const carregarPresencas = async () => {
     el.innerHTML = `<div class="table-wrap"><table class="items-table">
       <thead><tr><th>Aluno</th><th>Evento</th><th>Validação</th><th class="col-opc">Enviado em</th><th>Situação</th><th>Ações</th></tr></thead>
       <tbody>${rows}</tbody></table></div>`;
-  } catch (e) {
-    el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
-  }
 };
 
 const atualizarBadgePresencas = (n) => {
@@ -2798,7 +2896,7 @@ const _itensBuscaAdmin = () => [
   { titulo: 'Novo evento', grupo: 'Criar', icone: 'calendar-plus', acao: () => abrirModal('evento') },
   { titulo: 'Novo projeto de pesquisa', grupo: 'Criar', icone: 'flask-conical', acao: () => abrirModal('pesquisa') },
   { titulo: 'Novo projeto de extensão', grupo: 'Criar', icone: 'sprout', acao: () => abrirModal('extensao') },
-  { titulo: 'Presenças para analisar', grupo: 'Ações', icone: 'badge-check', termos: 'presenca aprovar certificado qr', acao: () => document.querySelector('.nav-item[data-section="presencas"]')?.click() },
+  { titulo: 'Presenças para analisar', grupo: 'Ações', icone: 'badge-check', termos: 'presenca aprovar certificado qr', acao: () => irParaPresencas() },
   { titulo: 'Exportar solicitações (CSV)', grupo: 'Exportar', icone: 'download', termos: 'planilha excel', acao: () => exportarCsv('solicitacoes') },
   { titulo: 'Exportar ranking (CSV)', grupo: 'Exportar', icone: 'download', termos: 'planilha excel pontos', acao: () => exportarCsv('ranking') },
   { titulo: 'Exportar presenças nos eventos (CSV)', grupo: 'Exportar', icone: 'download', termos: 'planilha excel lista de presenca', acao: () => exportarCsv('presencas') },
@@ -2861,8 +2959,13 @@ const carregarConquistasParaEvento = async (selecionada) => {
   const sel = document.getElementById('f_conquista_ev');
   if (!sel) return;
   try {
-    if (!_conquistasParaEvento) _conquistasParaEvento = (await apiJSON('/api/admin/conquistas?ativa=true')) || [];
+    // Só conquistas de EVENTO (antes apareciam até "Participar de projeto" e "Primeiro conceito A")
+    _conquistasParaEvento = ((await apiJSON('/api/admin/conquistas?ativa=true')) || []).filter(c => c.paraEvento); // sempre atual (pode ter criado uma agora)
     const atual = selecionada ? String(selecionada) : '';
+    const ajuda = sel.parentElement.querySelector('.ajuda');
+    if (!_conquistasParaEvento.length && ajuda) {
+      ajuda.innerHTML = 'Nenhuma conquista da categoria <strong>Evento</strong> cadastrada ainda. Crie uma em <strong>Conquistas</strong> (categoria Evento) para poder escolher aqui.';
+    }
     sel.innerHTML = '<option value="">Nenhuma (só registra a presença)</option>' +
       _conquistasParaEvento.map(c => `<option value="${esc(c._id)}" ${String(c._id) === atual ? 'selected' : ''}>${esc(c.icone || '🏆')} ${esc(c.nome)} · +${Number(c.pontos) || 0} pts</option>`).join('');
   } catch (e) {

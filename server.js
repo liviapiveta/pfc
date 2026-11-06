@@ -130,13 +130,13 @@ app.use((err, req, res, next) => {
 
 // ── Contas iniciais ───────────────────────────────────────────
 // 1) Garante a conta de desenvolvedor(a) (DEV_EMAIL).
-// 2) Se o banco ainda não tem nenhum docente/substituto, importa a lista
+// 2) Se o banco ainda não tem nenhum servidor (docente/substituto/técnico), importa a lista
 //    oficial de servidores (src/data/servidores.js). Depois disso, novas
 //    importações são feitas pelo botão "Importar lista IFPR" no painel.
 const seedAdmin = async () => {
   await connectDB(); // na Vercel o seed roda antes de qualquer requisição conectar
   await garantirContaDev();
-  const temServidores = await Admin.exists({ cargo: { $in: ['professor', 'substituto'] } });
+  const temServidores = await Admin.exists({ cargo: { $in: ['professor', 'substituto', 'tecnico'] } });
   if (!temServidores) {
     const r = await importarServidores();
     console.log(`✅ Lista de servidores importada: ${r.novas} contas criadas`);

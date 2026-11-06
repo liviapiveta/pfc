@@ -1,6 +1,7 @@
 /**
  * Lista oficial de servidores do IFPR — Campus Assis Chateaubriand
- * (docentes efetivos e substitutos) autorizados a acessar o painel admin.
+ * (docentes efetivos, substitutos e técnicos administrativos) autorizados
+ * a acessar o painel admin. cargo: 'professor' | 'substituto' | 'tecnico'.
  * Apenas nome, e-mail institucional e área — nenhum dado pessoal sensível.
  * Para atualizar: edite esta lista e clique em 'Importar lista IFPR'
  * na tela Contas do Painel (ou rode `npm run importar-servidores`).

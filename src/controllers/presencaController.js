@@ -91,7 +91,7 @@ const eventosSuapAtualizados = async (token) => {
 
   // Eventos sem id (não dá para validar) continuam aparecendo, só para consulta
   const semId = lista ? lista.filter((ev) => !(Number(ev.id) > 0)).map((ev) => ({ ...dadosSuap(ev), suapId: null })) : [];
-  const comId = ids ? ids.map((id) => porId.get(id)).filter(Boolean) : espelho;
+  const comId = (ids ? ids.map((id) => porId.get(id)).filter(Boolean) : espelho).filter((e) => !e.oculto);
   return [...comId, ...semId];
 };
 
@@ -151,7 +151,7 @@ const acharEvento = async (chave) => {
   const ev = k.origem === 'local'
     ? await Evento.findById(k.id).lean()
     : await EventoSuap.findOne({ suapId: k.id }).lean();
-  return ev ? { origem: k.origem, id: k.id, ev, validacao: validacaoDe(ev.validacao) } : null;
+  return ev && !ev.oculto ? { origem: k.origem, id: k.id, ev, validacao: validacaoDe(ev.validacao) } : null;
 };
 
 const filtroDoEvento = (alvo, matricula) => (alvo.origem === 'local'
@@ -380,6 +380,13 @@ const decidirPresenca = async (req, res) => {
 
 // ── Configuração dos eventos do SUAP (qualquer professor) ─────
 
+/**
+ * Conquista que pode ser escolhida para um evento: categoria "Evento" e que
+ * não seja uma regra automática de OUTRA coisa (projeto, nota) nem a regra
+ * "ao completar N eventos" (essa já é contada sozinha, para todos os eventos).
+ */
+const { conquistaServeParaEvento } = P;
+
 /** Lê validação + conquista do corpo da requisição (lista branca). Devolve { dados } ou { erro }. */
 const lerConfigEvento = async (body = {}) => {
   const dados = {};
@@ -395,8 +402,11 @@ const lerConfigEvento = async (body = {}) => {
     if (!body.conquista) dados.conquista = null;
     else {
       if (!mongoose.isValidObjectId(body.conquista)) return { erro: 'Conquista inválida' };
-      const c = await Conquista.findById(body.conquista).select('_id ativa').lean();
-      if (!c || c.ativa === false) return { erro: 'Conquista inválida ou inativa' };
+      const c = await Conquista.findById(body.conquista).select('_id ativa categoria origem regra').lean();
+      if (!c || c.ativa === false) return { erro: 'Conquista não encontrada' };
+      if (!conquistaServeParaEvento(c)) {
+        return { erro: 'Só conquistas da categoria "Evento" podem ser dadas por um evento.' };
+      }
       dados.conquista = c._id;
     }
   }
@@ -447,13 +457,14 @@ const configurarEventoSuap = async (req, res) => {
 
     const { dados, erro } = await lerConfigEvento(req.body);
     if (erro) return res.status(400).json({ erro });
+    if (typeof req.body?.oculto === 'boolean') dados.oculto = req.body.oculto;
     const ev = await EventoSuap.findOneAndUpdate({ suapId }, { $set: dados }, { returnDocument: 'after' }).lean();
 
     // Trocou a conquista do evento → quem já tem presença validada ganha a nova (e perde a antiga)
     if ('conquista' in dados && String(dados.conquista || '') !== String(atual.conquista || '')) {
       await conquistaEngine.sincronizarAlunosDoEvento({ origem: 'suap', eventoSuapId: suapId });
     }
-    registrar(req, 'evento.configurar', ev.nome, { suapId });
+    registrar(req, 'oculto' in dados ? (dados.oculto ? 'evento.ocultar' : 'evento.mostrar') : 'evento.configurar', ev.nome, { suapId });
     return res.json(ev);
   } catch (err) {
     console.error('Erro ao configurar evento do SUAP:', err.message);
@@ -472,5 +483,5 @@ module.exports = {
   listarEventos, validarPorQr, enviarCertificado, cancelarPresenca,
   listarPresencas, verArquivo, decidirPresenca,
   listarEventosSuap, configurarEventoSuap, sugerirPadraoQr,
-  lerConfigEvento, contagemPorEvento, validacaoDe,
+  lerConfigEvento, contagemPorEvento, validacaoDe, conquistaServeParaEvento,
 };
