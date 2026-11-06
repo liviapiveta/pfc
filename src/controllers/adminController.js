@@ -13,6 +13,11 @@ const ConquistaUsuario = require('../models/ConquistaUsuario');
 const Auditoria = require('../models/Auditoria');
 const { registrar } = require('../services/auditoria');
 const { notificarAluno } = require('../services/notificacoes');
+const Presenca = require('../models/Presenca');
+const Comprovante = require('../models/Comprovante');
+const Conquista = require('../models/Conquista');
+const presencaService = require('../services/presencaService');
+const { contagemPorEvento } = require('./presencaController');
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -549,8 +554,14 @@ const deletarProjeto = async (req, res) => {
 /** GET /api/admin/eventos */
 const getEventos = async (req, res) => {
   try {
-    const lista = await Evento.find().sort({ data_inicio: 1 }).lean();
-    return res.json(lista.map(ev => ({ ...ev, podeEditar: podeGerirEvento(req, ev) })));
+    const lista = await Evento.find().populate('conquista', 'nome pontos icone').sort({ data_inicio: 1 }).lean();
+    const contagem = await contagemPorEvento(lista.map(ev => ev._id));
+    return res.json(lista.map(ev => ({
+      ...ev,
+      conquista: ev.conquista ? { _id: ev.conquista._id, nome: ev.conquista.nome, pontos: ev.conquista.pontos, icone: ev.conquista.icone } : null,
+      presencas: contagem[String(ev._id)] || { aprovada: 0, pendente: 0, recusada: 0 },
+      podeEditar: podeGerirEvento(req, ev),
+    })));
   } catch (err) {
     console.error('Erro ao buscar eventos:', err.message);
     return res.status(500).json({ erro: 'Erro ao buscar eventos' });
@@ -569,6 +580,41 @@ const getEvento = async (req, res) => {
   }
 };
 
+/**
+ * Só os campos que o formulário de evento pode definir (lista branca).
+ * Antes o corpo inteiro ia para o banco — dava para gravar campos internos.
+ * Devolve { dados } ou { erro }.
+ */
+const CAMPOS_EVENTO = ['nome', 'apresentacao', 'data_inicio', 'data_fim', 'hora_inicio', 'hora_fim', 'local', 'campus', 'link_suap'];
+const dadosEvento = async (body = {}, parcial = false) => {
+  const dados = {};
+  CAMPOS_EVENTO.forEach((k) => {
+    if (body[k] === undefined) return;
+    const v = body[k] === null ? null : String(body[k]).trim().slice(0, k === 'apresentacao' ? 5000 : 300);
+    dados[k] = v === '' && !['nome', 'apresentacao', 'local', 'campus'].includes(k) ? null : v;
+  });
+  if ('link_suap' in dados) dados.link_suap = linkSeguro(dados.link_suap) || null;
+  ['data_inicio', 'data_fim'].forEach((k) => {
+    if (dados[k] && !/^\d{4}-\d{2}-\d{2}$/.test(dados[k])) dados[k] = 'invalida';
+  });
+  if (dados.data_inicio === 'invalida' || dados.data_fim === 'invalida') return { erro: 'Data inválida' };
+
+  if (body.validacao !== undefined || !parcial) {
+    const v = body.validacao || {};
+    dados.validacao = { certificado: v.certificado !== false, qrcode: v.qrcode === true, qrDinamico: v.qrcode === true && v.qrDinamico === true };
+  }
+  if (body.conquista !== undefined) {
+    if (!body.conquista) dados.conquista = null;
+    else {
+      if (!mongoose.isValidObjectId(body.conquista)) return { erro: 'Conquista inválida' };
+      const c = await Conquista.findById(body.conquista).select('_id ativa').lean();
+      if (!c || c.ativa === false) return { erro: 'Conquista inválida ou inativa' };
+      dados.conquista = c._id;
+    }
+  }
+  return { dados };
+};
+
 const validarDatasEvento = (ini, fim) =>
   (fim && ini && String(fim) < String(ini)) ? 'A data de fim não pode ser antes da data de início' : null;
 
@@ -582,16 +628,20 @@ const criarEvento = async (req, res) => {
     if (!data_inicio) {
       return res.status(400).json({ erro: 'A data de início é obrigatória' });
     }
-    const erroData = validarDatasEvento(data_inicio, req.body.data_fim);
+    const { dados, erro } = await dadosEvento(req.body);
+    if (erro) return res.status(400).json({ erro });
+    const erroData = validarDatasEvento(dados.data_inicio, dados.data_fim);
     if (erroData) return res.status(400).json({ erro: erroData });
 
     const ev = await Evento.create({
-      ...comLinkSeguro(req.body),
+      ...dados,
+      qrSegredo: dados.validacao?.qrcode ? presencaService.novoSegredo() : null,
       criadoPor: req.admin.id,
       criadoPorEmail: req.admin.email || '',
     });
     registrar(req, 'evento.criar', ev.nome, { data: ev.data_inicio });
-    return res.status(201).json(ev);
+    const criado = ev.toObject(); delete criado.qrSegredo;
+    return res.status(201).json(criado);
   } catch (err) {
     console.error('Erro ao criar evento:', err.message);
     return res.status(500).json({ erro: 'Erro ao criar evento' });
@@ -605,11 +655,23 @@ const atualizarEvento = async (req, res) => {
     if (!atual) return res.status(404).json({ erro: 'Evento não encontrado' });
     if (!podeGerirEvento(req, atual)) return res.status(403).json({ erro: 'Você só pode editar eventos que você cadastrou.' });
 
-    const dados = comLinkSeguro(req.body);
-    const erroData = validarDatasEvento(dados.data_inicio ?? atual.data_inicio, dados.data_fim ?? atual.data_fim);
+    const { dados, erro } = await dadosEvento(req.body, true);
+    if (erro) return res.status(400).json({ erro });
+    if ('nome' in dados && !dados.nome) return res.status(400).json({ erro: 'O nome do evento é obrigatório' });
+    if ('data_inicio' in dados && !dados.data_inicio) return res.status(400).json({ erro: 'A data de início é obrigatória' });
+    const erroData = validarDatasEvento(
+      'data_inicio' in dados ? dados.data_inicio : atual.data_inicio,
+      'data_fim' in dados ? dados.data_fim : atual.data_fim
+    );
     if (erroData) return res.status(400).json({ erro: erroData });
 
-    const ev = await Evento.findByIdAndUpdate(req.params.id, dados, { returnDocument: 'after', runValidators: true });
+    // Ligou o QR agora e o evento ainda não tem segredo → gera um
+    if (dados.validacao?.qrcode) {
+      const comSegredo = await Evento.findById(atual._id).select('+qrSegredo').lean();
+      if (!comSegredo?.qrSegredo) dados.qrSegredo = presencaService.novoSegredo();
+    }
+
+    const ev = await Evento.findByIdAndUpdate(req.params.id, { $set: dados }, { returnDocument: 'after', runValidators: true });
     registrar(req, 'evento.editar', ev.nome, { data: ev.data_inicio });
     return res.json(ev);
   } catch (err) {
@@ -625,6 +687,14 @@ const deletarEvento = async (req, res) => {
     if (!atual) return res.status(404).json({ erro: 'Evento não encontrado' });
     if (!podeGerirEvento(req, atual)) return res.status(403).json({ erro: 'Você só pode excluir eventos que você cadastrou.' });
     await Evento.deleteOne({ _id: atual._id });
+    // Presenças JÁ validadas ficam (são histórico do aluno); as que ainda
+    // esperavam decisão perdem o sentido e saem junto com os arquivos.
+    const pendentes = await Presenca.find({ origem: 'local', evento: atual._id, status: { $ne: 'aprovada' } }).select('_id').lean();
+    if (pendentes.length) {
+      const ids = pendentes.map(p => p._id);
+      await Comprovante.deleteMany({ presenca: { $in: ids } });
+      await Presenca.deleteMany({ _id: { $in: ids } });
+    }
     registrar(req, 'evento.excluir', atual.nome, { data: atual.data_inicio });
     return res.json({ sucesso: true });
   } catch (err) {
@@ -859,4 +929,5 @@ module.exports = {
   getProjetosSuap,
   getHistorico,
   getEstatisticas,
+  filtroMinhasSolicitacoes,
 };

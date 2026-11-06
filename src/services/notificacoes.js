@@ -33,6 +33,19 @@ const MODELOS = {
         mensagem: `Sua solicitação para o projeto "${d.projetoTitulo}" não foi aceita desta vez. Você pode procurar outros projetos no portal.`,
         botao: 'Ver projetos',
       }),
+  presenca: (d) => (d.status === 'aprovada'
+    ? {
+        assunto: 'Sua presença foi validada!',
+        titulo: '🎟️ Presença validada',
+        mensagem: `Sua participação no evento "${d.eventoNome}" foi validada.${d.conquista ? ` Você ganhou a conquista "${d.conquista}".` : ''}`,
+        botao: 'Ver meus eventos',
+      }
+    : {
+        assunto: 'Certificado não aceito',
+        titulo: 'Certificado não aceito',
+        mensagem: `O certificado que você enviou para "${d.eventoNome}" não foi aceito${d.motivo ? `: ${d.motivo}` : '.'} Você pode enviar outro pelo portal, em Eventos.`,
+        botao: 'Ver meus eventos',
+      }),
 };
 
 const notificarAluno = async (matricula, tipo, dados = {}) => {

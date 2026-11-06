@@ -2,6 +2,7 @@ const Conquista = require('../models/Conquista');
 const ConquistaUsuario = require('../models/ConquistaUsuario');
 const User = require('../models/User');
 const Solicitacao = require('../models/Solicitacao');
+const Presenca = require('../models/Presenca');
 const { calcularNivel } = require('./niveis');
 const { notificarAluno } = require('./notificacoes');
 
@@ -43,7 +44,7 @@ const recalcularPontosAluno = async (matricula, { notificar = true } = {}) => {
  * (o índice único da coleção é quem garante isso). O `contexto` guarda
  * o que disparou (disciplina/projeto) apenas para auditoria/exibição.
  */
-const concederAutomatica = async ({ matricula, conquistaDoc, contexto = {} }) => {
+const concederAutomatica = async ({ matricula, conquistaDoc, contexto = {}, chaveContexto = '' }) => {
   try {
     await ConquistaUsuario.create({
       matricula,
@@ -54,7 +55,7 @@ const concederAutomatica = async ({ matricula, conquistaDoc, contexto = {} }) =>
       origem: 'automatica',
       concedidoPor: null,
       contexto,
-      chaveContexto: '',
+      chaveContexto,
     });
   } catch (err) {
     // 11000 = já tinha a conquista → não duplica, não soma de novo
@@ -241,10 +242,64 @@ const processarBoletim = async (matricula, boletim, ctx = {}) => {
   }
 };
 
+/**
+ * Gatilho: presença em evento APROVADA (QR lido ou certificado aceito).
+ *  1) A conquista escolhida no próprio evento (se houver) — vale UMA vez por
+ *     evento (chaveContexto 'evento:<chave>'), então quem vai a vários
+ *     eventos ganha os pontos de cada um.
+ *  2) Conquistas automáticas { tipo: 'evento_presenca', valor: N } —
+ *     concedidas uma vez quando o aluno soma N presenças validadas.
+ */
+const _chavePresenca = (p) => `evento:${p.origem}-${p.origem === 'local' ? p.evento : p.eventoSuapId}`;
+
+const processarPresencaAprovada = async (pres, conquistaEventoId = null) => {
+  if (!pres || pres.status !== 'aprovada' || !pres.matricula) return;
+  const contexto = { gatilho: 'evento_presenca', evento: pres.eventoNome || '', metodo: pres.metodo };
+
+  if (conquistaEventoId) {
+    const c = await Conquista.findOne({ _id: conquistaEventoId, ativa: true }).lean();
+    if (c) await concederAutomatica({ matricula: pres.matricula, conquistaDoc: c, contexto, chaveContexto: _chavePresenca(pres) });
+  }
+
+  const regras = await Conquista.find({ ativa: true, origem: 'automatica', 'regra.tipo': 'evento_presenca' }).lean();
+  if (!regras.length) return;
+  const total = await Presenca.countDocuments({ matricula: pres.matricula, status: 'aprovada' });
+  for (const c of regras) {
+    const alvo = Math.max(1, parseInt(c.regra?.valor, 10) || 1);
+    if (total >= alvo) await concederAutomatica({ matricula: pres.matricula, conquistaDoc: c, contexto: { ...contexto, total } });
+  }
+};
+
+/**
+ * Gatilho INVERSO: uma presença aprovada foi desfeita (recusada depois).
+ * Chamar DEPOIS de gravar o novo status. Só mexe em concessões automáticas.
+ */
+const reverterPresenca = async (pres) => {
+  if (!pres || !pres.matricula) return;
+  let mudou = false;
+
+  const r = await ConquistaUsuario.deleteMany({ matricula: pres.matricula, origem: 'automatica', chaveContexto: _chavePresenca(pres) });
+  if (r.deletedCount) mudou = true;
+
+  const regras = await Conquista.find({ origem: 'automatica', 'regra.tipo': 'evento_presenca' }).lean();
+  if (regras.length) {
+    const total = await Presenca.countDocuments({ matricula: pres.matricula, status: 'aprovada' });
+    for (const c of regras) {
+      const alvo = Math.max(1, parseInt(c.regra?.valor, 10) || 1);
+      if (total >= alvo) continue;
+      const del = await ConquistaUsuario.findOneAndDelete({ matricula: pres.matricula, conquista: c._id, origem: 'automatica', chaveContexto: '' });
+      if (del) mudou = true;
+    }
+  }
+  if (mudou) await recalcularPontosAluno(pres.matricula, { notificar: false });
+};
+
 module.exports = {
   recalcularPontosAluno,
   concederAutomatica,
   processarProjetoAceito,
   reverterProjetoAceito,
   processarBoletim,
+  processarPresencaAprovada,
+  reverterPresenca,
 };

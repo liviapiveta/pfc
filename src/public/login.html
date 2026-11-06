@@ -145,6 +145,10 @@
     .btn:active { transform: scale(0.98); }
     .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
+    .aviso-checkin {
+      margin: 0 0 1rem; padding: 0.7rem 0.9rem; border-radius: 12px; font-size: 0.88rem; line-height: 1.45;
+      background: rgba(var(--cor-rgb),0.1); color: var(--texto); border: 1px solid rgba(var(--cor-rgb),0.45);
+    }
     .erro-msg {
       background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.4);
       color: var(--erro); border-radius: 10px; padding: 0.7rem 0.9rem;
@@ -252,7 +256,8 @@
     <div class="painel">
       <span class="selo"><i data-lucide="graduation-cap"></i> Portal do aluno</span>
       <h1 id="tituloAluno">Entre e acompanhe sua jornada no IFPR</h1>
-      <p class="sub">Projetos, calendário, conquistas e ranking em um só lugar.</p>
+      <p class="sub">Projetos, eventos, conquistas e ranking em um só lugar.</p>
+      <p class="aviso-checkin" id="avisoCheckin" hidden>🎟️ Entre com sua matrícula para validar sua presença no evento.</p>
 
       <form class="cartao" id="formAluno" novalidate>
         <div class="field">
@@ -392,6 +397,8 @@
   document.querySelectorAll('.abas button').forEach((b) => b.addEventListener('click', () => mostrarLado(b.dataset.lado)));
 
   // ── ALUNO ───────────────────────────────────────────────────
+  if ((new URLSearchParams(location.search).get('volta') || '').includes('checkin=')) $('avisoCheckin').hidden = false;
+
   $('formAluno').addEventListener('submit', async (e) => {
     e.preventDefault();
     const erro = $('erroAluno');
@@ -402,7 +409,11 @@
 
     await carregando($('btnAluno'), 'Autenticando…', async () => {
       const { ok, data } = await post('/api/auth/login', { matricula, senha });
-      if (ok && data.sucesso) window.location.href = '/';
+      if (ok && data.sucesso) {
+        // Volta para onde o aluno estava indo (ex.: link do QR Code de um evento)
+        const v = new URLSearchParams(location.search).get('volta') || '/';
+        window.location.href = /^\/(?![\/\\])/.test(v) ? v : '/';
+      }
       else mostrarErro(erro, data.erro || 'Erro ao autenticar.');
     }, erro);
   });

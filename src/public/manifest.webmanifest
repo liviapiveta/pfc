@@ -16,6 +16,7 @@
   ],
   "shortcuts": [
     { "name": "Ranking", "url": "/?secao=ranking", "icons": [{ "src": "/images/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Conquistas", "url": "/?secao=conquistas", "icons": [{ "src": "/images/icon-192.png", "sizes": "192x192" }] }
+    { "name": "Conquistas", "url": "/?secao=conquistas", "icons": [{ "src": "/images/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Eventos", "url": "/?secao=eventos", "icons": [{ "src": "/images/icon-192.png", "sizes": "192x192" }] }
   ]
 }

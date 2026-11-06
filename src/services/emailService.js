@@ -115,4 +115,4 @@ const enviarNotificacao = async ({ email, nome, assunto, titulo, mensagem, botao
   });
 };
 
-module.exports = { enviarLinkSenha, enviarNotificacao };
+module.exports = { enviarLinkSenha, enviarNotificacao, urlDoSite };

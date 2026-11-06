@@ -44,6 +44,7 @@ const conquistaSchema = new mongoose.Schema(
      * Exemplos:
      *   { tipo: 'nota',           valor: 'A' }   → tirar nota/conceito A
      *   { tipo: 'projeto_aceito', valor: null }  → ter participação aceita em projeto
+     *   { tipo: 'evento_presenca', valor: '3' }  → ter presença validada em 3 eventos
      */
     regra: {
       tipo: {
