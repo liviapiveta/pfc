@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 
 /**
  * Armazenamos APENAS o que é necessário localmente:

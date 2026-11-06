@@ -67,6 +67,16 @@ const authMiddleware = async (req, res, next) => {
     req.user = user;
     next();
   } catch (err) {
+    // Só desloga quando o PRÓPRIO token é inválido. Antes, uma falha
+    // momentânea do banco também apagava o cookie e expulsava o aluno.
+    const erroDeToken = err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError';
+    if (!erroDeToken) {
+      console.error('Erro no middleware de autenticação:', err.message);
+      if (req.originalUrl.startsWith('/api/')) {
+        return res.status(503).json({ erro: 'Serviço indisponível no momento. Tente novamente.' });
+      }
+      return res.status(503).send('Serviço indisponível no momento. Tente novamente em instantes.');
+    }
     res.clearCookie('authToken');
     if (req.originalUrl.startsWith('/api/')) {
       return res.status(401).json({ erro: 'Token inválido ou expirado' });

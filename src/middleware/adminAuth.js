@@ -39,6 +39,12 @@ const adminAuth = async (req, res, next) => {
     req.admin = { ...decoded, nome: conta.nome, email: conta.email, cargo: conta.cargo };
     next();
   } catch (err) {
+    const erroDeToken = err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError';
+    if (!erroDeToken) {
+      console.error('Erro no adminAuth:', err.message);
+      if (isApi) return res.status(503).json({ erro: 'Serviço indisponível no momento. Tente novamente.' });
+      return res.status(503).send('Serviço indisponível no momento. Tente novamente em instantes.');
+    }
     res.clearCookie('adminToken');
     if (isApi) return res.status(401).json({ erro: 'Token inválido ou expirado' });
     return res.redirect('/login?admin');

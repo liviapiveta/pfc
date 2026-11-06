@@ -3,6 +3,9 @@ const User = require('../models/User');
 const suapService = require('../services/suapService');
 const conquistaEngine = require('../services/conquistaEngine');
 
+let emSegundoPlano = () => {};
+try { ({ waitUntil: emSegundoPlano } = require('@vercel/functions')); } catch { /* fora da Vercel: a promessa segue sozinha */ }
+
 /**
  * Verifica, em segundo plano, as conquistas automáticas de NOTA do aluno.
  * Busca o boletim do período letivo mais recente e deixa o motor conceder
@@ -37,9 +40,12 @@ const verificarConquistasBoletim = async (token, matricula) => {
 const login = async (req, res) => {
   try {
     let { matricula, senha } = req.body || {};
-    matricula = String(matricula || '').trim().toUpperCase();
+    if (typeof matricula !== 'string' || typeof senha !== 'string') {
+      return res.status(400).json({ erro: 'Matrícula e senha são obrigatórios' });
+    }
+    matricula = matricula.trim().toUpperCase();
 
-    if (!matricula || !senha) {
+    if (!matricula || !senha || matricula.length > 40 || senha.length > 256) {
       return res.status(400).json({ erro: 'Matrícula e senha são obrigatórios' });
     }
 
@@ -68,7 +74,7 @@ const login = async (req, res) => {
       dadosSuap = await suapService.getMeusDados(accessToken);
     } catch (err) {
       console.error('Erro ao buscar dados SUAP:', err.response?.data || err.message);
-      return res.status(500).json({ erro: 'Erro ao buscar dados do usuário' });
+      return res.status(502).json({ erro: 'O SUAP não devolveu seus dados agora. Tente novamente em instantes.' });
     }
 
     const nomeUsuario = dadosSuap.nome_usual || dadosSuap.nome || matricula;
@@ -125,8 +131,12 @@ const login = async (req, res) => {
     // Em 2º plano: verifica conquistas automáticas de nota a partir do
     // boletim. Não usamos await — o login responde na hora, sem esperar
     // o SUAP. Qualquer falha é apenas logada e não afeta o login.
-    verificarConquistasBoletim(accessToken, matricula).catch((e) =>
-      console.error('Falha ao verificar conquistas de boletim no login:', e.message)
+    // Na Vercel, trabalho "solto" depois da resposta pode ser congelado
+    // junto com a função — waitUntil mantém a função viva até ele terminar.
+    emSegundoPlano(
+      verificarConquistasBoletim(accessToken, matricula).catch((e) =>
+        console.error('Falha ao verificar conquistas de boletim no login:', e.message)
+      )
     );
 
     return res.json({

@@ -15,7 +15,12 @@ const validarId = (req, res, next, valor) =>
 router.param('id', validarId);
 router.param('registroId', validarId);
 
-router.post('/auth/login', authController.login);
+const limiteTaxa = require('../middleware/limiteTaxa');
+const limiteLogin = limiteTaxa({ max: 10 });
+const limiteAdmin = limiteTaxa({ max: 20 });
+const limiteEmail = limiteTaxa({ max: 5, mensagem: 'Muitos pedidos de e-mail. Aguarde alguns minutos.' });
+
+router.post('/auth/login', limiteLogin, authController.login);
 router.post('/auth/logout', auth, authController.logout);
 router.get('/auth/me', auth, authController.me);
 
@@ -39,15 +44,15 @@ router.put('/preferencias', auth, suapController.updatePreferencias);
 
 // ── Administração ─────────────────────────────────────────────
 // Login em 2 etapas: 1) e-mail autorizado? 2) senha
-router.post('/admin/login/email', adminController.verificarEmail);
-router.post('/admin/login', adminController.login);
+router.post('/admin/login/email', limiteAdmin, adminController.verificarEmail);
+router.post('/admin/login', limiteAdmin, adminController.login);
 router.post('/admin/logout', adminController.logout);
 router.get('/admin/me', adminAuth, adminController.me);
 
 // Cadastro / redefinição de senha pelo link enviado por e-mail
-router.post('/admin/senha/esqueci', adminController.esqueciSenha);
+router.post('/admin/senha/esqueci', limiteEmail, adminController.esqueciSenha);
 router.get('/admin/senha/token/:token', adminController.validarToken);
-router.post('/admin/senha/definir', adminController.definirSenha);
+router.post('/admin/senha/definir', limiteAdmin, adminController.definirSenha);
 
 // Contas do painel (apenas desenvolvedor pode gerenciar)
 router.get('/admin/contas', adminAuth, adminAuth.apenasDev, adminController.getContas);
