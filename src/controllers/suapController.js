@@ -1,7 +1,6 @@
 const suapService = require('../services/suapService');
 const User = require('../models/User');
 const Projeto = require('../models/Projeto');
-const Evento = require('../models/Evento');
 const Solicitacao = require('../models/Solicitacao');
 const ProjetoSuapCache = require('../models/ProjetoSuapCache');
 const conquistaEngine = require('../services/conquistaEngine');
@@ -24,8 +23,8 @@ const getPeriodos = async (req, res) => {
 const getBoletim = async (req, res) => {
   try {
     const { ano, periodo } = req.params;
-    if (!ano || !periodo)
-      return res.status(400).json({ erro: 'Ano e período são obrigatórios' });
+    if (!/^\d{4}$/.test(ano) || !/^\d{1,2}$/.test(periodo))
+      return res.status(400).json({ erro: 'Ano e período inválidos' });
 
     const boletim = await suapService.getBoletim(req.user.suapToken, ano, periodo);
 
@@ -49,26 +48,6 @@ const getProjetosPesquisa = (req, res) =>
 
 const getProjetosExtensao = (req, res) =>
   _listarProjetosSuap(req, res, 'extensao', suapService.getProjetosExtensao);
-
-const getCalendario = async (req, res) => {
-  try {
-    // Se o SUAP falhar, ainda mostramos os eventos cadastrados no painel
-    // (antes, qualquer erro do SUAP fazia o calendário inteiro dar 500).
-    const [suap, eventosLocais] = await Promise.all([
-      suapService.getEventosDoCampus(req.user.suapToken).then(
-        (v) => ({ ok: true, v }),
-        (e) => { console.warn('Calendário: SUAP indisponível:', e.response?.status || e.message); return { ok: false, v: [] }; }
-      ),
-      Evento.find().sort({ data_inicio: 1 }).lean(),
-    ]);
-    const eventosSuap = suap.v;
-
-    return res.json([
-      ...(Array.isArray(eventosSuap) ? eventosSuap : []),
-      ...eventosLocais.map(ev => ({ ...ev, origem: 'admin' })),
-    ]);
-  } catch (err) { return handleError(res, err, 'eventos'); }
-};
 
 /**
  * PUT /api/preferencias — { notificarEmail?: boolean, privacidadeRanking?: 'nome'|'anonimo'|'oculto' }
@@ -119,7 +98,8 @@ const getProjetosInternos = async (req, res) => {
     const statusPorProjeto = {};
     minhas.forEach(s => { statusPorProjeto[String(s.projeto)] = s.status; });
 
-    const resultado = projetos.map(p => ({
+    // Campos internos do painel (quem cadastrou) não vão para o aluno
+    const resultado = projetos.map(({ criadoPor, criadoPorEmail, ...p }) => ({
       ...p,
       meuStatus: statusPorProjeto[String(p._id)] || null,
     }));
@@ -366,7 +346,7 @@ const handleError = (res, err, contexto) => {
 module.exports = {
   getDadosPessoais, getPeriodos, getBoletim,
   getProjetosPesquisa, getProjetosExtensao,
-  getCalendario, updatePreferencias,
+  updatePreferencias,
   getProjetosInternos, solicitarParticipacao,
   solicitarParticipacaoSuap,
   cancelarSolicitacao, cancelarSolicitacaoSuap,

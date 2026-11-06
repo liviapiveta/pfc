@@ -30,7 +30,6 @@ router.get('/periodos', auth, suapController.getPeriodos);
 router.get('/boletim/:ano/:periodo', auth, suapController.getBoletim);
 router.get('/projetos/pesquisa', auth, suapController.getProjetosPesquisa);
 router.get('/projetos/extensao', auth, suapController.getProjetosExtensao);
-router.get('/calendario', auth, suapController.getCalendario);
 
 // ── Projetos internos / solicitações de participação (aluno) ──
 router.get('/projetos-internos/:tipo', auth, suapController.getProjetosInternos);

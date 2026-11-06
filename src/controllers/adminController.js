@@ -820,7 +820,7 @@ const getEstatisticas = async (req, res) => {
     const inicio6m = new Date(agora.getFullYear(), agora.getMonth() - 5, 1);
 
     const [
-      alunos, ativos7, ativos30, porCurso, evolucao, topProjetos, topConquistas, porStatus, totalConcessoes,
+      alunos, ativos7, ativos30, porCurso, evolucao, topProjetos, topConquistas, porStatus, totalConcessoes, presencasStatus,
     ] = await Promise.all([
       User.countDocuments(),
       User.countDocuments({ ultimoAcesso: { $gte: dias(7) } }),
@@ -862,6 +862,7 @@ const getEstatisticas = async (req, res) => {
       ]),
       Solicitacao.aggregate([{ $group: { _id: '$status', total: { $sum: 1 } } }]),
       ConquistaUsuario.countDocuments({ status: 'confirmada' }),
+      Presenca.aggregate([{ $group: { _id: '$status', n: { $sum: 1 } } }]),
     ]);
 
     // Garante os 6 meses na ordem, mesmo os que ficaram zerados
@@ -876,6 +877,7 @@ const getEstatisticas = async (req, res) => {
       totais: {
         alunos, ativos7, ativos30, concessoes: totalConcessoes,
         solicitacoes: Object.fromEntries(porStatus.map(s => [s._id, s.total])),
+        presencas: Object.fromEntries(presencasStatus.map(s => [s._id, s.n])),
       },
       porCurso: porCurso.map(c => ({ curso: c._id, alunos: c.alunos, pontosMedios: Math.round(c.pontosMedios || 0), comPontos: c.comPontos })),
       evolucao: meses,
