@@ -15,9 +15,7 @@ const { registrar } = require('../services/auditoria');
 const { notificarAluno } = require('../services/notificacoes');
 const Presenca = require('../models/Presenca');
 const Comprovante = require('../models/Comprovante');
-const Conquista = require('../models/Conquista');
-const presencaService = require('../services/presencaService');
-const { contagemPorEvento } = require('./presencaController');
+const { contagemPorEvento, lerConfigEvento, validacaoDe } = require('./presencaController');
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -558,6 +556,7 @@ const getEventos = async (req, res) => {
     const contagem = await contagemPorEvento(lista.map(ev => ev._id));
     return res.json(lista.map(ev => ({
       ...ev,
+      validacao: validacaoDe(ev.validacao),
       conquista: ev.conquista ? { _id: ev.conquista._id, nome: ev.conquista.nome, pontos: ev.conquista.pontos, icone: ev.conquista.icone } : null,
       presencas: contagem[String(ev._id)] || { aprovada: 0, pendente: 0, recusada: 0 },
       podeEditar: podeGerirEvento(req, ev),
@@ -573,7 +572,7 @@ const getEvento = async (req, res) => {
   try {
     const ev = await Evento.findById(req.params.id).lean();
     if (!ev) return res.status(404).json({ erro: 'Evento não encontrado' });
-    return res.json({ ...ev, podeEditar: podeGerirEvento(req, ev) });
+    return res.json({ ...ev, validacao: validacaoDe(ev.validacao), podeEditar: podeGerirEvento(req, ev) });
   } catch (err) {
     console.error('Erro ao buscar evento:', err.message);
     return res.status(500).json({ erro: 'Erro ao buscar evento' });
@@ -599,20 +598,13 @@ const dadosEvento = async (body = {}, parcial = false) => {
   });
   if (dados.data_inicio === 'invalida' || dados.data_fim === 'invalida') return { erro: 'Data inválida' };
 
-  if (body.validacao !== undefined || !parcial) {
-    const v = body.validacao || {};
-    dados.validacao = { certificado: v.certificado !== false, qrcode: v.qrcode === true, qrDinamico: v.qrcode === true && v.qrDinamico === true };
-  }
-  if (body.conquista !== undefined) {
-    if (!body.conquista) dados.conquista = null;
-    else {
-      if (!mongoose.isValidObjectId(body.conquista)) return { erro: 'Conquista inválida' };
-      const c = await Conquista.findById(body.conquista).select('_id ativa').lean();
-      if (!c || c.ativa === false) return { erro: 'Conquista inválida ou inativa' };
-      dados.conquista = c._id;
-    }
-  }
-  return { dados };
+  // Validação e conquista: mesma regra dos eventos do SUAP
+  const cfg = await lerConfigEvento({
+    validacao: body.validacao !== undefined || !parcial ? (body.validacao || {}) : undefined,
+    conquista: body.conquista,
+  });
+  if (cfg.erro) return { erro: cfg.erro };
+  return { dados: { ...dados, ...cfg.dados } };
 };
 
 const validarDatasEvento = (ini, fim) =>
@@ -635,13 +627,11 @@ const criarEvento = async (req, res) => {
 
     const ev = await Evento.create({
       ...dados,
-      qrSegredo: dados.validacao?.qrcode ? presencaService.novoSegredo() : null,
       criadoPor: req.admin.id,
       criadoPorEmail: req.admin.email || '',
     });
     registrar(req, 'evento.criar', ev.nome, { data: ev.data_inicio });
-    const criado = ev.toObject(); delete criado.qrSegredo;
-    return res.status(201).json(criado);
+    return res.status(201).json(ev);
   } catch (err) {
     console.error('Erro ao criar evento:', err.message);
     return res.status(500).json({ erro: 'Erro ao criar evento' });
@@ -665,14 +655,12 @@ const atualizarEvento = async (req, res) => {
     );
     if (erroData) return res.status(400).json({ erro: erroData });
 
-    // Ligou o QR agora e o evento ainda não tem segredo → gera um
-    if (dados.validacao?.qrcode) {
-      const comSegredo = await Evento.findById(atual._id).select('+qrSegredo').lean();
-      if (!comSegredo?.qrSegredo) dados.qrSegredo = presencaService.novoSegredo();
-    }
-
     const ev = await Evento.findByIdAndUpdate(req.params.id, { $set: dados }, { returnDocument: 'after', runValidators: true });
     registrar(req, 'evento.editar', ev.nome, { data: ev.data_inicio });
+    // Trocou a conquista do evento → acerta quem já tem presença validada nele
+    if ('conquista' in dados && String(dados.conquista || '') !== String(atual.conquista || '')) {
+      await conquistaEngine.sincronizarAlunosDoEvento({ origem: 'local', evento: atual._id });
+    }
     return res.json(ev);
   } catch (err) {
     console.error('Erro ao atualizar evento:', err.message);

@@ -1657,3 +1657,6 @@ button.rodape-link { font: inherit; background: none; border: none; border-top: 
 #eventosContent .evento-item { align-items: flex-start; }
 #eventosContent .evento-data { padding-top: 0.15rem; }
 #eventosContent .evento-data::after { top: 1.2rem; }
+.val-explica { display: flex; gap: 0.55rem; align-items: flex-start; font-size: 0.86rem; color: var(--texto-2); line-height: 1.5; margin-bottom: 0.9rem; }
+.val-explica svg { width: 18px; height: 18px; color: var(--verde); flex-shrink: 0; margin-top: 0.1rem; }
+.val-dica.sutil { color: var(--cinza); font-size: 0.76rem; margin-top: 0.55rem; }

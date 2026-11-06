@@ -333,8 +333,7 @@ document.querySelectorAll('[data-skel]').forEach(el => { el.innerHTML = esquelet
     // Atalhos do app instalado (PWA): /?secao=ranking abre direto a seção
     const secaoInicial = new URLSearchParams(location.search).get('secao');
     if (secaoInicial === 'calendario' || (secaoInicial && document.querySelector(`.nav-item[data-section="${CSS.escape(secaoInicial)}"]`))) irParaSecao(secaoInicial);
-    // QR Code do evento lido pela câmera do celular → valida a presença
-    checkinPeloLink();
+
     // Depois que o painel aparece, mostra conquistas novas / subida de nível
     setTimeout(verificarNovidades, 1200);
     // Pré-carrega as Configurações (dados do SUAP) para abrirem na hora
@@ -823,8 +822,8 @@ state.evFiltro = 'todos';
 
 const ROTULO_PRESENCA = {
   aprovada: { txt: 'Presença validada', cls: 'ok', ic: 'badge-check' },
-  pendente: { txt: 'Certificado em análise', cls: 'espera', ic: 'hourglass' },
-  recusada: { txt: 'Certificado recusado', cls: 'recusada', ic: 'x-circle' },
+  pendente: { txt: 'Em análise', cls: 'espera', ic: 'hourglass' },
+  recusada: { txt: 'Validação recusada', cls: 'recusada', ic: 'x-circle' },
 };
 
 const _dataEv = (ev) => dataLocal(ev.data_inicio || ev.data);
@@ -846,14 +845,14 @@ const acaoEvento = (ev) => {
     const extra = p.status === 'recusada'
       ? `<button type="button" class="btn-validar secundario" onclick="abrirValidacao('${chave}')"><i data-lucide="upload"></i> Validar de novo</button>`
       : p.status === 'pendente'
-      ? `<button type="button" class="btn-link-ev" onclick="abrirValidacao('${chave}')">Trocar arquivo</button>`
+      ? `<button type="button" class="btn-link-ev" onclick="abrirValidacao('${chave}')">Reenviar</button>`
       : '';
-    return `<span class="ev-status ${r.cls}"><i data-lucide="${r.ic}"></i> ${r.txt}${p.status === 'aprovada' && p.metodo === 'qrcode' ? ' · QR' : ''}</span>
+    return `<span class="ev-status ${r.cls}"><i data-lucide="${r.ic}"></i> ${r.txt} · ${p.metodo === 'qrcode' ? 'QR Code' : 'certificado'}</span>
       ${p.status === 'recusada' && p.motivo ? `<small class="ev-motivo">Motivo: ${esc(p.motivo)}</small>` : ''}${extra}`;
   }
   if (!_evAberto(ev)) return '';
   if (!ev.jaComecou) return '<span class="ev-status futuro"><i data-lucide="clock"></i> Validação abre no dia do evento</span>';
-  const soQrEncerrado = ev.validacao.qrcode && !ev.validacao.certificado && !ev.acontecendo;
+  const soQrEncerrado = ev.validacao.qrcode && !ev.validacao.certificado && !ev.qrNoPrazo;
   if (soQrEncerrado) return '<span class="ev-status futuro"><i data-lucide="qr-code"></i> QR Code encerrado</span>';
   return `<button type="button" class="btn-validar" onclick="abrirValidacao('${chave}')"><i data-lucide="badge-check"></i> Validar participação</button>`;
 };
@@ -890,7 +889,7 @@ const renderEventos = () => {
     const link = urlSegura(ev.link_suap);
     const metodos = [
       ev.validacao?.certificado ? '<span class="ev-tag"><i data-lucide="file-text"></i> Certificado</span>' : '',
-      ev.validacao?.qrcode ? '<span class="ev-tag"><i data-lucide="qr-code"></i> QR Code</span>' : '',
+      ev.validacao?.qrcode ? '<span class="ev-tag"><i data-lucide="qr-code"></i> QR da inscrição</span>' : '',
       ev.conquista ? `<span class="ev-tag premio" title="Conquista ao validar">${esc(ev.conquista.icone)} ${esc(ev.conquista.nome)} · +${Number(ev.conquista.pontos) || 0}</span>` : '',
       ev.origem === 'suap' ? '<span class="ev-tag suap">SUAP</span>' : '',
     ].join('');
@@ -910,7 +909,7 @@ const renderEventos = () => {
 
   el.innerHTML = `
     <div class="ev-topo">
-      <p class="ev-intro"><i data-lucide="info"></i><span>Participou de um evento? Valide sua presença enviando o <strong>certificado</strong> ou lendo o <strong>QR Code</strong> do evento — e ganhe pontos.</span></p>
+      <p class="ev-intro"><i data-lucide="info"></i><span>Participou de um evento? Valide sua presença enviando o <strong>certificado</strong> ou o <strong>QR Code que chegou no seu e-mail de inscrição</strong> — e ganhe pontos.</span></p>
       <div class="ev-filtros" role="group" aria-label="Filtrar eventos">
         ${chip('todos', 'Todos')}${chip('proximos', 'Próximos')}${chip('passados', 'Já aconteceram')}${chip('validar', 'Para validar')}${chip('validados', 'Validados')}
       </div>
@@ -959,7 +958,7 @@ const abrirValidacao = (chave, aba) => {
   }
   const temCert = !!ev.validacao?.certificado;
   const temQr = !!ev.validacao?.qrcode;
-  const inicial = aba || (temQr && ev.acontecendo ? 'qr' : (temCert ? 'cert' : 'qr'));
+  const inicial = aba || (temQr && ev.qrNoPrazo ? 'qr' : (temCert ? 'cert' : 'qr'));
 
   modal.innerHTML = `
     <div class="niveis-dialog validar-dialog" role="dialog" aria-modal="true" aria-labelledby="validarTitulo">
@@ -974,7 +973,7 @@ const abrirValidacao = (chave, aba) => {
         <p class="val-pergunta">Como você quer validar?</p>
         <div class="val-abas" role="tablist" aria-label="Forma de validação">
           <button type="button" role="tab" id="abaCert" aria-controls="painelCert" class="val-aba" onclick="trocarAbaValidacao('cert')"><i data-lucide="file-text"></i><span><strong>Enviar certificado</strong><small>PDF ou foto · um professor confere</small></span></button>
-          <button type="button" role="tab" id="abaQr" aria-controls="painelQr" class="val-aba" onclick="trocarAbaValidacao('qr')"><i data-lucide="qr-code"></i><span><strong>QR Code do evento</strong><small>Validado na hora</small></span></button>
+          <button type="button" role="tab" id="abaQr" aria-controls="painelQr" class="val-aba" onclick="trocarAbaValidacao('qr')"><i data-lucide="qr-code"></i><span><strong>QR Code da inscrição</strong><small>O que chegou no seu e-mail</small></span></button>
         </div>` : ''}
         ${temCert ? `
         <div class="val-painel" id="painelCert" role="tabpanel" aria-labelledby="abaCert">
@@ -991,23 +990,22 @@ const abrirValidacao = (chave, aba) => {
         </div>` : ''}
         ${temQr ? `
         <div class="val-painel" id="painelQr" role="tabpanel" aria-labelledby="abaQr">
-          ${ev.acontecendo ? `
+          ${ev.qrNoPrazo ? `
+          <p class="val-explica"><i data-lucide="mail"></i><span>Quando você se inscreveu, o evento mandou um <strong>QR Code no seu e-mail</strong>. Tire um print dele (ou uma foto) e envie aqui.</span></p>
           <div class="val-camera" id="cameraBox" hidden>
             <video id="cameraVideo" playsinline muted></video>
             <div class="val-mira" aria-hidden="true"></div>
           </div>
           <div class="val-qr-opcoes">
-            <button type="button" class="btn-validar" id="btnCamera" onclick="lerQrCamera('${esc(ev.chave)}')"><i data-lucide="camera"></i> Ler com a câmera</button>
-            <button type="button" class="btn-validar secundario" onclick="document.getElementById('inputQrFoto').click()"><i data-lucide="image"></i> Enviar foto do QR</button>
+            <button type="button" class="btn-validar" onclick="document.getElementById('inputQrFoto').click()"><i data-lucide="image"></i> Enviar print do QR</button>
+            <button type="button" class="btn-validar secundario" id="btnCamera" onclick="lerQrCamera('${esc(ev.chave)}')"><i data-lucide="camera"></i> Ler com a câmera</button>
             <input type="file" id="inputQrFoto" hidden tabindex="-1" accept="image/*" onchange="lerQrFoto(this.files[0], '${esc(ev.chave)}')" />
           </div>
-          <form class="val-codigo" onsubmit="event.preventDefault(); fazerCheckin('${esc(ev.chave)}', this.codigo.value)">
-            <label for="inputCodigo">Ou digite o código que aparece embaixo do QR</label>
-            <div><input id="inputCodigo" name="codigo" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Ex.: K7M2QX9P" />
-            <button type="submit" class="btn-validar">Validar</button></div>
-          </form>
+          <p class="val-dica sutil">A câmera serve para ler o QR impresso ou aberto em outra tela.</p>
           <p class="val-dica" id="qrStatus" role="status" aria-live="polite"></p>`
-          : `<p class="val-dica"><i data-lucide="clock"></i><span>O QR Code só pode ser lido durante o evento (${esc(_periodoEv(ev))}).${temCert ? ' Você ainda pode enviar o certificado.' : ''}</span></p>`}
+          : `<p class="val-dica"><i data-lucide="clock"></i><span>${ev.jaComecou
+              ? `O prazo para validar pelo QR Code acabou (30 dias depois do evento).${temCert ? ' Você ainda pode enviar o certificado.' : ''}`
+              : 'A validação abre quando o evento começar.'}</span></p>`}
         </div>` : ''}
       </div>
     </div>`;
@@ -1156,18 +1154,6 @@ const carregarJsQr = () => {
   return _jsQrCarregando;
 };
 
-// O QR traz o link do portal: /?checkin=<chave>&c=<código>. Também aceita só o código.
-const codigoDoQr = (texto, chaveEsperada) => {
-  const t = String(texto || '').trim();
-  try {
-    const u = new URL(t);
-    const c = u.searchParams.get('c');
-    const k = u.searchParams.get('checkin');
-    if (c) return { codigo: c, outroEvento: !!(k && chaveEsperada && k !== chaveEsperada), chave: k };
-  } catch (e) { /* não é link */ }
-  return { codigo: t, outroEvento: false, chave: null };
-};
-
 const statusQr = (msg, tipo = '') => {
   const el = document.getElementById('qrStatus');
   if (el) { el.textContent = msg; el.className = `val-dica ${tipo}`; }
@@ -1186,7 +1172,7 @@ const pararCamera = () => {
 
 const lerQrCamera = async (chave) => {
   if (_camera) { pararCamera(); return; }
-  if (!navigator.mediaDevices?.getUserMedia) { statusQr('Seu navegador não libera a câmera. Use "Enviar foto do QR" ou digite o código.', 'erro'); return; }
+  if (!navigator.mediaDevices?.getUserMedia) { statusQr('Seu navegador não libera a câmera. Use "Enviar print do QR".', 'erro'); return; }
   try {
     const [jsQR, stream] = await Promise.all([
       carregarJsQr(),
@@ -1200,7 +1186,7 @@ const lerQrCamera = async (chave) => {
     await video.play();
     _camera = { stream, raf: 0 };
     document.getElementById('btnCamera').innerHTML = '<i data-lucide="x"></i> Fechar câmera';
-    statusQr('Aponte a câmera para o QR Code do evento…');
+    statusQr('Aponte a câmera para o QR Code da sua inscrição…');
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     const quadro = () => {
@@ -1210,7 +1196,7 @@ const lerQrCamera = async (chave) => {
         canvas.width = Math.round(video.videoWidth * esc_); canvas.height = Math.round(video.videoHeight * esc_);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const achou = jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height, { inversionAttempts: 'dontInvert' });
-        if (achou?.data) { pararCamera(); processarQr(achou.data, chave); return; }
+        if (achou?.data) { pararCamera(); enviarQr(chave, achou.data); return; }
       }
       _camera.raf = requestAnimationFrame(quadro);
     };
@@ -1219,7 +1205,7 @@ const lerQrCamera = async (chave) => {
     pararCamera();
     statusQr(e?.name === 'NotAllowedError'
       ? 'Você não liberou a câmera. Libere nas permissões do navegador, ou envie uma foto do QR.'
-      : 'Não foi possível abrir a câmera. Envie uma foto do QR ou digite o código.', 'erro');
+      : 'Não foi possível abrir a câmera. Envie um print do QR.', 'erro');
   }
 };
 
@@ -1231,17 +1217,17 @@ const lerQrFoto = async (arquivo, chave) => {
     const url = URL.createObjectURL(arquivo);
     const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
     URL.revokeObjectURL(url);
-    // Tenta em dois tamanhos: QR pequeno na foto às vezes só aparece em resolução maior
-    for (const max of [1000, 2000]) {
+    // Tenta em vários tamanhos: num print do e-mail o QR é pequeno perto do texto
+    for (const max of [1000, 2000, Math.max(img.width, img.height)]) {
       const esc_ = Math.min(1, max / Math.max(img.width, img.height));
       const c = document.createElement('canvas');
       c.width = Math.round(img.width * esc_); c.height = Math.round(img.height * esc_);
       const ctx = c.getContext('2d', { willReadFrequently: true });
       ctx.drawImage(img, 0, 0, c.width, c.height);
       const achou = jsQR(ctx.getImageData(0, 0, c.width, c.height).data, c.width, c.height);
-      if (achou?.data) { processarQr(achou.data, chave); return; }
+      if (achou?.data) { enviarQr(chave, achou.data); return; }
     }
-    statusQr('Não achamos um QR Code nessa foto. Tente uma foto mais de perto e sem reflexo.', 'erro');
+    statusQr('Não achamos um QR Code nessa imagem. Recorte o print deixando o QR maior, ou tire uma foto mais de perto e sem reflexo.', 'erro');
   } catch (e) {
     statusQr('Não foi possível ler a foto.', 'erro');
   } finally {
@@ -1249,53 +1235,33 @@ const lerQrFoto = async (arquivo, chave) => {
   }
 };
 
-const processarQr = (texto, chave) => {
-  const r = codigoDoQr(texto, chave);
-  if (r.outroEvento) { statusQr('Esse QR Code é de outro evento.', 'erro'); return; }
-  fazerCheckin(chave, r.codigo);
-};
-
-const fazerCheckin = async (chave, codigo) => {
-  const limpo = String(codigo || '').trim();
-  if (!limpo) { statusQr('Digite o código.', 'erro'); return; }
-  statusQr('Validando…');
+const enviarQr = async (chave, conteudo) => {
+  statusQr('QR Code lido! Validando…');
   try {
-    const r = await fetch(`/api/eventos/${encodeURIComponent(chave)}/checkin`, {
+    const r = await fetch(`/api/eventos/${encodeURIComponent(chave)}/qrcode`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ codigo: limpo }),
+      body: JSON.stringify({ conteudo }),
     });
-    if (r.status === 401) { window.location.href = '/login'; return false; }
+    if (r.status === 401) { window.location.href = '/login'; return; }
     const data = await r.json().catch(() => ({}));
     if (!r.ok || !data.sucesso) {
       statusQr(data.erro || 'Não foi possível validar.', 'erro');
-      aviso(data.erro || 'Não foi possível validar.', 'erro');
-      return false;
+      return;
     }
     if (data.presenca) atualizarPresencaLocal(chave, data.presenca);
     fecharValidacao();
-    if (data.jaValidada) { aviso('Sua presença neste evento já estava validada.'); return true; }
+    if (data.jaValidada) { aviso('Sua presença neste evento já estava validada.'); return; }
+    if (data.presenca?.status === 'pendente') {
+      aviso('QR Code recebido! Um professor vai conferir e você recebe um aviso.', 'ok');
+      return;
+    }
     aviso('Presença validada! 🎉', 'ok');
     soltarConfetes(2400);
     setTimeout(verificarNovidades, 1500);
-    return true;
   } catch (e) {
     statusQr('Erro de conexão. Tente de novo.', 'erro');
-    return false;
   }
-};
-
-// Link do QR aberto pela câmera do celular: /?checkin=<chave>&c=<código>
-const checkinPeloLink = async () => {
-  const q = new URLSearchParams(location.search);
-  const chave = q.get('checkin');
-  const codigo = q.get('c');
-  if (!chave) return;
-  history.replaceState(null, '', location.pathname); // não repete ao recarregar
-  irParaSecao('eventos');
-  if (!codigo) return;
-  const ok = await fazerCheckin(chave, codigo);
-  if (ok) await carregarEventos();
 };
 
 // ── Conquistas (gamificação) ───────────────────────────────────
@@ -1314,9 +1280,10 @@ const carregarConquistas = async () => {
         <div>
           <div class="nome">${esc(c.nome)}</div>
           ${c.descricao ? `<div class="desc">${esc(c.descricao)}</div>` : ''}
-          <span class="pts"><i data-lucide="star"></i> ${Number(c.pontos) || 0} pts</span>
+          <span class="pts"><i data-lucide="star"></i> ${Number(c.pontos) || 0} pts${c.vezes > 1 ? ` · ×${c.vezes}` : ''}</span>
           ${(!desbloqueada && c.origem === 'automatica')
             ? `<span class="auto"><i data-lucide="settings"></i> Automática</span>` : ''}
+          ${c.comoGanhar ? `<div class="como">${esc(c.comoGanhar)}</div>` : ''}
         </div>
       </div>`;
 
@@ -1333,7 +1300,7 @@ const carregarConquistas = async () => {
         <span class="estrela"><i data-lucide="star"></i></span>
         <div>
           <div class="total">${pontos}</div>
-          <div class="label">pontos acumulados · ${desbloqueadas.length} conquista(s)</div>
+          <div class="label">pontos acumulados · ${dados.totalRegistros ?? desbloqueadas.length} conquista(s)</div>
         </div>
       </div>
 

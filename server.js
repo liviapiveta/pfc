@@ -37,7 +37,7 @@ app.use((req, res, next) => {
     'X-Frame-Options': 'DENY',
     'Content-Security-Policy': "frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    // câmera liberada só para o próprio site (leitura do QR Code dos eventos)
+    // câmera liberada só para o próprio site (leitura do QR Code da inscrição nos eventos)
     'Permissions-Policy': 'camera=(self), microphone=(), geolocation=()',
   });
   next();
@@ -56,8 +56,8 @@ const tokenValido = (token, campo) => {
   catch { return false; }
 };
 app.get('/admin.html', (req, res) => res.redirect('/admin'));
-// "volta": depois do login, retoma o endereço pedido (ex.: QR Code de check-in
-// lido pela câmera do celular). Só caminhos deste site — nunca "//outro-site".
+// "volta": depois do login, retoma o endereço pedido (ex.: atalho /?secao=eventos
+// do app instalado). Só caminhos deste site — nunca "//outro-site".
 const voltaSegura = (v) => {
   const s = String(v || '');
   return /^\/(?![\/\\])[^\s]*$/.test(s) && s.length < 500 ? s : '/';
@@ -141,6 +141,12 @@ const seedAdmin = async () => {
     const r = await importarServidores();
     console.log(`✅ Lista de servidores importada: ${r.novas} contas criadas`);
   }
+  // Migração da versão anterior (QR gerado pelo site): eventos criados nela
+  // passam a aceitar o QR do e-mail de inscrição e perdem os campos antigos
+  await require('./src/models/Evento').collection.updateMany(
+    { 'validacao.qrDinamico': { $exists: true } },
+    { $set: { 'validacao.qrcode': true }, $unset: { qrSegredo: '', 'validacao.qrDinamico': '' } }
+  ).catch(() => {});
 };
 
 if (NA_VERCEL) {

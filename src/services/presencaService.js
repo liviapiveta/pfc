@@ -2,43 +2,58 @@ const crypto = require('crypto');
 const mongoose = require('mongoose');
 
 /**
- * Regras da validação de presença em eventos (QR Code e certificado).
+ * Regras da validação de presença em eventos (QR Code do e-mail de inscrição e certificado).
  */
 
-// Sem letras/números que se confundem (0/O, 1/I/L) — o aluno pode digitar o código
-const ALFABETO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const TAM_CODIGO = 8;
-const JANELA_QR_MS = 30 * 1000;   // QR dinâmico troca a cada 30 s…
-const JANELAS_ACEITAS = 4;        // …e vale por ~2 min (dá tempo de abrir o portal e logar)
+// ── QR Code do e-mail de inscrição ─────────────────────────────
+const PRAZO_QR_DIAS = 30; // dá para validar pelo QR até 30 dias depois do fim do evento
 
-const novoSegredo = () => crypto.randomBytes(24).toString('hex');
-
-const _codigo = (segredo, contador) => {
-  const h = crypto.createHmac('sha256', String(segredo)).update(String(contador)).digest();
-  let out = '';
-  for (let i = 0; i < TAM_CODIGO; i++) out += ALFABETO[h[i] % ALFABETO.length];
-  return out;
+/** Limpa o conteúdo lido do QR (texto/link). Devolve '' se for inválido. */
+const limparQr = (bruto) => {
+  const s = String(bruto ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim();
+  return s.length >= 4 && s.length <= 2000 ? s : '';
 };
 
-const janelaAtual = (agora = Date.now()) => Math.floor(agora / JANELA_QR_MS);
+const hashQr = (conteudo) => crypto.createHash('sha256').update(conteudo).digest('hex');
 
-/** Código que o QR deve mostrar AGORA (e quando ele expira, se for dinâmico). */
-const codigoAtual = (ev, agora = Date.now()) => {
-  if (!ev?.qrSegredo) return null;
-  if (!ev.validacao?.qrDinamico) return { codigo: _codigo(ev.qrSegredo, 'fixo'), expiraEm: null };
-  const j = janelaAtual(agora);
-  return { codigo: _codigo(ev.qrSegredo, j), expiraEm: (j + 1) * JANELA_QR_MS };
+// Link de um site do IFPR (suap.ifpr.edu.br, ifpr.edu.br, …)?
+const linkInstitucional = (conteudo) => {
+  try {
+    const u = new URL(conteudo);
+    return /^https?:$/.test(u.protocol) && /(^|\.)ifpr\.edu\.br$/i.test(u.hostname);
+  } catch { return false; }
 };
 
-/** O código digitado/lido pelo aluno é válido para o evento? (comparação em tempo constante) */
-const codigoConfere = (ev, recebido, agora = Date.now()) => {
-  const r = String(recebido || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (!ev?.qrSegredo || r.length !== TAM_CODIGO) return false;
-  const candidatos = ev.validacao?.qrDinamico
-    ? Array.from({ length: JANELAS_ACEITAS }, (_, i) => _codigo(ev.qrSegredo, janelaAtual(agora) - i))
-    : [_codigo(ev.qrSegredo, 'fixo')];
-  const rb = Buffer.from(r);
-  return candidatos.some((c) => crypto.timingSafeEqual(Buffer.from(c), rb));
+/**
+ * Decide o que fazer com o QR do aluno, conforme a configuração do evento:
+ *  - evento com padrão definido: QR começa com o padrão → 'aprovada';
+ *    não começa → 'recusar' (não é o QR deste evento)
+ *  - sem padrão: link do IFPR → 'aprovada'; qualquer outro → 'pendente'
+ *    (um professor confere — QR "qualquer" seria fácil de forjar)
+ */
+const avaliarQr = (conteudo, validacao = {}) => {
+  const padrao = String(validacao.qrPadrao || '').trim();
+  if (padrao && !conteudo.toLowerCase().startsWith(padrao.toLowerCase())) return { status: 'recusar' };
+  if (validacao.qrConferir) return { status: 'pendente', observacao: 'Evento configurado para conferir todo QR' };
+  if (padrao) return { status: 'aprovada', observacao: 'QR confere com o padrão do evento' };
+  if (linkInstitucional(conteudo)) return { status: 'aprovada', observacao: 'QR com link do IFPR' };
+  return { status: 'pendente', observacao: 'QR fora do padrão do IFPR — confira o conteúdo' };
+};
+
+/** Sugere o "padrão" a partir de um QR de exemplo: o link sem a última parte (que muda por aluno). */
+const sugerirPadrao = (exemplo) => {
+  const s = limparQr(exemplo);
+  if (!s) return '';
+  try {
+    const u = new URL(s);
+    const partes = u.pathname.split('/').filter(Boolean);
+    partes.pop();
+    return `${u.origin}/${partes.length ? `${partes.join('/')}/` : ''}`;
+  } catch {
+    // Texto: mantém o começo "fixo" (antes do último trecho de letras/números)
+    const m = s.match(/^(.*?[^A-Za-z0-9])[A-Za-z0-9]{6,}$/);
+    return m ? m[1] : '';
+  }
 };
 
 /** Data de hoje no fuso do campus, no formato dos eventos (AAAA-MM-DD). */
@@ -59,11 +74,22 @@ const jaComecou = (ev, hoje = hojeSP()) => {
   return !!ini && ini <= hoje;
 };
 
-/** Hoje está dentro dos dias do evento? (o QR só vale durante o evento) */
+/** Hoje está dentro dos dias do evento? */
 const acontecendo = (ev, hoje = hojeSP()) => {
   const ini = diaDe(ev.data_inicio || ev.data);
   const fim = diaDe(ev.data_fim) || ini;
   return !!ini && ini <= hoje && hoje <= fim;
+};
+
+/** Ainda dá para validar pelo QR? (do início até PRAZO_QR_DIAS depois do fim) */
+const qrNoPrazo = (ev, agora = new Date()) => {
+  const hoje = hojeSP(agora);
+  const ini = diaDe(ev.data_inicio || ev.data);
+  const fim = diaDe(ev.data_fim) || ini;
+  if (!ini || ini > hoje) return false;
+  const limite = new Date(`${fim}T12:00:00-03:00`);
+  limite.setDate(limite.getDate() + PRAZO_QR_DIAS);
+  return hoje <= hojeSP(limite);
 };
 
 // ── Chave do evento na URL: "local-<ObjectId>" ou "suap-<número>" ──
@@ -100,9 +126,8 @@ const nomeArquivoSeguro = (bruto, tipo) => {
 };
 
 module.exports = {
-  ALFABETO, TAM_CODIGO, JANELA_QR_MS,
-  novoSegredo, codigoAtual, codigoConfere,
-  hojeSP, diaDe, jaComecou, acontecendo,
+  PRAZO_QR_DIAS, limparQr, hashQr, linkInstitucional, avaliarQr, sugerirPadrao,
+  hojeSP, diaDe, jaComecou, acontecendo, qrNoPrazo,
   lerChave, chaveDe,
   TAM_MAX_ARQUIVO, TIPOS_ARQUIVO, tipoReal, nomeArquivoSeguro,
 };

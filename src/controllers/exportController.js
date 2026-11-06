@@ -6,7 +6,8 @@ const { registrar } = require('../services/auditoria');
 /**
  * Exportações em CSV para o painel (abrem direto no Excel / Planilhas).
  * Separador ";" e BOM UTF-8 — é o que o Excel em português espera.
- * Os escopos são os mesmos das telas: o professor só exporta o que já vê.
+ * Os escopos são os mesmos das telas: o professor só exporta o que já vê
+ * (solicitações: as dele; presenças e ranking: tudo).
  */
 
 // Célula que começa com = + - @ vira fórmula no Excel (injeção de CSV) → prefixa com '
@@ -85,19 +86,19 @@ const ranking = async (req, res) => {
 /** GET /api/admin/exportar/presencas?status= — lista de presença dos eventos */
 const presencas = async (req, res) => {
   try {
-    const { filtroMinhasPresencas } = require('./presencaController');
-    const filtro = { ...filtroMinhasPresencas(req) };
+    const filtro = {}; // presenças: todos os professores veem todas
     if (['pendente', 'aprovada', 'recusada'].includes(req.query.status)) filtro.status = req.query.status;
     const lista = await Presenca.find(filtro).sort({ eventoNome: 1, nomeAluno: 1 }).lean();
     const linhas = lista.map((p) => [
       p.eventoNome, p.eventoData, p.origem === 'suap' ? 'SUAP' : 'Painel',
       p.nomeAluno || '', p.matricula, p.curso || '',
-      p.metodo === 'qrcode' ? 'QR Code' : 'Certificado',
+      p.metodo === 'qrcode' ? 'QR Code da inscrição' : 'Certificado',
       ROTULO_PRES[p.status] || p.status, p.motivo || '', p.decididoPorNome || '', dataHora(p.decididoEm || p.updatedAt),
+      p.metodo === 'qrcode' ? (p.qrConteudo || '') : '',
     ]);
     registrar(req, 'exportar.presencas', `${linhas.length} linha(s)`, {});
     return enviarCsv(res, 'presencas', montarCsv(
-      ['Evento', 'Data do evento', 'Origem', 'Aluno', 'Matrícula', 'Curso', 'Validação', 'Situação', 'Motivo', 'Decidido por', 'Quando'], linhas));
+      ['Evento', 'Data do evento', 'Origem', 'Aluno', 'Matrícula', 'Curso', 'Validação', 'Situação', 'Motivo', 'Decidido por', 'Quando', 'Conteúdo do QR'], linhas));
   } catch (err) {
     console.error('Erro ao exportar presenças:', err.message);
     return res.status(500).json({ erro: 'Erro ao exportar' });
