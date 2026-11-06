@@ -22,7 +22,54 @@ const textoSimples = (v) => (typeof v === 'string' ? v : undefined);
  */
 // Uma única implementação (no motor), que também avisa o aluno por e-mail
 // quando ele sobe de nível. Antes havia duas cópias desta função.
-const { recalcularPontosAluno } = require('../services/conquistaEngine');
+const { recalcularPontosAluno, sincronizarTodos } = require('../services/conquistaEngine');
+
+/**
+ * Lista branca + validação dos campos do catálogo de conquistas.
+ * Antes o corpo inteiro ia para o banco e a regra não era conferida
+ * (ex.: regra de nota sem alvo, regra de evento com valor qualquer).
+ * Devolve { dados } ou { erro }.
+ */
+const CATEGORIAS = ['academico', 'projeto', 'evento', 'especial'];
+const dadosConquista = (body = {}, parcial = false) => {
+  const d = {};
+  if (body.nome !== undefined || !parcial) {
+    d.nome = String(body.nome || '').trim().slice(0, 120);
+    if (!d.nome) return { erro: 'O nome da conquista é obrigatório' };
+  }
+  if (body.descricao !== undefined) d.descricao = String(body.descricao || '').trim().slice(0, 500);
+  if (body.icone !== undefined) d.icone = String(body.icone || '🏆').trim().slice(0, 16) || '🏆';
+  if (body.categoria !== undefined) {
+    if (!CATEGORIAS.includes(body.categoria)) return { erro: 'Categoria inválida' };
+    d.categoria = body.categoria;
+  }
+  if (body.pontos !== undefined || !parcial) {
+    if (!pontosValidos(body.pontos)) return { erro: 'Pontos deve ser um número maior ou igual a 0' };
+    d.pontos = Math.round(Number(body.pontos));
+  }
+  if (body.ativa !== undefined) d.ativa = body.ativa !== false;
+  if (body.origem !== undefined || !parcial) {
+    d.origem = body.origem === 'automatica' ? 'automatica' : 'manual';
+    if (d.origem === 'manual') d.regra = { tipo: null, valor: null };
+    else {
+      const tipo = body.regra?.tipo;
+      let valor = body.regra?.valor == null ? '' : String(body.regra.valor).trim();
+      if (tipo === 'nota') {
+        if (!valor) return { erro: 'Informe a nota ou conceito alvo (ex.: 90 ou A)' };
+        if (!/^(\d{1,3}([.,]\d{1,2})?|[A-Ea-e])$/.test(valor)) return { erro: 'Alvo da nota inválido: use um número (ex.: 90) ou uma letra de A a E' };
+      } else if (tipo === 'projeto_aceito') {
+        if (valor && !['pesquisa', 'extensao'].includes(valor)) return { erro: 'Tipo de projeto inválido' };
+      } else if (tipo === 'evento_presenca') {
+        if (!valor || valor === 'cada') valor = 'cada';
+        else if (!/^\d{1,3}$/.test(valor) || Number(valor) < 1) return { erro: 'Quantidade de eventos inválida' };
+      } else {
+        return { erro: 'Conquista automática exige uma regra' };
+      }
+      d.regra = { tipo, valor: valor || null };
+    }
+  }
+  return { dados: d };
+};
 const { notificarAluno } = require('../services/notificacoes');
 const { registrar } = require('../services/auditoria');
 
@@ -110,6 +157,19 @@ const _rankearAlunos = async (filtroUser = {}) => {
   return rows;
 };
 
+/** Texto curto de "como ganhar" para o aluno (só nas automáticas). */
+const comoGanhar = (c) => {
+  if (c.origem !== 'automatica' || !c.regra?.tipo) return c.origem === 'manual' ? 'Concedida por um professor' : '';
+  const v = c.regra.valor;
+  if (c.regra.tipo === 'nota') return /^\d/.test(String(v)) ? `Tirar ${v} ou mais em alguma disciplina` : `Tirar conceito ${v} em alguma disciplina`;
+  if (c.regra.tipo === 'projeto_aceito') return v === 'pesquisa' ? 'Ser aceito em um projeto de pesquisa' : v === 'extensao' ? 'Ser aceito em um projeto de extensão' : 'Ser aceito em um projeto';
+  if (c.regra.tipo === 'evento_presenca') {
+    const n = parseInt(v, 10);
+    return Number.isInteger(n) && n > 0 ? `Ter presença validada em ${n} evento${n > 1 ? 's' : ''}` : 'A cada evento com presença validada';
+  }
+  return '';
+};
+
 // ── Catálogo de conquistas ────────────────────────────────────
 
 /** GET /api/admin/conquistas  (opcional ?categoria= &ativa=true|false) */
@@ -147,22 +207,15 @@ const getConquista = async (req, res) => {
 /** POST /api/admin/conquistas */
 const criarConquista = async (req, res) => {
   try {
-    const { nome, pontos, origem } = req.body;
+    const { dados, erro } = dadosConquista(req.body);
+    if (erro) return res.status(400).json({ erro });
 
-    if (!nome || !String(nome).trim()) {
-      return res.status(400).json({ erro: 'O nome da conquista é obrigatório' });
-    }
-    if (!pontosValidos(pontos)) {
-      return res.status(400).json({ erro: 'Pontos deve ser um número maior ou igual a 0' });
-    }
-    // Conquista automática precisa de uma regra com tipo
-    if (origem === 'automatica' && !req.body?.regra?.tipo) {
-      return res.status(400).json({ erro: 'Conquista automática exige uma regra (regra.tipo)' });
-    }
-
-    const c = await Conquista.create(req.body);
-    registrar(req, 'conquista.criar', c.nome, { pontos: c.pontos, origem: c.origem });
-    return res.status(201).json(c);
+    const c = await Conquista.create(dados);
+    // Regra nova vale para TRÁS também: quem já cumpre ganha agora
+    let retroativo = null;
+    if (c.origem === 'automatica' && c.regra?.tipo !== 'nota') retroativo = await sincronizarTodos();
+    registrar(req, 'conquista.criar', c.nome, { pontos: c.pontos, origem: c.origem, ...(retroativo ? { alunosAfetados: retroativo.afetados } : {}) });
+    return res.status(201).json({ ...c.toObject(), retroativo });
   } catch (err) {
     console.error('Erro ao criar conquista:', err.message);
     return res.status(500).json({ erro: 'Erro ao criar conquista' });
@@ -172,26 +225,28 @@ const criarConquista = async (req, res) => {
 /** PUT /api/admin/conquistas/:id */
 const atualizarConquista = async (req, res) => {
   try {
-    if ('pontos' in req.body && !pontosValidos(req.body.pontos)) {
-      return res.status(400).json({ erro: 'Pontos deve ser um número maior ou igual a 0' });
-    }
-    if ('nome' in req.body && !String(req.body.nome || '').trim()) {
-      return res.status(400).json({ erro: 'O nome da conquista é obrigatório' });
-    }
-    if (req.body.origem === 'automatica' && !req.body?.regra?.tipo) {
-      return res.status(400).json({ erro: 'Conquista automática exige uma regra (regra.tipo)' });
-    }
-    const c = await Conquista.findByIdAndUpdate(req.params.id, req.body, {
-      returnDocument: 'after',
-      runValidators: true,
-    });
-    if (!c) return res.status(404).json({ erro: 'Conquista não encontrada' });
-    registrar(req, 'conquista.editar', c.nome, { pontos: c.pontos, ativa: c.ativa });
+    const antes = await Conquista.findById(req.params.id).lean();
+    if (!antes) return res.status(404).json({ erro: 'Conquista não encontrada' });
+    const { dados, erro } = dadosConquista(req.body, true);
+    if (erro) return res.status(400).json({ erro });
 
-    // Se os pontos da conquista mudaram, os registros JÁ concedidos guardam
-    // o "retrato" antigo de propósito (não mexemos no que o aluno já ganhou).
-    // Só novas concessões usarão o valor novo.
-    return res.json(c);
+    const c = await Conquista.findByIdAndUpdate(req.params.id, { $set: dados }, { returnDocument: 'after', runValidators: true });
+
+    // Nome/pontos corrigidos valem para TODOS que já têm a conquista — antes
+    // ficava o valor antigo e dois alunos com a mesma conquista tinham pontos diferentes
+    if (c.nome !== antes.nome || c.pontos !== antes.pontos) {
+      const afetados = await ConquistaUsuario.distinct('matricula', { conquista: c._id });
+      await ConquistaUsuario.updateMany({ conquista: c._id }, { $set: { nomeConquista: c.nome, pontos: c.pontos } });
+      if (c.pontos !== antes.pontos) await Promise.all(afetados.map((m) => recalcularPontosAluno(m, { notificar: false })));
+    }
+    // Mudou a regra, ativou/desativou ou virou automática → recalcula quem cumpre
+    const mudouRegra = JSON.stringify(antes.regra || {}) !== JSON.stringify(c.regra || {}) ||
+      antes.origem !== c.origem || antes.ativa !== c.ativa;
+    let retroativo = null;
+    if (mudouRegra && (c.origem === 'automatica' || antes.origem === 'automatica')) retroativo = await sincronizarTodos();
+
+    registrar(req, 'conquista.editar', c.nome, { pontos: c.pontos, ativa: c.ativa, ...(retroativo ? { alunosAfetados: retroativo.afetados } : {}) });
+    return res.json({ ...c.toObject(), retroativo });
   } catch (err) {
     console.error('Erro ao atualizar conquista:', err.message);
     return res.status(500).json({ erro: 'Erro ao atualizar conquista' });
@@ -366,16 +421,26 @@ const getMinhasConquistas = async (req, res) => {
 
     // Usa o "retrato" (nome/pontos no momento do desbloqueio) e completa com
     // ícone/categoria do catálogo atual quando a conquista ainda existe.
-    const desbloqueadas = desbloqueadasRaw.map(d => ({
-      _id: d._id,
-      nome: d.nomeConquista || d.conquista?.nome || 'Conquista',
-      pontos: d.pontos,
-      icone: d.conquista?.icone || '🏆',
-      categoria: d.conquista?.categoria || 'especial',
-      descricao: d.conquista?.descricao || '',
-      origem: d.origem,            // 'admin' | 'automatica'
-      em: d.createdAt,
-    }));
+    // Conquistas ganhas várias vezes (ex.: uma por evento) viram UM card "×N"
+    const porConquista = new Map();
+    for (const d of desbloqueadasRaw) {
+      const k = String(d.conquista?._id || d.conquista);
+      const g = porConquista.get(k);
+      if (g) { g.vezes += 1; g.pontos += Number(d.pontos) || 0; continue; }
+      porConquista.set(k, {
+        _id: d._id,
+        conquistaId: k,
+        nome: d.nomeConquista || d.conquista?.nome || 'Conquista',
+        pontos: Number(d.pontos) || 0,
+        vezes: 1,
+        icone: d.conquista?.icone || '🏆',
+        categoria: d.conquista?.categoria || 'especial',
+        descricao: d.conquista?.descricao || '',
+        origem: d.origem,            // 'admin' | 'automatica'
+        em: d.createdAt,
+      });
+    }
+    const desbloqueadas = [...porConquista.values()];
 
     const disponiveis = catalogo
       .filter(c => !idsDesbloqueadas.has(String(c._id)))
@@ -387,16 +452,26 @@ const getMinhasConquistas = async (req, res) => {
         categoria: c.categoria,
         descricao: c.descricao || '',
         origem: c.origem,          // 'manual' | 'automatica'
+        comoGanhar: comoGanhar(c),
       }));
 
     // Soma das conquistas confirmadas (mesma fonte do Dashboard e do Ranking;
     // antes usava o cache User.pontos, que podia mostrar outro número)
     const pontos = desbloqueadas.reduce((t, d) => t + (Number(d.pontos) || 0), 0);
+    // "A cada evento" continua valendo depois da primeira vez: avisa no card
+    const catPorId = new Map(catalogo.map((c) => [String(c._id), c]));
+    desbloqueadas.forEach((d) => {
+      const c = catPorId.get(d.conquistaId);
+      if (c && c.regra?.tipo === 'evento_presenca' && !(parseInt(c.regra.valor, 10) > 0)) d.comoGanhar = comoGanhar(c);
+      delete d.conquistaId;
+    });
+    const totalRegistros = desbloqueadasRaw.length;
 
     return res.json({
       pontos,
       desbloqueadas,
       disponiveis,
+      totalRegistros,
     });
   } catch (err) {
     console.error('Erro ao buscar conquistas do aluno:', err.message);

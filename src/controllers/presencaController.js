@@ -1,32 +1,26 @@
 const mongoose = require('mongoose');
-const QRCode = require('qrcode');
 const Evento = require('../models/Evento');
+const EventoSuap = require('../models/EventoSuap');
+const Conquista = require('../models/Conquista');
 const Presenca = require('../models/Presenca');
 const Comprovante = require('../models/Comprovante');
 const suapService = require('../services/suapService');
 const conquistaEngine = require('../services/conquistaEngine');
 const { notificarAluno } = require('../services/notificacoes');
 const { registrar } = require('../services/auditoria');
-const { urlDoSite } = require('../services/emailService');
 const P = require('../services/presencaService');
 
 /**
  * Eventos + validação de presença.
  *
- * Aluno:  vê os eventos (painel + SUAP) e valida a presença por
- *         QR Code (na hora) ou enviando o certificado (PDF/foto → professor aprova).
- * Painel: configura como cada evento é validado, mostra o QR e decide os certificados.
+ * Vale igual para os eventos do SUAP e os cadastrados no painel:
+ *  - QR Code: o aluno envia (print/foto/câmera) o QR que recebeu no
+ *    e-mail de INSCRIÇÃO do evento. O IFPlenus confere o QR — não gera QR.
+ *  - Certificado: o aluno envia o PDF/foto; um professor confere.
+ *
+ * Qualquer professor pode decidir qualquer presença (quem cadastra os
+ * eventos do campus normalmente é a coordenação, não o professor).
  */
-
-const ehDev = (req) => req.admin?.cargo === 'desenvolvedor';
-const podeGerirEvento = (req, ev) => ehDev(req) || !!(ev && ev.criadoPor === req.admin.id);
-
-// Professor vê as presenças dos eventos que cadastrou + as dos eventos do SUAP
-// (que não têm "dono" no painel). A desenvolvedora vê tudo.
-const filtroMinhasPresencas = (req) =>
-  ehDev(req) ? {} : { $or: [{ origem: 'suap' }, { eventoCriadoPor: req.admin.id }] };
-const podeDecidir = (req, p) =>
-  ehDev(req) || p.origem === 'suap' || p.eventoCriadoPor === req.admin.id;
 
 const resumoPresenca = (p) => p && ({
   status: p.status,
@@ -36,92 +30,128 @@ const resumoPresenca = (p) => p && ({
   atualizadoEm: p.updatedAt,
 });
 
-/** Eventos do SUAP do campus (sem derrubar a lista se o SUAP falhar). */
-const eventosSuap = async (token) => {
+// Configuração de validação com os padrões preenchidos
+const validacaoDe = (v = {}) => ({
+  certificado: v.certificado !== false,
+  qrcode: v.qrcode !== false,
+  qrPadrao: String(v.qrPadrao || ''),
+  qrConferir: !!v.qrConferir,
+});
+
+const conquistaPublica = (c) => (c && c.ativa !== false
+  ? { nome: c.nome, pontos: c.pontos || 0, icone: c.icone || '🏆' }
+  : null);
+
+// ── Espelho dos eventos do SUAP ────────────────────────────────
+
+const dadosSuap = (ev) => ({
+  nome: String(ev.nome || ev.titulo || 'Evento do SUAP').slice(0, 300),
+  apresentacao: String(ev.apresentacao || ev.descricao || '').slice(0, 5000),
+  data_inicio: P.diaDe(ev.data_inicio || ev.data),
+  data_fim: P.diaDe(ev.data_fim),
+  periodo_formatado: String(ev.periodo_formatado || '').slice(0, 120),
+  local: String(ev.local || ev.localizacao || '').slice(0, 300),
+  campus: typeof ev.campus === 'string' ? ev.campus.slice(0, 200) : '',
+  link_suap: /^https?:\/\//i.test(String(ev.link_suap || '')) ? String(ev.link_suap).slice(0, 500) : null,
+});
+
+/**
+ * Busca os eventos do SUAP e atualiza o espelho (sem mexer na configuração).
+ * Se o SUAP falhar, devolve o que está no espelho — o aluno não fica sem lista.
+ */
+const eventosSuapAtualizados = async (token) => {
+  let lista = null;
   try {
-    const lista = await suapService.getEventosDoCampus(token);
-    return Array.isArray(lista) ? lista : [];
+    const r = await suapService.getEventosDoCampus(token);
+    lista = Array.isArray(r) ? r : [];
   } catch (e) {
-    console.warn('Eventos: SUAP indisponível:', e.response?.status || e.message);
-    return [];
+    console.warn('Eventos: SUAP indisponível, usando o espelho:', e.response?.status || e.message);
   }
+
+  if (lista) {
+    const ops = lista
+      .filter((ev) => Number.isInteger(Number(ev.id)) && Number(ev.id) > 0)
+      .map((ev) => ({
+        updateOne: {
+          filter: { suapId: Number(ev.id) },
+          update: { $set: { ...dadosSuap(ev), vistoEm: new Date() } },
+          upsert: true,
+        },
+      }));
+    if (ops.length) {
+      await EventoSuap.bulkWrite(ops, { ordered: false })
+        .catch((e) => console.warn('Falha ao atualizar espelho de eventos SUAP:', e.message));
+    }
+  }
+
+  const ids = lista ? lista.map((ev) => Number(ev.id)).filter((n) => n > 0) : null;
+  const espelho = await EventoSuap.find(ids ? { suapId: { $in: ids } } : {})
+    .populate('conquista', 'nome pontos icone ativa').lean();
+  const porId = new Map(espelho.map((e) => [e.suapId, e]));
+
+  // Eventos sem id (não dá para validar) continuam aparecendo, só para consulta
+  const semId = lista ? lista.filter((ev) => !(Number(ev.id) > 0)).map((ev) => ({ ...dadosSuap(ev), suapId: null })) : [];
+  const comId = ids ? ids.map((id) => porId.get(id)).filter(Boolean) : espelho;
+  return [...comId, ...semId];
 };
 
 // ── ALUNO ──────────────────────────────────────────────────────
 
-/** GET /api/eventos — eventos do painel + do SUAP, com a presença do aluno em cada um. */
+const itemEvento = (origem, ev, minha, hoje) => {
+  const id = origem === 'local' ? ev._id : ev.suapId;
+  const chave = id ? P.chaveDe(origem, id) : null;
+  const v = validacaoDe(ev.validacao);
+  return {
+    chave,
+    origem: origem === 'local' ? 'admin' : 'suap',
+    nome: ev.nome,
+    apresentacao: ev.apresentacao || '',
+    data_inicio: ev.data_inicio,
+    data_fim: ev.data_fim,
+    periodo_formatado: ev.periodo_formatado || '',
+    hora_inicio: ev.hora_inicio || null,
+    hora_fim: ev.hora_fim || null,
+    local: ev.local || '',
+    campus: ev.campus || '',
+    link_suap: ev.link_suap || null,
+    validacao: chave ? { certificado: v.certificado, qrcode: v.qrcode } : { certificado: false, qrcode: false },
+    conquista: conquistaPublica(ev.conquista),
+    jaComecou: P.jaComecou(ev, hoje),
+    qrNoPrazo: P.qrNoPrazo(ev),
+    minhaPresenca: chave ? resumoPresenca(minha.get(chave)) : null,
+  };
+};
+
+/** GET /api/eventos — eventos do SUAP + do painel, com a presença do aluno em cada um. */
 const listarEventos = async (req, res) => {
   try {
     const hoje = P.hojeSP();
     const [suap, locais, minhas] = await Promise.all([
-      eventosSuap(req.user.suapToken),
+      eventosSuapAtualizados(req.user.suapToken),
       Evento.find().populate('conquista', 'nome pontos icone ativa').sort({ data_inicio: 1 }).lean(),
       Presenca.find({ matricula: req.user.matricula }).lean(),
     ]);
-
-    const porChave = new Map(minhas.map((p) =>
+    const minha = new Map(minhas.map((p) =>
       [P.chaveDe(p.origem, p.origem === 'local' ? p.evento : p.eventoSuapId), p]));
 
-    const itensLocais = locais.map((ev) => {
-      const chave = P.chaveDe('local', ev._id);
-      const v = ev.validacao || {};
-      return {
-        chave,
-        origem: 'admin',
-        nome: ev.nome,
-        apresentacao: ev.apresentacao || '',
-        data_inicio: ev.data_inicio,
-        data_fim: ev.data_fim,
-        hora_inicio: ev.hora_inicio,
-        hora_fim: ev.hora_fim,
-        local: ev.local,
-        campus: ev.campus,
-        link_suap: ev.link_suap,
-        validacao: { certificado: v.certificado !== false, qrcode: !!v.qrcode },
-        conquista: ev.conquista && ev.conquista.ativa !== false
-          ? { nome: ev.conquista.nome, pontos: ev.conquista.pontos || 0, icone: ev.conquista.icone || '🏆' }
-          : null,
-        jaComecou: P.jaComecou(ev, hoje),
-        acontecendo: P.acontecendo(ev, hoje),
-        minhaPresenca: resumoPresenca(porChave.get(chave)),
-      };
-    });
-
-    const itensSuap = suap.map((ev) => {
-      const id = Number(ev.id);
-      const temId = Number.isInteger(id) && id > 0;
-      const chave = temId ? P.chaveDe('suap', id) : null;
-      return {
-        ...ev,
-        chave,
-        origem: 'suap',
-        // Eventos do SUAP não têm QR do IFPlenus: só certificado
-        validacao: { certificado: temId, qrcode: false },
-        conquista: null,
-        jaComecou: P.jaComecou(ev, hoje),
-        acontecendo: P.acontecendo(ev, hoje),
-        minhaPresenca: chave ? resumoPresenca(porChave.get(chave)) : null,
-      };
-    });
-
-    return res.json([...itensSuap, ...itensLocais]);
+    return res.json([
+      ...suap.map((ev) => itemEvento('suap', ev, minha, hoje)),
+      ...locais.map((ev) => itemEvento('local', ev, minha, hoje)),
+    ]);
   } catch (err) {
     console.error('Erro ao listar eventos:', err.message);
     return res.status(500).json({ erro: 'Erro ao carregar eventos' });
   }
 };
 
-/** Acha o evento pela chave da URL. Para o SUAP, confere na lista real do campus. */
-const acharEvento = async (req, chave) => {
+/** Acha o evento pela chave da URL (o do SUAP vem do espelho — dados do servidor, não do aluno). */
+const acharEvento = async (chave) => {
   const k = P.lerChave(chave);
   if (!k) return null;
-  if (k.origem === 'local') {
-    const ev = await Evento.findById(k.id).select('+qrSegredo').lean();
-    return ev ? { origem: 'local', ev, nome: ev.nome, data: ev.data_inicio } : null;
-  }
-  const lista = await eventosSuap(req.user.suapToken);
-  const ev = lista.find((e) => Number(e.id) === k.id);
-  return ev ? { origem: 'suap', ev, id: k.id, nome: ev.nome || ev.titulo || 'Evento do SUAP', data: ev.data_inicio || ev.data || '' } : null;
+  const ev = k.origem === 'local'
+    ? await Evento.findById(k.id).lean()
+    : await EventoSuap.findOne({ suapId: k.id }).lean();
+  return ev ? { origem: k.origem, id: k.id, ev, validacao: validacaoDe(ev.validacao) } : null;
 };
 
 const filtroDoEvento = (alvo, matricula) => (alvo.origem === 'local'
@@ -135,32 +165,45 @@ const camposBase = (req, alvo) => ({
   origem: alvo.origem,
   evento: alvo.origem === 'local' ? alvo.ev._id : null,
   eventoSuapId: alvo.origem === 'suap' ? alvo.id : null,
-  eventoNome: String(alvo.nome || '').slice(0, 300),
-  eventoData: String(alvo.data || '').slice(0, 30),
-  eventoCriadoPor: alvo.origem === 'local' ? (alvo.ev.criadoPor || null) : null,
+  eventoNome: String(alvo.ev.nome || '').slice(0, 300),
+  eventoData: String(alvo.ev.data_inicio || '').slice(0, 30),
 });
 
-/** POST /api/eventos/:chave/checkin   body: { codigo } — QR Code: validado na hora */
-const checkin = async (req, res) => {
+/**
+ * POST /api/eventos/:chave/qrcode   body: { conteudo }
+ * O aluno manda o conteúdo do QR do e-mail de inscrição (lido no navegador).
+ */
+const validarPorQr = async (req, res) => {
   try {
-    const alvo = await acharEvento(req, req.params.chave);
+    const alvo = await acharEvento(req.params.chave);
     if (!alvo) return res.status(404).json({ erro: 'Evento não encontrado' });
-    if (alvo.origem !== 'local' || !alvo.ev.validacao?.qrcode || !alvo.ev.qrSegredo) {
-      return res.status(400).json({ erro: 'Este evento não aceita validação por QR Code' });
-    }
+    if (!alvo.validacao.qrcode) return res.status(400).json({ erro: 'Este evento não aceita validação por QR Code.' });
+
     const filtro = filtroDoEvento(alvo, req.user.matricula);
     const antes = await Presenca.findOne(filtro).lean();
-    if (antes?.status === 'aprovada') {
-      return res.json({ sucesso: true, jaValidada: true, presenca: resumoPresenca(antes) });
+    if (antes?.status === 'aprovada') return res.json({ sucesso: true, jaValidada: true, presenca: resumoPresenca(antes) });
+
+    if (!P.jaComecou(alvo.ev)) return res.status(400).json({ erro: 'Você só pode validar depois que o evento começar.' });
+    if (!P.qrNoPrazo(alvo.ev)) {
+      return res.status(400).json({ erro: `O prazo para validar pelo QR Code acabou (${P.PRAZO_QR_DIAS} dias após o evento). Envie o certificado.` });
     }
-    if (!P.acontecendo(alvo.ev)) {
-      return res.status(400).json({ erro: 'O QR Code só vale nos dias do evento.' });
+
+    const conteudo = P.limparQr(req.body?.conteudo);
+    if (!conteudo) return res.status(400).json({ erro: 'Não conseguimos ler esse QR Code. Tente outra foto.' });
+
+    const avaliacao = P.avaliarQr(conteudo, alvo.validacao);
+    if (avaliacao.status === 'recusar') {
+      return res.status(400).json({ erro: 'Esse QR Code não é da inscrição deste evento. Confira se enviou o QR certo.' });
     }
-    if (!P.codigoConfere(alvo.ev, req.body?.codigo)) {
-      return res.status(400).json({
-        erro: alvo.ev.validacao?.qrDinamico
-          ? 'Código inválido ou expirado. Leia o QR Code de novo.'
-          : 'Código inválido. Confira e tente de novo.',
+
+    // O mesmo QR não valida duas vezes (outro aluno, ou outro evento)
+    const qrHash = P.hashQr(conteudo);
+    const usado = await Presenca.findOne({ qrHash, _id: { $ne: antes?._id } }).select('matricula').lean();
+    if (usado) {
+      return res.status(409).json({
+        erro: usado.matricula === req.user.matricula
+          ? 'Você já usou este QR Code para validar outro evento.'
+          : 'Este QR Code já foi usado por outro aluno. Se a inscrição é sua, procure a coordenação.',
       });
     }
 
@@ -169,9 +212,12 @@ const checkin = async (req, res) => {
       {
         $set: {
           ...camposBase(req, alvo),
-          metodo: 'qrcode', status: 'aprovada', motivo: '',
+          metodo: 'qrcode', status: avaliacao.status, motivo: '',
+          qrConteudo: conteudo.slice(0, 2000), qrHash, observacao: avaliacao.observacao,
           arquivo: { nome: '', tipo: '', tamanho: 0 },
-          decididoPor: null, decididoPorNome: 'QR Code', decididoEm: new Date(),
+          decididoPor: null,
+          decididoPorNome: avaliacao.status === 'aprovada' ? 'QR Code (automático)' : '',
+          decididoEm: avaliacao.status === 'aprovada' ? new Date() : null,
         },
       },
       { upsert: true, returnDocument: 'after' }
@@ -179,11 +225,11 @@ const checkin = async (req, res) => {
     // Se havia um certificado esperando, ele não é mais necessário
     if (antes) await Comprovante.deleteOne({ presenca: antes._id });
 
-    await conquistaEngine.processarPresencaAprovada(pres, alvo.ev.conquista);
+    if (pres.status === 'aprovada') await conquistaEngine.sincronizarAluno(pres.matricula);
     return res.json({ sucesso: true, presenca: resumoPresenca(pres) });
   } catch (err) {
-    if (err.code === 11000) return res.json({ sucesso: true, jaValidada: true });
-    console.error('Erro no check-in:', err.message);
+    if (err.code === 11000) return res.status(409).json({ erro: 'Este QR Code já foi usado.' });
+    console.error('Erro na validação por QR:', err.message);
     return res.status(500).json({ erro: 'Erro ao validar presença' });
   }
 };
@@ -203,17 +249,14 @@ const enviarCertificado = async (req, res) => {
     const tipo = P.tipoReal(buf);
     if (!tipo) return res.status(400).json({ erro: 'Formato não aceito. Envie PDF, JPG ou PNG.' });
 
-    const alvo = await acharEvento(req, req.params.chave);
+    const alvo = await acharEvento(req.params.chave);
     if (!alvo) return res.status(404).json({ erro: 'Evento não encontrado' });
-    const aceita = alvo.origem === 'suap' || alvo.ev.validacao?.certificado !== false;
-    if (!aceita) return res.status(400).json({ erro: 'Este evento não aceita certificado — valide pelo QR Code.' });
+    if (!alvo.validacao.certificado) return res.status(400).json({ erro: 'Este evento não aceita certificado — valide pelo QR Code.' });
     if (!P.jaComecou(alvo.ev)) return res.status(400).json({ erro: 'Você só pode validar depois que o evento começar.' });
 
     const filtro = filtroDoEvento(alvo, req.user.matricula);
     const antes = await Presenca.findOne(filtro).lean();
-    if (antes?.status === 'aprovada') {
-      return res.status(409).json({ erro: 'Sua presença neste evento já está validada.' });
-    }
+    if (antes?.status === 'aprovada') return res.status(409).json({ erro: 'Sua presença neste evento já está validada.' });
 
     const arquivo = { nome: P.nomeArquivoSeguro(req.get('x-nome-arquivo'), tipo), tipo, tamanho: buf.length };
     const pres = await Presenca.findOneAndUpdate(
@@ -222,6 +265,7 @@ const enviarCertificado = async (req, res) => {
         $set: {
           ...camposBase(req, alvo),
           metodo: 'certificado', status: 'pendente', motivo: '', arquivo,
+          qrConteudo: '', qrHash: null, observacao: '',
           decididoPor: null, decididoPorNome: '', decididoEm: null,
         },
       },
@@ -240,7 +284,7 @@ const enviarCertificado = async (req, res) => {
   }
 };
 
-/** DELETE /api/eventos/:chave/presenca — aluno cancela um certificado pendente/recusado */
+/** DELETE /api/eventos/:chave/presenca — aluno cancela um envio pendente/recusado */
 const cancelarPresenca = async (req, res) => {
   try {
     const k = P.lerChave(req.params.chave);
@@ -259,13 +303,13 @@ const cancelarPresenca = async (req, res) => {
 
 // ── PAINEL ─────────────────────────────────────────────────────
 
-/** GET /api/admin/presencas?status=pendente|aprovada|recusada */
+/** GET /api/admin/presencas?status=pendente|aprovada|recusada — todos os professores veem tudo */
 const listarPresencas = async (req, res) => {
   try {
-    const filtro = { ...filtroMinhasPresencas(req) };
+    const filtro = {};
     if (['pendente', 'aprovada', 'recusada'].includes(req.query.status)) filtro.status = req.query.status;
-    const lista = await Presenca.find(filtro).sort({ status: 1, updatedAt: -1 }).limit(500).lean();
-    return res.json(lista.map((p) => ({ ...p, podeDecidir: podeDecidir(req, p) })));
+    const lista = await Presenca.find(filtro).sort({ updatedAt: -1 }).limit(500).lean();
+    return res.json(lista.map(({ qrHash, ...p }) => p)); // o hash é só para o servidor
   } catch (err) {
     console.error('Erro ao listar presenças:', err.message);
     return res.status(500).json({ erro: 'Erro ao listar presenças' });
@@ -276,7 +320,7 @@ const listarPresencas = async (req, res) => {
 const verArquivo = async (req, res) => {
   try {
     const pres = await Presenca.findById(req.params.id).lean();
-    if (!pres || !podeDecidir(req, pres)) return res.status(404).json({ erro: 'Certificado não encontrado' });
+    if (!pres) return res.status(404).json({ erro: 'Certificado não encontrado' });
     // Sem .lean(): assim o Mongoose devolve um Buffer de verdade (e não um Binary do BSON)
     const arq = await Comprovante.findOne({ presenca: pres._id });
     if (!arq || !arq.dados) return res.status(404).json({ erro: 'Certificado não encontrado' });
@@ -299,7 +343,7 @@ const verArquivo = async (req, res) => {
 
 /**
  * PUT /api/admin/presencas/:id   body: { status: 'aprovada'|'recusada', motivo? }
- * Também serve para DESFAZER (aprovada → recusada), revertendo as conquistas.
+ * Também serve para DESFAZER (aprovada → recusada): as conquistas são recalculadas.
  */
 const decidirPresenca = async (req, res) => {
   try {
@@ -308,11 +352,10 @@ const decidirPresenca = async (req, res) => {
     const motivo = String(req.body?.motivo || '').trim().slice(0, 300);
 
     const atual = await Presenca.findById(req.params.id).lean();
-    if (!atual || !podeDecidir(req, atual)) return res.status(404).json({ erro: 'Presença não encontrada' });
+    if (!atual) return res.status(404).json({ erro: 'Presença não encontrada' });
     if (atual.status === status) return res.json({ sucesso: true, semMudanca: true });
-    if (status === 'aprovada' && atual.metodo === 'certificado') {
-      const temArquivo = await Comprovante.exists({ presenca: atual._id });
-      if (!temArquivo) return res.status(400).json({ erro: 'Este pedido não tem certificado anexado.' });
+    if (status === 'aprovada' && atual.metodo === 'certificado' && !(await Comprovante.exists({ presenca: atual._id }))) {
+      return res.status(400).json({ erro: 'Este pedido não tem certificado anexado.' });
     }
 
     const pres = await Presenca.findByIdAndUpdate(
@@ -321,20 +364,12 @@ const decidirPresenca = async (req, res) => {
       { returnDocument: 'after' }
     );
 
-    let conquistaNome = '';
-    if (status === 'aprovada') {
-      let conquistaId = null;
-      if (pres.origem === 'local' && pres.evento) {
-        const ev = await Evento.findById(pres.evento).populate('conquista', 'nome ativa').lean();
-        conquistaId = ev?.conquista?._id || null;
-        if (ev?.conquista?.ativa !== false) conquistaNome = ev?.conquista?.nome || '';
-      }
-      await conquistaEngine.processarPresencaAprovada(pres, conquistaId);
-    } else if (atual.status === 'aprovada') {
-      await conquistaEngine.reverterPresenca(pres);
-    }
+    // Aprovar concede; desfazer revoga — o motor recalcula tudo do aluno
+    // Com notificar:false o motor não manda um e-mail por conquista — o
+    // e-mail da presença já cita o que ele ganhou (um e-mail só)
+    const { novas } = await conquistaEngine.sincronizarAluno(pres.matricula, { notificar: false });
 
-    notificarAluno(pres.matricula, 'presenca', { status, eventoNome: pres.eventoNome, motivo, conquista: conquistaNome });
+    notificarAluno(pres.matricula, 'presenca', { status, eventoNome: pres.eventoNome, motivo, conquista: [...new Set(novas)].join(', ') });
     registrar(req, `presenca.${status === 'aprovada' ? 'aprovar' : 'recusar'}`, pres.eventoNome, { aluno: pres.matricula, metodo: pres.metodo });
     return res.json({ sucesso: true, presenca: pres });
   } catch (err) {
@@ -343,41 +378,38 @@ const decidirPresenca = async (req, res) => {
   }
 };
 
-/** GET /api/admin/eventos/:id/qr — QR Code para projetar/imprimir (só quem gerencia o evento) */
-const qrDoEvento = async (req, res) => {
-  try {
-    let ev = await Evento.findById(req.params.id).select('+qrSegredo').lean();
-    if (!ev) return res.status(404).json({ erro: 'Evento não encontrado' });
-    if (!podeGerirEvento(req, ev)) return res.status(403).json({ erro: 'Só quem cadastrou o evento pode ver o QR Code.' });
-    if (!ev.validacao?.qrcode) return res.status(400).json({ erro: 'Ative "Aceitar QR Code" no evento primeiro.' });
-    if (!ev.qrSegredo || req.method === 'POST') {
-      ev = await Evento.findByIdAndUpdate(ev._id, { $set: { qrSegredo: P.novoSegredo() } }, { returnDocument: 'after' })
-        .select('+qrSegredo').lean();
-      if (req.method === 'POST') registrar(req, 'evento.novoqr', ev.nome, {});
-    }
+// ── Configuração dos eventos do SUAP (qualquer professor) ─────
 
-    const { codigo, expiraEm } = P.codigoAtual(ev);
-    const site = urlDoSite() || `${req.protocol}://${req.get('host')}`;
-    const url = `${site}/?checkin=${encodeURIComponent(P.chaveDe('local', ev._id))}&c=${codigo}`;
-    const svg = await QRCode.toString(url, { type: 'svg', errorCorrectionLevel: 'M', margin: 2, color: { dark: '#000000', light: '#ffffff' } });
-    return res.json({
-      evento: ev.nome, codigo, url, svg,
-      dinamico: !!ev.validacao?.qrDinamico,
-      expiraEm, agora: Date.now(),
-      acontecendo: P.acontecendo(ev),
-    });
-  } catch (err) {
-    console.error('Erro ao gerar QR:', err.message);
-    return res.status(500).json({ erro: 'Erro ao gerar QR Code' });
+/** Lê validação + conquista do corpo da requisição (lista branca). Devolve { dados } ou { erro }. */
+const lerConfigEvento = async (body = {}) => {
+  const dados = {};
+  if (body.validacao !== undefined) {
+    const v = body.validacao || {};
+    const padrao = String(v.qrPadrao || '').trim().slice(0, 300);
+    dados.validacao = { certificado: v.certificado !== false, qrcode: v.qrcode !== false, qrPadrao: padrao, qrConferir: v.qrConferir === true };
+    if (!dados.validacao.certificado && !dados.validacao.qrcode) {
+      return { erro: 'Deixe pelo menos uma forma de validar a presença (certificado ou QR Code).' };
+    }
   }
+  if (body.conquista !== undefined) {
+    if (!body.conquista) dados.conquista = null;
+    else {
+      if (!mongoose.isValidObjectId(body.conquista)) return { erro: 'Conquista inválida' };
+      const c = await Conquista.findById(body.conquista).select('_id ativa').lean();
+      if (!c || c.ativa === false) return { erro: 'Conquista inválida ou inativa' };
+      dados.conquista = c._id;
+    }
+  }
+  return { dados };
 };
 
-/** Contagem de presenças por evento (para a tabela do painel). */
-const contagemPorEvento = async (ids) => {
+/** Contagem de presenças por evento (para as tabelas do painel). */
+const contagem = async (campo, ids) => {
   if (!ids.length) return {};
+  const valores = campo === 'evento' ? ids.map((i) => new mongoose.Types.ObjectId(String(i))) : ids;
   const rows = await Presenca.aggregate([
-    { $match: { origem: 'local', evento: { $in: ids.map((i) => new mongoose.Types.ObjectId(String(i))) } } },
-    { $group: { _id: { e: '$evento', s: '$status' }, n: { $sum: 1 } } },
+    { $match: { [campo]: { $in: valores } } },
+    { $group: { _id: { e: `$${campo}`, s: '$status' }, n: { $sum: 1 } } },
   ]);
   const out = {};
   rows.forEach((r) => {
@@ -387,9 +419,58 @@ const contagemPorEvento = async (ids) => {
   });
   return out;
 };
+const contagemPorEvento = (ids) => contagem('evento', ids);
+
+/** GET /api/admin/eventos-suap — eventos do SUAP já vistos pelos alunos, com a configuração */
+const listarEventosSuap = async (req, res) => {
+  try {
+    const lista = await EventoSuap.find().populate('conquista', 'nome pontos icone').sort({ data_inicio: -1 }).limit(300).lean();
+    const cont = await contagem('eventoSuapId', lista.map((e) => e.suapId));
+    return res.json(lista.map((e) => ({
+      ...e,
+      validacao: validacaoDe(e.validacao),
+      presencas: cont[String(e.suapId)] || { aprovada: 0, pendente: 0, recusada: 0 },
+    })));
+  } catch (err) {
+    console.error('Erro ao listar eventos do SUAP:', err.message);
+    return res.status(500).json({ erro: 'Erro ao listar eventos do SUAP' });
+  }
+};
+
+/** PUT /api/admin/eventos-suap/:suapId   body: { validacao?, conquista? } */
+const configurarEventoSuap = async (req, res) => {
+  try {
+    const suapId = Number(req.params.suapId);
+    if (!Number.isInteger(suapId) || suapId <= 0) return res.status(404).json({ erro: 'Evento não encontrado' });
+    const atual = await EventoSuap.findOne({ suapId }).lean();
+    if (!atual) return res.status(404).json({ erro: 'Evento não encontrado' });
+
+    const { dados, erro } = await lerConfigEvento(req.body);
+    if (erro) return res.status(400).json({ erro });
+    const ev = await EventoSuap.findOneAndUpdate({ suapId }, { $set: dados }, { returnDocument: 'after' }).lean();
+
+    // Trocou a conquista do evento → quem já tem presença validada ganha a nova (e perde a antiga)
+    if ('conquista' in dados && String(dados.conquista || '') !== String(atual.conquista || '')) {
+      await conquistaEngine.sincronizarAlunosDoEvento({ origem: 'suap', eventoSuapId: suapId });
+    }
+    registrar(req, 'evento.configurar', ev.nome, { suapId });
+    return res.json(ev);
+  } catch (err) {
+    console.error('Erro ao configurar evento do SUAP:', err.message);
+    return res.status(500).json({ erro: 'Erro ao salvar' });
+  }
+};
+
+/** POST /api/admin/eventos/padrao-qr  body: { exemplo } — sugere o padrão a partir de um QR de exemplo */
+const sugerirPadraoQr = (req, res) => {
+  const padrao = P.sugerirPadrao(req.body?.exemplo);
+  if (!padrao) return res.status(400).json({ erro: 'Não deu para tirar um padrão desse QR. Digite o começo do conteúdo à mão.' });
+  return res.json({ padrao });
+};
 
 module.exports = {
-  listarEventos, checkin, enviarCertificado, cancelarPresenca,
-  listarPresencas, verArquivo, decidirPresenca, qrDoEvento,
-  contagemPorEvento, filtroMinhasPresencas,
+  listarEventos, validarPorQr, enviarCertificado, cancelarPresenca,
+  listarPresencas, verArquivo, decidirPresenca,
+  listarEventosSuap, configurarEventoSuap, sugerirPadraoQr,
+  lerConfigEvento, contagemPorEvento, validacaoDe,
 };

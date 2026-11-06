@@ -68,84 +68,153 @@ const concederAutomatica = async ({ matricula, conquistaDoc, contexto = {}, chav
 };
 
 /**
- * Gatilho: solicitação de participação ACEITA.
- * Concede todas as conquistas automáticas com regra { tipo: 'projeto_aceito' }.
- * Opcional: regra.valor pode restringir a 'pesquisa' ou 'extensao'.
+ * ═══ SINCRONIZAÇÃO ════════════════════════════════════════════
+ * Em vez de "dar" a conquista só no instante em que algo acontece (e
+ * esquecer de quem já cumpria a regra antes dela existir), o motor
+ * RECALCULA o que o aluno merece a partir dos fatos guardados no banco:
+ *
+ *   projeto_aceito            → solicitações aceitas (valor: '' | pesquisa | extensao)
+ *   evento_presenca 'cada'    → UMA vez POR evento com presença validada
+ *   evento_presenca N         → uma vez, ao somar N eventos validados
+ *   conquista do próprio evento (painel ou SUAP) → uma vez por evento
+ *
+ * Concede o que falta e revoga o que deixou de valer (só concessões
+ * automáticas: o que um professor deu na mão nunca é mexido aqui).
+ * Conquistas desativadas não são revogadas — o histórico fica.
+ * A regra 'nota' depende do boletim ao vivo e continua no login.
+ *
+ * Por isso funciona também DE TRÁS PARA FRENTE: criar uma regra nova,
+ * trocar a conquista de um evento ou desfazer uma presença deixa todo
+ * mundo certo.
  */
-const processarProjetoAceito = async (sol) => {
-  if (!sol || sol.status !== 'aceito' || !sol.matricula) return;
+const TIPOS_SINCRONIZADOS = ['projeto_aceito', 'evento_presenca'];
 
-  const conquistas = await Conquista.find({
-    ativa: true,
-    origem: 'automatica',
-    'regra.tipo': 'projeto_aceito',
-  }).lean();
-
-  for (const c of conquistas) {
-    // Se a regra define um valor ('pesquisa'/'extensao'), só vale para aquele tipo
-    if (c.regra?.valor && c.regra.valor !== sol.tipo) continue;
-
-    await concederAutomatica({
-      matricula: sol.matricula,
-      conquistaDoc: c,
-      contexto: {
-        gatilho: 'projeto_aceito',
-        projeto: String(sol.projeto || sol.projetoSuapId || ''),
-        tipo: sol.tipo || null,
-        projetoTitulo: sol.projetoTitulo || '',
-      },
-    });
-  }
+/** O valor da regra de evento: 'cada' (a cada evento) ou um número N (ao somar N). */
+const modoRegraEvento = (valor) => {
+  const v = String(valor ?? '').trim().toLowerCase();
+  if (v === 'cada' || v === '') return { cada: true };
+  const n = parseInt(v, 10);
+  return Number.isInteger(n) && n > 0 ? { cada: false, n } : { cada: true };
 };
 
-/**
- * Gatilho INVERSO: uma solicitação que estava aceita deixou de estar
- * (foi recusada ou voltou a pendente). Revoga as conquistas automáticas
- * de 'projeto_aceito' que o aluno não justifica mais.
- *
- * Cuidado: como a conquista é concedida UMA vez (chaveContexto ''), o aluno
- * pode tê-la ganho por OUTRO projeto aceito. Por isso só revogamos quando
- * NENHUM outro projeto aceito ainda justifica a conquista. Também só mexemos
- * em concessões com origem 'automatica' — uma concessão manual do admin
- * nunca é revogada por aqui.
- *
- * Importante: esta função deve ser chamada DEPOIS que o novo status já foi
- * gravado no banco (a solicitação rejeitada não pode aparecer na contagem
- * de projetos ainda aceitos).
- */
-const reverterProjetoAceito = async (sol) => {
-  if (!sol || !sol.matricula) return;
+const chaveEvento = (p) => `evento:${p.origem}-${p.origem === 'local' ? p.evento : p.eventoSuapId}`;
 
-  const conquistas = await Conquista.find({
-    ativa: true,
-    origem: 'automatica',
-    'regra.tipo': 'projeto_aceito',
-  }).lean();
+const sincronizarAluno = async (matricula, { notificar = true } = {}) => {
+  const vazio = { novas: [], removidas: 0 };
+  if (!matricula) return vazio;
+  // Carregados aqui para evitar dependência circular entre models e serviço
+  const Evento = require('../models/Evento');
+  const EventoSuap = require('../models/EventoSuap');
 
-  for (const c of conquistas) {
-    // Se a regra restringe a um tipo ('pesquisa'/'extensao') e o projeto
-    // rejeitado não é desse tipo, esta conquista não foi afetada.
-    if (c.regra?.valor && c.regra.valor !== sol.tipo) continue;
+  const [regras, aceitas, presencas] = await Promise.all([
+    Conquista.find({ ativa: true, origem: 'automatica', 'regra.tipo': { $in: TIPOS_SINCRONIZADOS } }).lean(),
+    Solicitacao.find({ matricula, status: 'aceito' }).select('tipo').lean(),
+    Presenca.find({ matricula, status: 'aprovada' }).select('origem evento eventoSuapId eventoNome').lean(),
+  ]);
 
-    // A conquista ainda é justificada por algum OUTRO projeto aceito?
-    // (a solicitação atual já foi gravada como recusada/pendente, então
-    //  não entra nesta contagem)
-    const filtroAceitas = { matricula: sol.matricula, status: 'aceito' };
-    if (c.regra?.valor) filtroAceitas.tipo = c.regra.valor;
+  // Conquista própria de cada evento em que o aluno tem presença validada
+  const idsLocais = presencas.filter((p) => p.origem === 'local' && p.evento).map((p) => p.evento);
+  const idsSuap = presencas.filter((p) => p.origem === 'suap').map((p) => p.eventoSuapId);
+  const [evLocais, evSuap] = await Promise.all([
+    idsLocais.length ? Evento.find({ _id: { $in: idsLocais } }).select('conquista').lean() : [],
+    idsSuap.length ? EventoSuap.find({ suapId: { $in: idsSuap } }).select('suapId conquista').lean() : [],
+  ]);
+  const conqDoEvento = new Map([
+    ...evLocais.map((e) => [`local-${e._id}`, e.conquista]),
+    ...evSuap.map((e) => [`suap-${e.suapId}`, e.conquista]),
+  ]);
+  // Evento apagado do painel: a presença validada continua no histórico do
+  // aluno — e a conquista que ele ganhou por ela também ("congelada")
+  const congeladas = new Set(presencas.map((p) => chaveEvento(p)).filter((k) => !conqDoEvento.has(k.slice('evento:'.length))));
+  const idsConqEvento = [...new Set([...conqDoEvento.values()].filter(Boolean).map(String))];
+  const conqEventoDocs = idsConqEvento.length
+    ? await Conquista.find({ _id: { $in: idsConqEvento }, ativa: true }).lean()
+    : [];
+  const docPorId = new Map([...regras, ...conqEventoDocs].map((c) => [String(c._id), c]));
 
-    const aindaTem = await Solicitacao.countDocuments(filtroAceitas);
-    if (aindaTem > 0) continue; // ainda merece → não revoga
+  // ── O que o aluno DEVERIA ter ──
+  const devido = new Map(); // `${conquistaId}|${chave}` → { conquista, chave, contexto }
+  const deve = (c, chave, contexto) => devido.set(`${c._id}|${chave}`, { c, chave, contexto });
 
-    // Sem mais justificativa → remove a concessão automática (se existir)
-    const reg = await ConquistaUsuario.findOneAndDelete({
-      matricula: sol.matricula,
-      conquista: c._id,
-      origem: 'automatica',
-    });
-
-    if (reg) await recalcularPontosAluno(sol.matricula);
+  for (const c of regras) {
+    if (c.regra.tipo === 'projeto_aceito') {
+      const validas = aceitas.filter((s) => !c.regra.valor || s.tipo === c.regra.valor);
+      if (validas.length) deve(c, '', { gatilho: 'projeto_aceito', total: validas.length });
+    } else if (c.regra.tipo === 'evento_presenca') {
+      const modo = modoRegraEvento(c.regra.valor);
+      if (modo.cada) presencas.forEach((p) => deve(c, chaveEvento(p), { gatilho: 'evento_presenca', evento: p.eventoNome }));
+      else if (presencas.length >= modo.n) deve(c, '', { gatilho: 'evento_presenca', total: presencas.length });
+    }
   }
+  for (const p of presencas) {
+    const id = conqDoEvento.get(chaveEvento(p).slice('evento:'.length));
+    const c = id && docPorId.get(String(id));
+    if (c) deve(c, chaveEvento(p), { gatilho: 'conquista_do_evento', evento: p.eventoNome });
+  }
+
+  // ── O que ele TEM (concessões automáticas que este motor administra) ──
+  const idsRegras = new Set(regras.map((c) => String(c._id)));
+  const atuais = await ConquistaUsuario.find({ matricula, origem: 'automatica' }).lean();
+  const ativasIds = new Set((await Conquista.find({ _id: { $in: [...new Set(atuais.map((a) => a.conquista))] }, ativa: true }).select('_id').lean()).map((c) => String(c._id)));
+  const administradas = atuais.filter((a) =>
+    ativasIds.has(String(a.conquista)) &&
+    (idsRegras.has(String(a.conquista)) || String(a.chaveContexto || '').startsWith('evento:')));
+  const temChave = new Set(atuais.map((a) => `${a.conquista}|${a.chaveContexto || ''}`));
+  // Concessões manuais também "contam" como já tidas (não duplicar)
+  (await ConquistaUsuario.find({ matricula, origem: 'admin' }).select('conquista chaveContexto').lean())
+    .forEach((a) => temChave.add(`${a.conquista}|${a.chaveContexto || ''}`));
+
+  // ── Revoga o que não vale mais ──
+  const remover = administradas
+    .filter((a) => !devido.has(`${a.conquista}|${a.chaveContexto || ''}`) && !congeladas.has(a.chaveContexto))
+    .map((a) => a._id);
+  if (remover.length) await ConquistaUsuario.deleteMany({ _id: { $in: remover } });
+
+  // ── Concede o que falta ──
+  const novas = [];
+  for (const [k, { c, chave, contexto }] of devido) {
+    if (temChave.has(k)) continue;
+    try {
+      await ConquistaUsuario.create({
+        matricula, conquista: c._id, nomeConquista: c.nome, pontos: c.pontos,
+        status: 'confirmada', origem: 'automatica', concedidoPor: null, contexto, chaveContexto: chave,
+      });
+      novas.push(c.nome);
+      if (notificar) await notificarAluno(matricula, 'conquista', { nome: c.nome, pontos: c.pontos });
+    } catch (err) {
+      if (err.code !== 11000) throw err; // 11000 = já existia (corrida) → tudo bem
+    }
+  }
+
+  if (novas.length || remover.length) {
+    await recalcularPontosAluno(matricula, { notificar: notificar && novas.length > 0 });
+  }
+  return { novas, removidas: remover.length };
 };
+
+/** Recalcula todos os alunos que podem ser afetados (regra nova/editada, conquista de evento trocada). */
+const sincronizarTodos = async (filtroPresenca = null) => {
+  const ConquistaUsuarioMat = await ConquistaUsuario.distinct('matricula', { origem: 'automatica' });
+  const [deSolic, dePres] = await Promise.all([
+    filtroPresenca ? [] : Solicitacao.distinct('matricula', { status: 'aceito' }),
+    Presenca.distinct('matricula', { status: 'aprovada', ...(filtroPresenca || {}) }),
+  ]);
+  const matriculas = [...new Set([...deSolic, ...dePres, ...(filtroPresenca ? [] : ConquistaUsuarioMat)])];
+  let afetados = 0;
+  // Em lotes pequenos para não sobrecarregar o banco
+  for (let i = 0; i < matriculas.length; i += 10) {
+    const r = await Promise.all(matriculas.slice(i, i + 10).map((m) => sincronizarAluno(m, { notificar: false })));
+    afetados += r.filter((x) => x.novas.length || x.removidas).length;
+  }
+  return { verificados: matriculas.length, afetados };
+};
+
+/** Só os alunos com presença validada em UM evento (troca da conquista do evento). */
+const sincronizarAlunosDoEvento = (filtroEvento) => sincronizarTodos(filtroEvento);
+
+// Atalhos usados pelos controllers (mantêm os nomes antigos)
+const processarProjetoAceito = (sol) => sol?.matricula && sincronizarAluno(sol.matricula);
+const reverterProjetoAceito = (sol) => sol?.matricula && sincronizarAluno(sol.matricula, { notificar: false });
 
 /**
  * Gatilho: verificação do boletim (no login, em 2º plano).
@@ -242,64 +311,14 @@ const processarBoletim = async (matricula, boletim, ctx = {}) => {
   }
 };
 
-/**
- * Gatilho: presença em evento APROVADA (QR lido ou certificado aceito).
- *  1) A conquista escolhida no próprio evento (se houver) — vale UMA vez por
- *     evento (chaveContexto 'evento:<chave>'), então quem vai a vários
- *     eventos ganha os pontos de cada um.
- *  2) Conquistas automáticas { tipo: 'evento_presenca', valor: N } —
- *     concedidas uma vez quando o aluno soma N presenças validadas.
- */
-const _chavePresenca = (p) => `evento:${p.origem}-${p.origem === 'local' ? p.evento : p.eventoSuapId}`;
-
-const processarPresencaAprovada = async (pres, conquistaEventoId = null) => {
-  if (!pres || pres.status !== 'aprovada' || !pres.matricula) return;
-  const contexto = { gatilho: 'evento_presenca', evento: pres.eventoNome || '', metodo: pres.metodo };
-
-  if (conquistaEventoId) {
-    const c = await Conquista.findOne({ _id: conquistaEventoId, ativa: true }).lean();
-    if (c) await concederAutomatica({ matricula: pres.matricula, conquistaDoc: c, contexto, chaveContexto: _chavePresenca(pres) });
-  }
-
-  const regras = await Conquista.find({ ativa: true, origem: 'automatica', 'regra.tipo': 'evento_presenca' }).lean();
-  if (!regras.length) return;
-  const total = await Presenca.countDocuments({ matricula: pres.matricula, status: 'aprovada' });
-  for (const c of regras) {
-    const alvo = Math.max(1, parseInt(c.regra?.valor, 10) || 1);
-    if (total >= alvo) await concederAutomatica({ matricula: pres.matricula, conquistaDoc: c, contexto: { ...contexto, total } });
-  }
-};
-
-/**
- * Gatilho INVERSO: uma presença aprovada foi desfeita (recusada depois).
- * Chamar DEPOIS de gravar o novo status. Só mexe em concessões automáticas.
- */
-const reverterPresenca = async (pres) => {
-  if (!pres || !pres.matricula) return;
-  let mudou = false;
-
-  const r = await ConquistaUsuario.deleteMany({ matricula: pres.matricula, origem: 'automatica', chaveContexto: _chavePresenca(pres) });
-  if (r.deletedCount) mudou = true;
-
-  const regras = await Conquista.find({ origem: 'automatica', 'regra.tipo': 'evento_presenca' }).lean();
-  if (regras.length) {
-    const total = await Presenca.countDocuments({ matricula: pres.matricula, status: 'aprovada' });
-    for (const c of regras) {
-      const alvo = Math.max(1, parseInt(c.regra?.valor, 10) || 1);
-      if (total >= alvo) continue;
-      const del = await ConquistaUsuario.findOneAndDelete({ matricula: pres.matricula, conquista: c._id, origem: 'automatica', chaveContexto: '' });
-      if (del) mudou = true;
-    }
-  }
-  if (mudou) await recalcularPontosAluno(pres.matricula, { notificar: false });
-};
-
 module.exports = {
   recalcularPontosAluno,
   concederAutomatica,
+  sincronizarAluno,
+  sincronizarTodos,
+  sincronizarAlunosDoEvento,
+  modoRegraEvento,
   processarProjetoAceito,
   reverterProjetoAceito,
   processarBoletim,
-  processarPresencaAprovada,
-  reverterPresenca,
 };

@@ -537,6 +537,13 @@
       background:var(--amarelo-claro); border:1px solid rgba(245,185,66,0.4); color:var(--texto-2); font-size:0.85rem; line-height:1.6; }
     .aviso-escopo > svg { color:#f5c469; flex-shrink:0; margin-top:0.2rem; }
     .sem-acao { font-size:0.75rem; color:var(--cinza); font-style:italic; }
+    .selos { display:inline-flex; flex-wrap:wrap; gap:0.3rem; justify-content:flex-end; min-width:0; }
+    @media (min-width: 769px) { .selos { justify-content:flex-start; } }
+    .qr-cont { display:inline-block; max-width:260px; font-family:monospace; font-size:0.74rem; color:var(--texto-2); background:rgba(255,255,255,0.05); padding:0.2rem 0.45rem; border-radius:6px; overflow-wrap:anywhere; margin-top:0.3rem; }
+    .qr-obs { display:block; font-size:0.72rem; color:#f5c469; margin-top:0.25rem; }
+    .padrao-linha { display:flex; gap:0.5rem; flex-wrap:wrap; }
+    .padrao-linha input { flex:1; min-width:180px; }
+    .ajuda { color:var(--cinza); font-size:0.74rem; margin-top:0.35rem; line-height:1.45; text-transform:none; letter-spacing:0; font-weight:400; }
     .est-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:1rem; }
     .est-grid .card { margin-bottom:0; }
     .est-barras { display:flex; flex-direction:column; gap:0.55rem; }
@@ -753,23 +760,6 @@
     .check-linha.sub { margin-left:1.6rem; }
     .check-linha[hidden] { display:none; }
 
-    .qr-overlay { position:fixed; inset:0; z-index:600; background:rgba(0,0,0,0.6); display:none; place-items:center; padding:1rem; }
-    .qr-overlay.open { display:grid; }
-    .qr-caixa { background:var(--card); border-radius:20px; padding:1.6rem; width:min(560px,100%); max-height:94vh; overflow-y:auto; text-align:center; }
-    .qr-caixa:fullscreen { width:100%; max-height:none; border-radius:0; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#fff; color:#111; }
-    .qr-caixa:fullscreen .qr-svg svg { width:min(70vh,80vw); height:min(70vh,80vw); }
-    .qr-caixa:fullscreen .qr-titulo, .qr-caixa:fullscreen .qr-codigo { color:#111; }
-    .qr-caixa:fullscreen .qr-instrucao, .qr-caixa:fullscreen .qr-nota { color:#333; }
-    .qr-titulo { font-family:'Syne',sans-serif; font-size:1.25rem; color:var(--texto); margin-bottom:1rem; }
-    .qr-svg { display:inline-block; background:#fff; padding:0.6rem; border-radius:16px; }
-    .qr-svg svg { width:min(320px,70vw); height:min(320px,70vw); display:block; }
-    .qr-instrucao { margin-top:1rem; color:var(--texto-2); font-size:0.9rem; line-height:1.5; }
-    .qr-codigo { margin-top:0.6rem; font-family:'Syne',monospace; font-size:2rem; font-weight:800; letter-spacing:0.18em; color:var(--texto); }
-    .qr-nota { margin-top:0.5rem; color:var(--cinza); font-size:0.8rem; display:flex; justify-content:center; align-items:center; gap:0.35rem; }
-    .qr-nota svg { width:14px; height:14px; }
-    .qr-alerta { margin-top:0.8rem; background:rgba(245,185,66,0.14); color:#f5c469; padding:0.6rem 0.8rem; border-radius:10px; font-size:0.82rem; }
-    .qr-botoes { display:flex; flex-wrap:wrap; justify-content:center; gap:0.5rem; margin-top:1.3rem; }
-    .qr-caixa:fullscreen .qr-botoes { display:none; }
 
     .topbar-dir { display:flex; align-items:center; gap:0.6rem; }
     .topbar-busca { display:inline-flex; align-items:center; gap:0.45rem; cursor:pointer; font:inherit; font-size:0.84rem; padding:0.4rem 0.7rem; border-radius:999px; background:var(--bg-2); border:1px solid var(--borda); color:var(--texto-2); }
@@ -791,14 +781,6 @@
     .busca-item[aria-selected="true"] svg { color:var(--verde); }
     .busca-vazio { padding:1rem; color:var(--cinza); text-align:center; font-size:0.88rem; }
     @media (max-width: 720px) { .topbar-busca span, .topbar-busca kbd { display:none; } .topbar-busca { padding:0.45rem; } .topbar-dir .badge-cargo { display:none; } }
-    @media print {
-      body > *:not(#qrOverlay) { display:none !important; }
-      #qrOverlay { position:static; display:block !important; background:#fff; padding:0; }
-      .qr-caixa { background:#fff; color:#000; box-shadow:none; width:100%; max-height:none; }
-      .qr-titulo, .qr-codigo { color:#000 !important; } .qr-instrucao, .qr-nota { color:#333 !important; }
-      .qr-svg svg { width:12cm; height:12cm; }
-      .qr-botoes, .qr-alerta { display:none !important; }
-    }
   </style>
 </head>
 <body>
@@ -931,12 +913,23 @@
           <button class="btn-add" onclick="abrirModal('evento')">+ Novo evento</button>
         </div>
         <p class="sec-desc">
-          Em cada evento você escolhe como o aluno valida a presença: <strong>QR Code</strong> (validado na hora — projete ou imprima o código)
-          e/ou <strong>certificado</strong> (o aluno envia o PDF/foto e você aprova em <em>Presenças</em>).
+          Eventos que o campus cadastra aqui no painel. Em cada um você escolhe como o aluno valida a presença:
+          pelo <strong>QR Code do e-mail de inscrição</strong> e/ou enviando o <strong>certificado</strong> — e qual conquista ele ganha.
         </p>
         <div id="eventosList">
           <div data-skel="tabela"></div>
         </div>
+      </div>
+
+      <div class="card" style="margin-top:1.25rem">
+        <div class="card-header">
+          <span class="card-title">Eventos do SUAP</span>
+        </div>
+        <p class="sec-desc">
+          Vêm automaticamente do SUAP (aparecem aqui quando algum aluno abre a aba Eventos). Os dados não mudam,
+          mas qualquer professor pode configurar a validação de presença e a conquista de cada um.
+        </p>
+        <div id="eventosSuapList"><div data-skel="tabela"></div></div>
       </div>
     </section>
 
@@ -956,8 +949,9 @@
           </div>
         </div>
         <p class="sec-desc">
-          Certificados enviados pelos alunos esperam sua aprovação. Presenças por QR Code já entram validadas
-          (você pode desfazer se algo estiver errado). Você vê os eventos que cadastrou e os eventos do SUAP.
+          Qualquer professor pode decidir qualquer presença. <strong>Certificados</strong> sempre esperam aprovação.
+          <strong>QR Codes da inscrição</strong> entram validados quando batem com o padrão do evento (ou têm link do IFPR);
+          os que não batem com nada conhecido esperam você conferir. Dá para desfazer uma validação se algo estiver errado.
         </p>
         <div id="presencasList"><div data-skel="tabela"></div></div>
       </div>
@@ -1075,19 +1069,6 @@
 </main>
 
 <!-- MODAL -->
-<!-- QR Code do evento -->
-<div class="qr-overlay" id="qrOverlay" onclick="if (event.target === this) fecharQrEvento()">
-  <div class="qr-caixa" role="dialog" aria-modal="true" aria-label="QR Code de presença">
-    <div id="qrCorpo"></div>
-    <div class="qr-botoes">
-      <button class="btn-edit" onclick="qrTelaCheia()"><i data-lucide="maximize"></i> Tela cheia</button>
-      <button class="btn-edit" onclick="window.print()"><i data-lucide="printer"></i> Imprimir</button>
-      <button class="btn-edit" onclick="qrNovoCodigo()"><i data-lucide="refresh-cw"></i> Gerar novo código</button>
-      <button class="btn-primary" onclick="fecharQrEvento()">Fechar</button>
-    </div>
-  </div>
-</div>
-
 <!-- Busca rápida -->
 <div class="busca-overlay" id="buscaAdmin">
   <div class="busca-dialog" role="dialog" aria-modal="true" aria-label="Busca rápida">
@@ -1289,6 +1270,7 @@ const carregarLista = async (tipo) => {
   if (tipo === 'estatisticas') return carregarEstatisticas();
   if (tipo === 'historico')  return carregarHistorico(1);
   if (tipo === 'presencas')  return carregarPresencas();
+  if (tipo === 'eventos')    carregarEventosSuap();
 
   const elMap = { eventos: 'eventosList', solicitacoes: 'solicitacoesList' };
   const el = document.getElementById(elMap[tipo]);
@@ -1450,19 +1432,18 @@ const renderTabelaEventos = (dados) => {
     const v = ev.validacao || {};
     const p = ev.presencas || {};
     const metodos = [
-      v.certificado !== false ? '<span class="ev-met" title="Aceita certificado"><i data-lucide="file-text"></i> Certificado</span>' : '',
-      v.qrcode ? `<span class="ev-met" title="Aceita QR Code"><i data-lucide="qr-code"></i> QR${v.qrDinamico ? ' dinâmico' : ''}</span>` : '',
-    ].filter(Boolean).join(' ') || '<span class="sub-cel">Sem validação</span>';
+      ...metodosValidacao(v),
+    ].filter(Boolean).join(' ');
+    const selos = metodos ? `<span class="selos">${metodos}</span>` : '<span class="sub-cel">Sem validação</span>';
     return `
     <tr>
       <td data-label="Nome">${esc(ev.nome)}${ev.conquista ? `<br><span class="sub-cel">${esc(ev.conquista.icone || '🏆')} ${esc(ev.conquista.nome)} · +${Number(ev.conquista.pontos) || 0}</span>` : ''}</td>
       <td data-label="Data" style="font-size:0.8rem">${esc(dataBR(ev.data_inicio))}${ev.data_fim && ev.data_fim !== ev.data_inicio ? ` – ${esc(dataBR(ev.data_fim))}` : ''}</td>
       <td data-label="Local" style="font-size:0.8rem;color:var(--cinza)">${esc(ev.local || '—')}</td>
-      <td data-label="Validação">${metodos}</td>
+      <td data-label="Validação">${selos}</td>
       <td data-label="Presenças" style="font-size:0.8rem">${p.aprovada || 0} validada(s)${p.pendente ? `<br><button class="link-pend" onclick="irParaPresencas()">${p.pendente} para analisar</button>` : ''}</td>
       <td data-label="Ações" class="td-acoes">
         ${ev.podeEditar === false ? '<span class="sem-acao" title="Só quem cadastrou (ou a desenvolvedora) pode editar">Cadastrado por outra pessoa</span>' : `
-        ${v.qrcode ? `<button class="btn-edit" onclick="abrirQrEvento('${ev._id}')"><i data-lucide="qr-code"></i> QR Code</button>` : ''}
         <button class="btn-edit" onclick="editarEvento('${ev._id}')"><i data-lucide="pencil"></i> Editar</button>
         <button class="btn-del" onclick="deletarItem('evento', '${ev._id}')"><i data-lucide="trash-2"></i> Excluir</button>`}
       </td>
@@ -1479,6 +1460,48 @@ const renderTabelaEventos = (dados) => {
       <tbody>${rows}</tbody>
     </table>
   </div>`;
+};
+
+// Selos "Certificado" / "QR da inscrição" usados nas duas tabelas de eventos
+const metodosValidacao = (v = {}) => [
+  v.certificado !== false ? '<span class="ev-met" title="Aceita certificado"><i data-lucide="file-text"></i> Certificado</span>' : '',
+  v.qrcode !== false ? `<span class="ev-met" title="Aceita o QR Code do e-mail de inscrição${v.qrPadrao ? ` (padrão: ${esc(v.qrPadrao)})` : ''}"><i data-lucide="qr-code"></i> QR${v.qrPadrao ? ' (com padrão)' : ''}${v.qrConferir ? ' · conferir' : ''}</span>` : '',
+];
+
+const carregarEventosSuap = async () => {
+  const el = document.getElementById('eventosSuapList');
+  if (!el) return;
+  el.innerHTML = esqueletoAdmin();
+  try {
+    const dados = await apiJSON('/api/admin/eventos-suap');
+    if (!dados) return;
+    state.eventosSuap = dados;
+    if (!dados.length) {
+      el.innerHTML = '<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>Nenhum evento do SUAP ainda. Eles aparecem quando um aluno abre a aba Eventos do portal.</p></div>';
+      return;
+    }
+    const rows = dados.map(ev => {
+      const p = ev.presencas || {};
+      return `<tr>
+        <td data-label="Nome">${esc(ev.nome)}${ev.conquista ? `<br><span class="sub-cel">${esc(ev.conquista.icone || '🏆')} ${esc(ev.conquista.nome)} · +${Number(ev.conquista.pontos) || 0}</span>` : ''}</td>
+        <td data-label="Data" style="font-size:0.8rem">${esc(dataBR(ev.data_inicio))}${ev.data_fim && ev.data_fim !== ev.data_inicio ? ` – ${esc(dataBR(ev.data_fim))}` : ''}</td>
+        <td data-label="Validação"><span class="selos">${metodosValidacao(ev.validacao).filter(Boolean).join(' ') || '—'}</span></td>
+        <td data-label="Presenças" style="font-size:0.8rem">${p.aprovada || 0} validada(s)${p.pendente ? `<br><button class="link-pend" onclick="irParaPresencas()">${p.pendente} para analisar</button>` : ''}</td>
+        <td data-label="Ações" class="td-acoes"><button class="btn-edit" onclick="configurarEventoSuap(${Number(ev.suapId)})"><i data-lucide="settings-2"></i> Configurar</button></td>
+      </tr>`;
+    }).join('');
+    el.innerHTML = `<div class="table-wrap"><table class="items-table">
+      <thead><tr><th>Nome</th><th>Data</th><th>Validação</th><th>Presenças</th><th>Ações</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
+  } catch (e) {
+    el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
+  }
+};
+
+const configurarEventoSuap = (suapId) => {
+  const ev = (state.eventosSuap || []).find(e => e.suapId === suapId);
+  if (!ev) return;
+  abrirModal('evento-suap', { ...ev, _id: String(suapId) });
 };
 
 const irParaPresencas = () => {
@@ -1594,7 +1617,7 @@ const ACOES_LABEL = {
   'conta.criar': ['Criou a conta', 'user-plus'], 'conta.editar': ['Editou a conta', 'user-cog'], 'conta.excluir': ['Excluiu a conta', 'user-x'],
   'conta.convite': ['Enviou convite para', 'mail'], 'conta.importar': ['Importou a', 'download'],
   'presenca.aprovar': ['Validou a presença em', 'badge-check'], 'presenca.recusar': ['Recusou a presença em', 'x-circle'],
-  'evento.novoqr': ['Gerou novo QR Code do evento', 'qr-code'],
+  'evento.configurar': ['Configurou o evento do SUAP', 'settings-2'],
   'exportar.solicitacoes': ['Exportou solicitações', 'download'], 'exportar.ranking': ['Exportou o ranking', 'download'], 'exportar.presencas': ['Exportou presenças', 'download'],
 };
 let _histTimer = null;
@@ -1782,19 +1805,91 @@ const formsEvento = (dados = {}) => `
       <label>Link para mais informações</label>
       <input type="url" id="f_link" value="${esc(dados.link_suap || '')}" placeholder="https://…" />
     </div>
+    ${camposValidacao(dados)}
+  </div>`;
+
+// Validação de presença + conquista — o MESMO bloco serve para evento do painel e do SUAP
+const camposValidacao = (dados = {}) => {
+  const v = dados.validacao || {};
+  return `
     <fieldset class="field full val-fieldset">
       <legend>Como o aluno valida a presença</legend>
-      <label class="check-linha"><input type="checkbox" id="f_val_cert" ${dados.validacao?.certificado !== false ? 'checked' : ''} />
-        <span><strong>Enviando o certificado</strong><small>PDF ou foto. Fica pendente até você aprovar em Presenças.</small></span></label>
-      <label class="check-linha"><input type="checkbox" id="f_val_qr" ${dados.validacao?.qrcode ? 'checked' : ''} onchange="toggleQrEvento()" />
-        <span><strong>Lendo o QR Code do evento</strong><small>Validado na hora, só nos dias do evento. Você projeta ou imprime o QR.</small></span></label>
-      <label class="check-linha sub" id="f_val_qr_din_wrap" ${dados.validacao?.qrcode ? '' : 'hidden'}><input type="checkbox" id="f_val_qr_din" ${dados.validacao?.qrDinamico ? 'checked' : ''} />
-        <span><strong>QR dinâmico (muda a cada 30 s)</strong><small>Evita que um aluno mande foto do QR para quem não foi. Use projetado na tela — não serve para imprimir.</small></span></label>
+      <label class="check-linha"><input type="checkbox" id="f_val_cert" ${v.certificado !== false ? 'checked' : ''} />
+        <span><strong>Enviando o certificado</strong><small>PDF ou foto. Fica pendente até um professor aprovar em Presenças.</small></span></label>
+      <label class="check-linha"><input type="checkbox" id="f_val_qr" ${v.qrcode !== false ? 'checked' : ''} onchange="document.getElementById('f_qr_extra').hidden = !this.checked" />
+        <span><strong>Com o QR Code do e-mail de inscrição</strong><small>O aluno envia o print do QR que recebeu ao se inscrever. O mesmo QR não vale para dois alunos.</small></span></label>
+      <div id="f_qr_extra" class="check-linha sub" style="flex-direction:column;gap:0.6rem" ${v.qrcode !== false ? '' : 'hidden'}>
+        <div style="width:100%">
+          <label for="f_qr_padrao" style="display:block;margin-bottom:0.3rem">Padrão do QR deste evento (opcional)</label>
+          <div class="padrao-linha">
+            <input type="text" id="f_qr_padrao" maxlength="300" value="${esc(v.qrPadrao || '')}" placeholder="Ex.: https://suap.ifpr.edu.br/eventos/inscricao/" />
+            <button type="button" class="btn-edit" onclick="document.getElementById('f_qr_exemplo').click()"><i data-lucide="scan-line"></i> Ler QR de exemplo</button>
+            <input type="file" id="f_qr_exemplo" hidden accept="image/*" onchange="lerQrExemplo(this.files[0])" />
+          </div>
+          <p class="ajuda" id="f_qr_ajuda">Com padrão: QR que começa assim valida na hora e qualquer outro é recusado. Sem padrão: QR com link do IFPR valida na hora; os outros vão para um professor conferir. Use "Ler QR de exemplo" com o print do QR de uma inscrição de teste.</p>
+        </div>
+        <label class="check-linha"><input type="checkbox" id="f_qr_conferir" ${v.qrConferir ? 'checked' : ''} />
+          <span><strong>Conferir todo QR deste evento</strong><small>Nenhum QR valida sozinho: todos esperam um professor em Presenças.</small></span></label>
+      </div>
     </fieldset>
     <div class="field full">
-      <label for="f_conquista_ev">Conquista ganha ao validar a presença</label>
+      <label for="f_conquista_ev">Conquista ganha por este evento (além das regras gerais)</label>
       <select id="f_conquista_ev"><option value="">Carregando…</option></select>
+      <p class="ajuda">Regras que valem para todos os eventos (ex.: "a cada evento" ou "ao completar 5 eventos") ficam em Conquistas.</p>
+    </div>`;
+};
+
+const lerCamposValidacao = () => ({
+  validacao: {
+    certificado: document.getElementById('f_val_cert').checked,
+    qrcode: document.getElementById('f_val_qr').checked,
+    qrPadrao: document.getElementById('f_qr_padrao').value.trim(),
+    qrConferir: document.getElementById('f_qr_conferir').checked,
+  },
+  conquista: document.getElementById('f_conquista_ev').value || null,
+});
+
+// Lê um QR de exemplo (print do e-mail de inscrição) e sugere o padrão
+let _jsQrAdmin = null;
+const lerQrExemplo = async (arquivo) => {
+  if (!arquivo) return;
+  const ajuda = document.getElementById('f_qr_ajuda');
+  try {
+    if (!window.jsQR) {
+      _jsQrAdmin = _jsQrAdmin || new Promise((ok, falha) => { const sc = document.createElement('script'); sc.src = '/vendor/jsQR.min.js'; sc.onload = ok; sc.onerror = falha; document.head.appendChild(sc); });
+      await _jsQrAdmin;
+    }
+    const url = URL.createObjectURL(arquivo);
+    const img = await new Promise((ok, falha) => { const i = new Image(); i.onload = () => ok(i); i.onerror = falha; i.src = url; });
+    URL.revokeObjectURL(url);
+    let lido = null;
+    for (const max of [1000, 2000, Math.max(img.width, img.height)]) {
+      const e = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * e); c.height = Math.round(img.height * e);
+      const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0, c.width, c.height);
+      lido = window.jsQR(x.getImageData(0, 0, c.width, c.height).data, c.width, c.height)?.data;
+      if (lido) break;
+    }
+    if (!lido) { mostrarToast('Não achamos um QR Code nessa imagem.', 'erro'); return; }
+    const r = await apiJSON('/api/admin/padrao-qr', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ exemplo: lido }) });
+    document.getElementById('f_qr_padrao').value = r.padrao;
+    ajuda.textContent = `QR lido: "${lido.length > 90 ? lido.slice(0, 90) + '…' : lido}". Padrão sugerido preenchido — confira se a parte que muda de aluno para aluno ficou de fora.`;
+  } catch (e) {
+    mostrarToast(e.message || 'Não foi possível ler o QR.', 'erro');
+  } finally {
+    document.getElementById('f_qr_exemplo').value = '';
+  }
+};
+
+// Formulário dos eventos do SUAP: só a configuração (os dados vêm do SUAP)
+const formsEventoSuap = (dados) => `
+  <div class="form-grid">
+    <div class="field full">
+      <label>Evento</label>
+      <p style="color:var(--texto);font-weight:600">${esc(dados.nome)}</p>
+      <p class="ajuda">${esc(dataBR(dados.data_inicio))}${dados.local ? ` · ${esc(dados.local)}` : ''} · dados vindos do SUAP</p>
     </div>
+    ${camposValidacao(dados)}
   </div>`;
 
 const abrirModal = (tipo, dados = {}) => {
@@ -1804,6 +1899,7 @@ const abrirModal = (tipo, dados = {}) => {
     pesquisa: dados._id ? 'Editar projeto de pesquisa' : 'Novo projeto de pesquisa',
     extensao: dados._id ? 'Editar projeto de extensão' : 'Novo projeto de extensão',
     evento:   dados._id ? 'Editar evento'              : 'Novo evento',
+    'evento-suap': 'Configurar evento do SUAP',
     conquista: dados._id ? 'Editar conquista'          : 'Nova conquista',
     conceder: 'Conceder conquista a um aluno',
     conta: dados._id ? 'Editar conta' : 'Nova conta',
@@ -1812,6 +1908,7 @@ const abrirModal = (tipo, dados = {}) => {
 
   let corpo;
   if (tipo === 'evento')          corpo = formsEvento(dados);
+  else if (tipo === 'evento-suap') corpo = formsEventoSuap(dados);
   else if (tipo === 'conquista')  corpo = formsConquista(dados);
   else if (tipo === 'conceder')   corpo = formsConceder(dados);
   else if (tipo === 'conta')      corpo = formsConta(dados);
@@ -1819,7 +1916,7 @@ const abrirModal = (tipo, dados = {}) => {
 
   document.getElementById('modalBody').innerHTML = corpo;
   document.getElementById('modalOverlay').classList.add('open');
-  if (tipo === 'evento') carregarConquistasParaEvento(dados.conquista?._id || dados.conquista);
+  if (tipo === 'evento' || tipo === 'evento-suap') carregarConquistasParaEvento(dados.conquista?._id || dados.conquista);
 };
 
 const fecharModal = () => {
@@ -1920,7 +2017,8 @@ const salvarItem = async () => {
         } else if (rtipo === 'projeto_aceito') {
           regra = { tipo: 'projeto_aceito', valor: document.getElementById('f_regra_valor_proj_c').value || null };
         } else if (rtipo === 'evento_presenca') {
-          regra = { tipo: 'evento_presenca', valor: String(Math.max(1, parseInt(document.getElementById('f_regra_valor_ev_c').value, 10) || 1)) };
+          regra = { tipo: 'evento_presenca', valor: document.getElementById('f_regra_modo_ev').value === 'cada'
+            ? 'cada' : String(Math.max(1, parseInt(document.getElementById('f_regra_valor_ev_c').value, 10) || 1)) };
         }
       }
 
@@ -1952,6 +2050,16 @@ const salvarItem = async () => {
       return;
     }
 
+    if (tipo === 'evento-suap') {
+      const cfg = lerCamposValidacao();
+      if (!cfg.validacao.certificado && !cfg.validacao.qrcode) { mostrarToast('Deixe pelo menos uma forma de validar.', 'erro'); return; }
+      await apiJSON(`/api/admin/eventos-suap/${state.editandoId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg) });
+      mostrarToast('Configuração salva!', 'sucesso');
+      fecharModal();
+      carregarEventosSuap();
+      return;
+    }
+
     if (tipo === 'evento') {
       body = {
         nome:         document.getElementById('f_nome').value.trim(),
@@ -1963,14 +2071,10 @@ const salvarItem = async () => {
         local:        document.getElementById('f_local').value.trim(),
         campus:       document.getElementById('f_campus_ev').value.trim(),
         link_suap:    document.getElementById('f_link').value.trim() || null,
-        validacao: {
-          certificado: document.getElementById('f_val_cert').checked,
-          qrcode:      document.getElementById('f_val_qr').checked,
-          qrDinamico:  document.getElementById('f_val_qr').checked && document.getElementById('f_val_qr_din').checked,
-        },
-        conquista:    document.getElementById('f_conquista_ev').value || null,
+        ...lerCamposValidacao(),
       };
       if (!body.nome || !body.data_inicio) { mostrarToast('Preencha os campos obrigatórios.', 'erro'); return; }
+      if (!body.validacao.certificado && !body.validacao.qrcode) { mostrarToast('Deixe pelo menos uma forma de validar a presença.', 'erro'); return; }
       if (body.data_fim && body.data_fim < body.data_inicio) { mostrarToast('A data de fim não pode ser antes da data de início.', 'erro'); return; }
       if (body.link_suap && !urlSegura(body.link_suap)) { mostrarToast('O link precisa começar com http:// ou https://', 'erro'); return; }
     } else {
@@ -2395,12 +2499,16 @@ const formsConquista = (dados = {}) => `
       </select>
 
       <div id="f_regra_ev_wrap" style="margin-top:0.6rem;display:${dados?.regra?.tipo==='evento_presenca'?'block':'none'}">
-        <label>Quantidade de eventos</label>
-        <input type="number" id="f_regra_valor_ev_c" min="1" max="100" step="1" value="${esc(dados?.regra?.tipo==='evento_presenca' ? (dados.regra.valor || '1') : '1')}" />
-        <p style="color:var(--cinza);font-size:0.74rem;margin-top:0.35rem">
-          Concedida uma vez quando o aluno somar esta quantidade de presenças validadas (ex.: 5 = "Frequentador de eventos").
-          Para dar pontos em CADA evento, escolha a conquista no próprio evento.
-        </p>
+        <label for="f_regra_modo_ev">Quando conceder</label>
+        <select id="f_regra_modo_ev" onchange="document.getElementById('f_regra_n_ev_wrap').hidden = this.value !== 'n'">
+          <option value="cada" ${!(parseInt(dados?.regra?.valor, 10) > 0) ? 'selected' : ''}>A cada evento com presença validada (ganha de novo em cada evento)</option>
+          <option value="n" ${parseInt(dados?.regra?.valor, 10) > 0 ? 'selected' : ''}>Uma vez, ao completar uma quantidade de eventos</option>
+        </select>
+        <div id="f_regra_n_ev_wrap" style="margin-top:0.5rem" ${parseInt(dados?.regra?.valor, 10) > 0 ? '' : 'hidden'}>
+          <label for="f_regra_valor_ev_c">Quantidade de eventos</label>
+          <input type="number" id="f_regra_valor_ev_c" min="1" max="100" step="1" value="${esc(parseInt(dados?.regra?.valor, 10) > 0 ? dados.regra.valor : '5')}" />
+        </div>
+        <p class="ajuda">Vale para TODOS os eventos (do SUAP e do painel), por certificado ou QR Code. Quem já cumpre a regra ganha na hora em que você salvar.</p>
       </div>
 
       <div id="f_regra_nota_wrap" style="margin-top:0.6rem;display:${(!dados?.regra?.tipo||dados?.regra?.tipo==='nota')?'block':'none'}">
@@ -2541,16 +2649,20 @@ const carregarPresencas = async () => {
     if (!dados) return;
     if (!status || status === 'pendente') atualizarBadgePresencas(status === 'pendente' ? dados.length : dados.filter(p => p.status === 'pendente').length);
     if (!dados.length) {
-      el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>${status === 'pendente' ? 'Nenhum certificado esperando análise. 🎉' : 'Nada por aqui ainda.'}</p></div>`;
+      el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>${status === 'pendente' ? 'Nada esperando análise. 🎉' : 'Nada por aqui ainda.'}</p></div>`;
       return;
     }
     const rows = dados.map(p => {
       const [rot, cls] = ROT_PRES[p.status] || ROT_PRES.pendente;
+      // Só vira link se o QR for um endereço COMPLETO (texto solto não vira link para o próprio site)
+      const linkQr = p.metodo === 'qrcode' && /^https?:\/\//i.test(p.qrConteudo || '') ? urlSegura(p.qrConteudo) : null;
       const metodo = p.metodo === 'qrcode'
-        ? '<span class="pres-met"><i data-lucide="qr-code"></i> QR Code</span>'
+        ? `<span class="pres-met"><i data-lucide="qr-code"></i> QR da inscrição</span><br>${linkQr
+            ? `<a class="qr-cont" href="${esc(linkQr)}" target="_blank" rel="noopener noreferrer" title="Abrir o link do QR para conferir">${esc(p.qrConteudo.slice(0, 120))}</a>`
+            : `<span class="qr-cont">${esc((p.qrConteudo || '').slice(0, 120))}</span>`}${p.status === 'pendente' && p.observacao ? `<span class="qr-obs">${esc(p.observacao)}</span>` : ''}`
         : `<button class="btn-edit" onclick="verCertificado('${p._id}')"><i data-lucide="file-text"></i> Ver certificado</button>`;
-      const acoes = !p.podeDecidir ? '<span class="sem-acao">Evento de outra pessoa</span>' : `
-        ${p.status !== 'aprovada' && p.metodo === 'certificado' ? `<button class="btn-edit btn-aprovar" onclick="decidirPresenca('${p._id}','aprovada')"><i data-lucide="check"></i> Aprovar</button>` : ''}
+      const acoes = `
+        ${p.status !== 'aprovada' ? `<button class="btn-edit btn-aprovar" onclick="decidirPresenca('${p._id}','aprovada')"><i data-lucide="check"></i> Aprovar</button>` : ''}
         ${p.status !== 'recusada' ? `<button class="btn-del" onclick="decidirPresenca('${p._id}','recusada', ${p.status === 'aprovada'})"><i data-lucide="x"></i> ${p.status === 'aprovada' ? 'Desfazer' : 'Recusar'}</button>` : ''}`;
       return `<tr>
         <td data-label="Aluno">${esc(p.nomeAluno || '—')}<br><span class="sub-cel">${esc(p.matricula)}${p.curso ? ` · ${esc(p.curso)}` : ''}</span></td>
@@ -2574,7 +2686,7 @@ const atualizarBadgePresencas = (n) => {
   if (!b) return;
   b.textContent = n > 99 ? '99+' : String(n);
   b.hidden = !n;
-  b.setAttribute('aria-label', `${n} certificado(s) para analisar`);
+  b.setAttribute('aria-label', `${n} presença(s) para analisar`);
 };
 
 // Abre o certificado numa aba nova (o cookie de sessão vai junto)
@@ -2584,7 +2696,7 @@ const decidirPresenca = async (id, status, eraAprovada = false) => {
   let motivo = '';
   if (status === 'recusada') {
     if (eraAprovada && !confirm('Esta presença já foi validada. Desfazer remove as conquistas e pontos que o aluno ganhou por ela. Continuar?')) return;
-    const m = prompt(eraAprovada ? 'Motivo (opcional, o aluno vê):' : 'Por que o certificado foi recusado? (o aluno vê, opcional)', '');
+    const m = prompt(eraAprovada ? 'Motivo (opcional, o aluno vê):' : 'Por que foi recusado? (o aluno vê, opcional)', '');
     if (m === null) return;
     motivo = m.trim();
   }
@@ -2593,68 +2705,11 @@ const decidirPresenca = async (id, status, eraAprovada = false) => {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status, motivo }),
     });
-    mostrarToast(status === 'aprovada' ? 'Presença validada!' : (eraAprovada ? 'Validação desfeita.' : 'Certificado recusado.'), 'sucesso');
+    mostrarToast(status === 'aprovada' ? 'Presença validada!' : (eraAprovada ? 'Validação desfeita.' : 'Recusado.'), 'sucesso');
     carregarPresencas();
   } catch (e) { mostrarToast(e.message, 'erro'); }
 };
 
-// ─────────────────────────────────────────────────────
-// QR Code do evento (projetar / imprimir)
-// ─────────────────────────────────────────────────────
-let _qrTimer = null;
-let _qrEventoId = null;
-
-const abrirQrEvento = async (id, novo = false) => {
-  _qrEventoId = id;
-  const ov = document.getElementById('qrOverlay');
-  const corpo = document.getElementById('qrCorpo');
-  ov.classList.add('open');
-  if (!novo) corpo.innerHTML = '<div class="qr-carregando"><span class="skel" style="width:260px;height:260px;display:block;border-radius:16px"></span></div>';
-  clearTimeout(_qrTimer);
-  try {
-    const d = await apiJSON(`/api/admin/eventos/${id}/qr`, novo ? { method: 'POST' } : {});
-    if (!d || _qrEventoId !== id) return;
-    corpo.innerHTML = `
-      <h3 class="qr-titulo">${esc(d.evento)}</h3>
-      <div class="qr-svg" role="img" aria-label="QR Code de presença do evento">${d.svg}</div>
-      <p class="qr-instrucao">Aponte a câmera do celular ou abra <strong>IFPlenus → Eventos → Validar participação</strong></p>
-      <div class="qr-codigo" aria-label="Código para digitar">${esc(d.codigo.replace(/(.{4})/, '$1 '))}</div>
-      ${d.dinamico ? `<p class="qr-nota"><i data-lucide="refresh-cw"></i> QR dinâmico: muda a cada 30 s <span id="qrConta"></span></p>` : '<p class="qr-nota"><i data-lucide="lock"></i> QR fixo — pode imprimir. Se vazar, gere um novo.</p>'}
-      ${d.acontecendo ? '' : '<p class="qr-alerta"><i data-lucide="alert-triangle"></i> O evento não está acontecendo hoje: os alunos só conseguem validar nos dias do evento.</p>'}`;
-    if (d.dinamico && d.expiraEm) {
-      const ajuste = Date.now() - d.agora; // diferença do relógio do computador para o servidor
-      const tique = () => {
-        const falta = Math.max(0, Math.ceil((d.expiraEm + ajuste - Date.now()) / 1000));
-        const c = document.getElementById('qrConta');
-        if (c) c.textContent = `· troca em ${falta}s`;
-        if (falta <= 0) { abrirQrEvento(id, false); return; }
-        _qrTimer = setTimeout(tique, 1000);
-      };
-      tique();
-    }
-  } catch (e) {
-    corpo.innerHTML = `<p class="qr-alerta"><i data-lucide="alert-triangle"></i> ${esc(e.message)}</p>`;
-  }
-};
-
-const fecharQrEvento = () => {
-  clearTimeout(_qrTimer);
-  _qrEventoId = null;
-  document.getElementById('qrOverlay')?.classList.remove('open');
-  if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
-};
-
-const qrTelaCheia = () => {
-  const box = document.querySelector('#qrOverlay .qr-caixa');
-  if (!document.fullscreenElement) box?.requestFullscreen?.().catch(() => mostrarToast('Seu navegador não permitiu tela cheia.', 'erro'));
-  else document.exitFullscreen?.();
-};
-
-const qrNovoCodigo = () => {
-  if (!_qrEventoId) return;
-  if (!confirm('Gerar um código novo? O QR atual (inclusive impresso) deixa de funcionar.')) return;
-  abrirQrEvento(_qrEventoId, true);
-};
 
 // ─────────────────────────────────────────────────────
 // Exportar CSV
@@ -2689,7 +2744,7 @@ const _itensBuscaAdmin = () => [
   { titulo: 'Novo evento', grupo: 'Criar', icone: 'calendar-plus', acao: () => abrirModal('evento') },
   { titulo: 'Novo projeto de pesquisa', grupo: 'Criar', icone: 'flask-conical', acao: () => abrirModal('pesquisa') },
   { titulo: 'Novo projeto de extensão', grupo: 'Criar', icone: 'sprout', acao: () => abrirModal('extensao') },
-  { titulo: 'Certificados para analisar', grupo: 'Ações', icone: 'badge-check', termos: 'presenca aprovar', acao: () => document.querySelector('.nav-item[data-section="presencas"]')?.click() },
+  { titulo: 'Presenças para analisar', grupo: 'Ações', icone: 'badge-check', termos: 'presenca aprovar certificado qr', acao: () => document.querySelector('.nav-item[data-section="presencas"]')?.click() },
   { titulo: 'Exportar solicitações (CSV)', grupo: 'Exportar', icone: 'download', termos: 'planilha excel', acao: () => exportarCsv('solicitacoes') },
   { titulo: 'Exportar ranking (CSV)', grupo: 'Exportar', icone: 'download', termos: 'planilha excel pontos', acao: () => exportarCsv('ranking') },
   { titulo: 'Exportar presenças nos eventos (CSV)', grupo: 'Exportar', icone: 'download', termos: 'planilha excel lista de presenca', acao: () => exportarCsv('presencas') },
@@ -2743,7 +2798,6 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === '/' && !digitando && !e.ctrlKey && !e.metaKey) { e.preventDefault(); abrirBuscaAdmin(); }
   else if (e.key === 'Escape') {
     if (document.getElementById('buscaAdmin')?.classList.contains('open')) fecharBuscaAdmin();
-    else if (document.getElementById('qrOverlay')?.classList.contains('open')) fecharQrEvento();
   }
 });
 
@@ -2762,14 +2816,9 @@ const carregarConquistasParaEvento = async (selecionada) => {
   }
 };
 
-const toggleQrEvento = () => {
-  const qr = document.getElementById('f_val_qr')?.checked;
-  const din = document.getElementById('f_val_qr_din_wrap');
-  if (din) din.hidden = !qr;
-};
 
 // Pendências na barra lateral (atualiza ao abrir o painel)
-apiJSON('/api/admin/presencas?status=pendente').then(d => Array.isArray(d) && atualizarBadgePresencas(d.filter(p => p.podeDecidir).length)).catch(() => {});
+apiJSON('/api/admin/presencas?status=pendente').then(d => Array.isArray(d) && atualizarBadgePresencas(d.length)).catch(() => {});
 
 const fazerLogout = async () => {
   try { await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' }); }
