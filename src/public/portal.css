@@ -344,6 +344,8 @@ nav { flex: 1; padding: 1rem 0.75rem; }
   background: none;
   border: none;
   font-family: inherit;
+  padding: 0.45rem 0;
+  min-height: 32px;
 }
 .btn-logout:hover { opacity: 0.75; }
 
@@ -1308,7 +1310,7 @@ button.rodape-link { font: inherit; background: none; border: none; border-top: 
   display: inline-flex; align-items: center; gap: 0.25rem;
 }
 .nv-tag.ok { color: var(--verde); }
-.nv-voce { font-size: 0.64rem; font-weight: 700; letter-spacing: 0.5px; color: var(--sobre-verde); background: var(--verde); padding: 0.08rem 0.45rem; border-radius: 99px; }
+.nv-voce { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.5px; color: var(--sobre-verde); background: var(--verde); padding: 0.08rem 0.45rem; border-radius: 99px; }
 .nv-item.feito .nv-num { background: var(--verde-claro); color: var(--verde); }
 .nv-item.atual { border-color: color-mix(in srgb, var(--verde) 55%, transparent); background: linear-gradient(90deg, var(--verde-claro), var(--card)); }
 .nv-item.atual .nv-num { background: var(--verde); color: var(--sobre-verde); }
@@ -1548,7 +1550,7 @@ button.rodape-link { font: inherit; background: none; border: none; border-top: 
 .btn-validar.secundario { background: transparent; color: var(--verde); }
 .btn-validar.secundario:hover { background: var(--verde-claro); }
 .btn-validar.largo { width: 100%; padding: 0.75rem 1rem; margin-top: 0.9rem; font-size: 0.92rem; }
-.btn-link-ev { background: none; border: none; color: var(--texto-2); font: inherit; font-size: 0.8rem; text-decoration: underline; cursor: pointer; padding: 0.2rem; }
+.btn-link-ev { background: none; border: none; color: var(--texto-2); font: inherit; font-size: 0.82rem; text-decoration: underline; cursor: pointer; padding: 0.35rem 0.25rem; min-height: 28px; }
 .btn-link-ev:hover { color: var(--verde); }
 .empty-state .btn-validar { margin-top: 0.8rem; }
 
@@ -1638,7 +1640,7 @@ button.rodape-link { font: inherit; background: none; border: none; border-top: 
 }
 .busca-campo { display: flex; align-items: center; gap: 0.6rem; padding: 0.9rem 1.1rem; border-bottom: 1px solid var(--borda); }
 .busca-campo svg { color: var(--verde); width: 20px; height: 20px; flex-shrink: 0; }
-.busca-campo input { flex: 1; min-width: 0; background: none; border: none; color: var(--texto); font: inherit; font-size: 1.02rem; }
+.busca-campo input { flex: 1; min-width: 0; min-height: 32px; background: none; border: none; color: var(--texto); font: inherit; font-size: 1.02rem; }
 .busca-campo input:focus { outline: none; }
 .busca-dialog:focus-within { border-color: var(--verde); }
 .busca-resultados { list-style: none; overflow-y: auto; padding: 0.4rem; margin: 0; }
@@ -1660,3 +1662,6 @@ button.rodape-link { font: inherit; background: none; border: none; border-top: 
 .val-explica { display: flex; gap: 0.55rem; align-items: flex-start; font-size: 0.86rem; color: var(--texto-2); line-height: 1.5; margin-bottom: 0.9rem; }
 .val-explica svg { width: 18px; height: 18px; color: var(--verde); flex-shrink: 0; margin-top: 0.1rem; }
 .val-dica.sutil { color: var(--cinza); font-size: 0.76rem; margin-top: 0.55rem; }
+
+.nav-item:focus-visible { outline: 2px solid var(--verde); outline-offset: -2px; }
+[hidden] { display: none !important; }

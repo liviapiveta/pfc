@@ -365,11 +365,23 @@ menuToggleEl?.addEventListener('click', () => {
 sidebarOverlayEl?.addEventListener('click', fecharSidebar);
 
 // ── Navegação ──────────────────────────────────────────────────
+// Menu acessível pelo teclado: os itens são <div>, então ganham papel de
+// botão, Tab e Enter/Espaço (antes só funcionavam com o mouse/toque)
+document.querySelectorAll('.nav-item[data-section]').forEach(item => {
+  item.setAttribute('role', 'button');
+  item.tabIndex = 0;
+  if (item.classList.contains('active')) item.setAttribute('aria-current', 'page');
+  item.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); }
+  });
+});
 document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => {
     const sec = item.dataset.section;
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(i => { i.classList.remove('active'); i.removeAttribute('aria-current'); });
     item.classList.add('active');
+    item.setAttribute('aria-current', 'page');
+    window.scrollTo(0, 0); // nova aba começa do topo (no celular ficava no meio da página)
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById(`section-${sec}`).classList.add('active');
     fecharSidebar(); // fecha o menu mobile ao trocar de aba
@@ -383,6 +395,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
       ranking:'Ranking',
     };
     document.getElementById('topbarTitle').textContent = titles[sec] || '';
+    document.title = `IFPlenus — ${titles[sec] || 'Portal do Aluno'}`;
 
     const actions = document.getElementById('topbarActions');
     actions.innerHTML = '';
@@ -1358,7 +1371,7 @@ const carregarDashboard = async () => {
               <div class="pos ${cls}">${r.posicao}º</div>
               <div class="av"><i data-lucide="user"></i></div>
               <div class="nm">${esc(r.nome)}${r.isMe ? ' (Você)' : ''}</div>
-              <div class="xp">${r.pontos} xp</div>
+              <div class="xp">${r.pontos} pts</div>
             </div>`;
         }).join('')
       : `<div style="color:var(--cinza);font-size:0.88rem;padding:0.5rem 0">Ninguém pontuou ainda. <i data-lucide="rocket"></i></div>`;
@@ -1372,26 +1385,33 @@ const carregarDashboard = async () => {
     const futuros  = comData.filter(ev => ev._d >= hoje).sort((a,b) => a._d - b._d); // mais perto primeiro
     const passados = comData.filter(ev => ev._d <  hoje).sort((a,b) => b._d - a._d); // mais recente primeiro
 
-    const idProximo = futuros.length ? (futuros[0].id ?? futuros[0]._id ?? null) : null;
+    // Os eventos não têm mais "id" (agora é "chave"): antes null === null marcava
+    // TODOS os futuros como "próximo"
+    const idEv = (ev) => ev.chave ?? ev.id ?? ev._id ?? ev.nome;
+    const idProximo = futuros.length ? idEv(futuros[0]) : undefined;
 
     // Ordem de exibição (topo→baixo): futuros (mais perto no topo) → [aviso se não houver futuros] → passados
     const linhaEvento = (ev, classe) => {
       const { dia, mes } = fmtData(ev.data_inicio || ev.data);
       const local = ev.local || ev.campus || '';
+      const pres = ev.minhaPresenca?.status === 'aprovada' ? 'presença validada'
+        : ev.minhaPresenca?.status === 'pendente' ? 'validação em análise'
+        : (classe === 'passado' && ev.jaComecou && (ev.validacao?.certificado || ev.validacao?.qrcode)) ? 'participou? valide a presença' : '';
+      const linha2 = [local, pres].filter(Boolean).join(' · ');
       return `
         <div class="dash-tl-item ${classe}">
           <div class="dash-tl-data"><div class="dia">${dia}</div><div class="mes">${mes}</div></div>
           <div class="dash-tl-corpo">
             <div class="n">${esc(ev.nome || 'Evento')}</div>
-            ${local ? `<div class="s">${esc(local)}</div>` : ''}
+            ${linha2 ? `<div class="s">${esc(linha2)}</div>` : ''}
           </div>
         </div>`;
     };
 
     let timelineHtml = '';
     // Futuros no topo (o mais próximo recebe destaque "proximo")
-    futuros.slice().reverse().forEach(ev => {       // reverse: mais distante em cima, mais próximo embaixo do grupo
-      const ehProximo = (ev.id ?? ev._id ?? null) === idProximo;
+    futuros.slice(0, 4).reverse().forEach(ev => {       // os 4 mais perto; reverse: mais distante em cima
+      const ehProximo = idEv(ev) === idProximo;
       timelineHtml += linhaEvento(ev, ehProximo ? 'futuro proximo' : 'futuro');
     });
     // Aviso quando NÃO há eventos futuros — exatamente um nó com a mensagem
@@ -1403,7 +1423,7 @@ const carregarDashboard = async () => {
         </div>`;
     }
     // Passados embaixo
-    passados.slice(0, 5).forEach(ev => { timelineHtml += linhaEvento(ev, 'passado'); });
+    passados.slice(0, 3).forEach(ev => { timelineHtml += linhaEvento(ev, 'passado'); });
 
     if (!comData.length) {
       timelineHtml = `<div style="color:var(--cinza);font-size:0.88rem;padding:0.5rem 0">Nenhum evento no calendário ainda. <i data-lucide="sprout"></i></div>`;
@@ -1456,7 +1476,7 @@ const carregarDashboard = async () => {
         </div>
 
         <div class="dash-painel">
-          <div class="titulo">Próximos Eventos</div>
+          <div class="titulo">Eventos</div>
           <div class="dash-timeline">${timelineHtml}</div>
           <button type="button" class="rodape-link" onclick="irParaSecao('eventos')">Ver todos os eventos</button>
         </div>
@@ -1935,7 +1955,7 @@ const carregarTrajetoria = async () => {
       // Selo à direita do título
       let selo = '';
       if (ehConquista) {
-        selo = it.pontos ? `<span class="traj-pts">+${it.pontos} xp</span>` : '';
+        selo = it.pontos ? `<span class="traj-pts">+${it.pontos} pts</span>` : '';
       } else if (it.projetoTipo === 'pesquisa' || it.projetoTipo === 'extensao') {
         const rotulo = it.projetoTipo === 'pesquisa' ? 'Pesquisa' : 'Extensão';
         selo = `<span class="traj-tag ${it.projetoTipo}">${rotulo}</span>`;
