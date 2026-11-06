@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IFPlenus — Painel Admin</title>
-  <link rel="icon" type="image/png" href="/images/if-logo.png" />
+  <link rel="icon" type="image/svg+xml" href="/images/logo.svg" />
+  <link rel="icon" type="image/png" href="/images/favicon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
@@ -187,6 +188,8 @@
       border-radius: 8px;
     }
     .menu-toggle:hover { background: rgba(255,255,255,0.05); }
+    .menu-toggle { position: relative; }
+    .menu-toggle.tem-novidade::after { content: ''; position: absolute; top: 6px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--amarelo); box-shadow: 0 0 0 2px var(--bg); }
     .menu-toggle svg { width: 24px; height: 24px; }
 
     .sidebar-overlay {
@@ -820,6 +823,24 @@
     .busca-item[aria-selected="true"] svg { color:var(--verde); }
     .busca-vazio { padding:1rem; color:var(--cinza); text-align:center; font-size:0.88rem; }
     @media (max-width: 720px) { .topbar-busca span, .topbar-busca kbd { display:none; } .topbar-busca { padding:0.45rem; } .topbar-dir .badge-cargo { display:none; } }
+
+    /* Card "Como funciona" */
+    .info-aba { margin-bottom: 1.1rem; }
+    .info-card { display:flex; align-items:flex-start; gap:0.85rem; background:linear-gradient(135deg, rgba(68,216,131,0.10), var(--card)); border:1px solid rgba(68,216,131,0.32); border-radius:16px; padding:0.95rem 1.05rem; }
+    .info-ic { width:38px; height:38px; flex-shrink:0; border-radius:11px; display:grid; place-items:center; background:rgba(68,216,131,0.18); color:var(--verde); }
+    .info-ic svg { width:20px; height:20px; }
+    .info-txt { flex:1; min-width:0; }
+    .info-titulo { display:block; font-family:'Syne',sans-serif; font-size:0.95rem; color:var(--texto); margin-bottom:0.2rem; }
+    .info-txt p { font-size:0.86rem; color:var(--texto-2); line-height:1.55; margin:0; }
+    .info-txt strong { color:var(--texto); }
+    .info-ok { flex-shrink:0; align-self:center; cursor:pointer; font:inherit; font-size:0.8rem; font-weight:700; padding:0.45rem 0.85rem; min-height:34px; border-radius:9px; border:1px solid var(--borda); background:var(--card); color:var(--texto-2); }
+    .info-ok:hover { border-color:var(--verde); color:var(--verde); }
+    .info-reabrir { display:none; align-items:center; gap:0.35rem; cursor:pointer; font:inherit; font-size:0.8rem; color:var(--texto-2); background:none; border:none; padding:0.35rem 0; min-height:30px; }
+    .info-reabrir svg { width:16px; height:16px; }
+    .info-reabrir:hover { color:var(--verde); }
+    .info-aba.fechado .info-card { display:none; }
+    .info-aba.fechado .info-reabrir { display:inline-flex; }
+    @media (max-width: 560px) { .info-card { flex-wrap:wrap; } .info-ok { width:100%; } }
   </style>
 </head>
 <body>
@@ -827,7 +848,7 @@
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <img src="/images/if-logo.png" width="34" height="34" alt="Instituto Federal" style="object-fit:contain;display:block;margin-bottom:0.55rem" />
+    <img src="/images/logo.svg" width="34" height="34" alt="Logo do IFPlenus" style="object-fit:contain;display:block;margin-bottom:0.55rem" />
     <h1>IF<span>Plenus</span></h1>
     <p>IFPR — Campus Assis Chateaubriand</p>
   </div>
@@ -844,7 +865,6 @@
     </div>
     <div class="nav-item" data-section="presencas">
       <span class="nav-icon"><i data-lucide="badge-check"></i></span> Presenças
-      <span class="nav-badge" id="badgePresencas" hidden></span>
     </div>
     <div class="nav-item" data-section="solicitacoes">
       <span class="nav-icon"><i data-lucide="mail"></i></span> Solicitações
@@ -952,10 +972,7 @@
           <span class="card-title">Eventos</span>
           <button class="btn-add" onclick="abrirModal('evento')">+ Novo evento</button>
         </div>
-        <p class="sec-desc">
-          Eventos que o campus cadastra aqui no painel. Em cada um você escolhe como o aluno valida a presença:
-          pelo <strong>QR Code do e-mail de inscrição</strong> e/ou enviando o <strong>certificado</strong> — e qual conquista ele ganha.
-        </p>
+        
         <div id="eventosList">
           <div data-skel="tabela"></div>
         </div>
@@ -980,11 +997,7 @@
           <span class="card-title">Presenças em eventos</span>
           <button class="btn-edit" onclick="exportarCsv('presencas', { status: state.presFiltro })"><i data-lucide="download"></i> Exportar CSV</button>
         </div>
-        <p class="sec-desc">
-          Qualquer professor pode decidir qualquer presença. <strong>Certificados</strong> sempre esperam aprovação.
-          <strong>QR Codes da inscrição</strong> entram validados quando batem com o padrão do evento (ou têm link do IFPR);
-          os que não batem com nada conhecido esperam você conferir. Dá para desfazer uma validação se algo estiver errado.
-        </p>
+        
         <!-- Filtro visível em abas (antes era um menu escondido que abria em "Para analisar") -->
         <div class="pres-barra">
           <div class="pres-abas" role="tablist" aria-label="Filtrar presenças por situação" id="presAbas">
@@ -1006,10 +1019,7 @@
           <span class="card-title">Solicitações de Participação</span>
           <button class="btn-edit" onclick="exportarCsv('solicitacoes')"><i data-lucide="download"></i> Exportar CSV</button>
         </div>
-        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
-          Alunos que pediram para fazer parte dos projetos. Aceite para
-          confirmar a participação ou recuse a solicitação.
-        </p>
+        
         <div id="solicitacoesList">
           <div data-skel="tabela"></div>
         </div>
@@ -1023,12 +1033,7 @@
           <span class="card-title">Catálogo de Conquistas</span>
           <button class="btn-add" id="btnNovaConquista" onclick="abrirModal('conquista')" hidden>+ Nova conquista</button>
         </div>
-        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
-          Cadastre as conquistas que os alunos podem desbloquear. Cada conquista
-          vale uma quantidade de <strong>estrelas (pontos)</strong>. Use
-          <strong>Conceder</strong> para entregar uma conquista a um aluno pela
-          matrícula — os pontos dele são atualizados na hora.
-        </p>
+        
         <div id="conquistasList">
           <div data-skel="tabela"></div>
         </div>
@@ -1046,10 +1051,7 @@
         <div class="card-header">
           <span class="card-title">Histórico do painel</span>
         </div>
-        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
-          Tudo o que foi feito no painel: quem concedeu ou removeu conquistas, decidiu solicitações,
-          criou, editou ou excluiu projetos, eventos e contas — e quando.
-        </p>
+        
         <div class="hist-filtros">
           <div class="field" style="flex:1;min-width:200px;margin:0;">
             <input type="search" id="histBusca" aria-label="Buscar no histórico" placeholder="Buscar por pessoa, aluno, projeto…" oninput="agendarHistorico()" />
@@ -1081,12 +1083,7 @@
             <button class="btn-add" onclick="abrirModal('conta')">+ Nova conta</button>
           </div>
         </div>
-        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
-          Só podem entrar no painel <strong>docentes</strong>, <strong>substitutos</strong>,
-          <strong>técnicos administrativos</strong> e a <strong>desenvolvedora</strong>. No primeiro acesso, a pessoa digita o e-mail na tela de login e
-          recebe automaticamente um link <em>"Cadastrar sua senha"</em> (enviado por noreplyifplenus@gmail.com).
-          Você também pode enviar o convite manualmente pelo botão <strong>Convite</strong>.
-        </p>
+        
         <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;">
           <div class="field" style="flex:1;min-width:200px;margin:0;">
             <input type="search" id="buscaContas" aria-label="Buscar contas" placeholder="Buscar por nome, e-mail ou área…" oninput="filtrarContas()" />
@@ -1242,6 +1239,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.add('active');
     item.setAttribute('aria-current', 'page');
     window.scrollTo(0, 0);
+    marcarSecaoVista(sec);
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById(`section-${sec}`).classList.add('active');
     const titles = {
@@ -1627,7 +1625,7 @@ const carregarEstatisticas = async () => {
 
     el.innerHTML = `
       <div class="est-topo">
-        <span>Números do IFPlenus no campus.</span>
+        <span></span>
         <button class="btn-edit" onclick="exportarCsv('ranking')"><i data-lucide="download"></i> Exportar ranking (CSV)</button>
       </div>
       <div class="stats-row">
@@ -2772,7 +2770,6 @@ const carregarPresencas = async () => {
     const dados = await apiJSON('/api/admin/presencas');
     if (!dados) return;
     state.presencas = dados;
-    atualizarBadgePresencas(dados.filter(p => p.status === 'pendente').length);
     desenharPresencas();
   } catch (e) {
     el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar: ${esc(e.message)}</p></div>`;
@@ -2833,13 +2830,6 @@ const desenharPresencas = () => {
       <tbody>${rows}</tbody></table></div>`;
 };
 
-const atualizarBadgePresencas = (n) => {
-  const b = document.getElementById('badgePresencas');
-  if (!b) return;
-  b.textContent = n > 99 ? '99+' : String(n);
-  b.hidden = !n;
-  b.setAttribute('aria-label', `${n} presença(s) para analisar`);
-};
 
 // Abre o certificado numa aba nova (o cookie de sessão vai junto)
 const verCertificado = (id) => window.open(`/api/admin/presencas/${encodeURIComponent(id)}/arquivo`, '_blank', 'noopener');
@@ -2975,7 +2965,79 @@ const carregarConquistasParaEvento = async (selecionada) => {
 
 
 // Pendências na barra lateral (atualiza ao abrir o painel)
-apiJSON('/api/admin/presencas?status=pendente').then(d => Array.isArray(d) && atualizarBadgePresencas(d.length)).catch(() => {});
+// ── Card "Como funciona" no topo de cada aba ───────────────
+const INFO_ADMIN = {
+  projetos: ['folder-open', 'Projetos', 'Cadastre projetos de <strong>pesquisa</strong> e <strong>extensão</strong> do campus. Os do SUAP aparecem sozinhos (somente leitura). Os alunos pedem para participar e os pedidos chegam em <strong>Solicitações</strong>.'],
+  eventos: ['ticket', 'Eventos', 'Cadastre os eventos do campus ou configure os que vêm do SUAP: escolha se o aluno valida a presença pelo <strong>certificado</strong> e/ou pelo <strong>QR Code do e-mail de inscrição</strong>, e qual <strong>conquista</strong> ele ganha.'],
+  presencas: ['badge-check', 'Presenças', 'Aqui chegam as validações de presença dos alunos. <strong>Certificados</strong> sempre esperam sua aprovação; <strong>QR Codes</strong> que batem com o padrão do evento entram validados. Qualquer servidor pode aprovar, recusar ou desfazer.'],
+  solicitacoes: ['mail', 'Solicitações', 'Alunos que pediram para entrar nos seus projetos. <strong>Aceite</strong> para confirmar a participação (o aluno ganha os pontos) ou <strong>recuse</strong>. O aluno é avisado por e-mail.'],
+  conquistas: ['trophy', 'Conquistas', 'O catálogo de conquistas e quantos <strong>pontos</strong> cada uma vale. <strong>Automáticas</strong> o sistema dá sozinho (notas, projetos, eventos); as <strong>manuais</strong> você entrega com <strong>Conceder</strong>. O que não serve mais, exclua.'],
+  estatisticas: ['pie-chart', 'Estatísticas', 'Números do IFPlenus no campus: quantos alunos usam, o que mais conquistam, quais projetos têm mais procura e as presenças em eventos. Dá para exportar o ranking em planilha.'],
+  historico: ['history', 'Histórico', 'Tudo o que foi feito no painel — quem fez, o quê e quando. Serve para conferir e corrigir decisões (só a desenvolvedora vê).'],
+  contas: ['users', 'Contas do Painel', 'Quem pode entrar no painel: <strong>docentes</strong>, <strong>substitutos</strong> e <strong>técnicos administrativos</strong>. No primeiro acesso a pessoa digita o e-mail no login e recebe o link para criar a senha.'],
+};
+const _infoOcultosAdm = () => { try { return JSON.parse(localStorage.getItem('ifplenus-admin-info-ocultos') || '[]'); } catch (e) { return []; } };
+const alternarInfoAdmin = (sec, fechar) => {
+  try {
+    const set = new Set(_infoOcultosAdm());
+    fechar ? set.add(sec) : set.delete(sec);
+    localStorage.setItem('ifplenus-admin-info-ocultos', JSON.stringify([...set]));
+  } catch (e) { /* sem armazenamento: só nesta visita */ }
+  document.querySelector(`.info-aba[data-info="${sec}"]`)?.classList.toggle('fechado', fechar);
+  if (!fechar) document.querySelector(`.info-aba[data-info="${sec}"] .info-ok`)?.focus();
+};
+Object.entries(INFO_ADMIN).forEach(([sec, [ic, titulo, texto]]) => {
+  const secao = document.getElementById(`section-${sec}`);
+  if (!secao) return;
+  const fechado = _infoOcultosAdm().includes(sec);
+  secao.insertAdjacentHTML('afterbegin', `<div class="info-aba ${fechado ? 'fechado' : ''}" data-info="${sec}">
+    <button type="button" class="info-reabrir" onclick="alternarInfoAdmin('${sec}', false)"><i data-lucide="help-circle"></i> Como funciona esta aba?</button>
+    <div class="info-card" role="note">
+      <span class="info-ic"><i data-lucide="${ic}"></i></span>
+      <div class="info-txt"><strong class="info-titulo">${titulo}</strong><p>${texto}</p></div>
+      <button type="button" class="info-ok" onclick="alternarInfoAdmin('${sec}', true)">Entendi</button>
+    </div>
+  </div>`);
+});
+
+// ── Marcadores de novidade no menu ─────────────────────────
+// Cada aba mostra quantas coisas novas apareceram desde a última vez que
+// você a abriu (novo pedido, nova presença para analisar, evento novo do
+// SUAP…). Abrir a aba zera o marcador. Atualiza sozinho a cada minuto.
+const SECOES_NOVIDADE = ['projetos', 'eventos', 'presencas', 'solicitacoes', 'conquistas', 'contas', 'historico'];
+const ROTULO_NOVIDADE = {
+  projetos: 'projeto(s) novo(s)', eventos: 'evento(s) novo(s)', presencas: 'presença(s) nova(s) para analisar',
+  solicitacoes: 'pedido(s) novo(s)', conquistas: 'conquista(s) nova(s)', contas: 'conta(s) nova(s)', historico: 'registro(s) novo(s)',
+};
+const marcadorNovidade = (sec, n) => {
+  const item = document.querySelector(`.nav-item[data-section="${sec}"]`);
+  if (!item) return;
+  let b = item.querySelector('.nav-badge');
+  if (!b) { b = document.createElement('span'); b.className = 'nav-badge'; item.appendChild(b); }
+  b.textContent = n > 99 ? '99+' : String(n);
+  b.hidden = !n;
+  b.setAttribute('aria-label', `${n} ${ROTULO_NOVIDADE[sec]}`);
+  b.title = `${n} ${ROTULO_NOVIDADE[sec]}`;
+  // No celular o menu fica escondido: a bolinha aparece no botão do menu
+  const algum = [...document.querySelectorAll('.nav-item .nav-badge')].some(x => !x.hidden);
+  document.getElementById('menuToggle')?.classList.toggle('tem-novidade', algum);
+};
+const atualizarNovidades = async () => {
+  try {
+    const d = await apiJSON('/api/admin/novidades');
+    if (!d) return;
+    const aberta = document.querySelector('.nav-item.active')?.dataset.section;
+    SECOES_NOVIDADE.forEach(sec => marcadorNovidade(sec, sec === aberta ? 0 : (Number(d[sec]) || 0)));
+  } catch (e) { /* sem rede: tenta no próximo minuto */ }
+};
+const marcarSecaoVista = (sec) => {
+  if (!SECOES_NOVIDADE.includes(sec)) return;
+  marcadorNovidade(sec, 0);
+  apiJSON(`/api/admin/novidades/${sec}`, { method: 'PUT' }).catch(() => {});
+};
+atualizarNovidades();
+setInterval(() => { if (document.visibilityState === 'visible') atualizarNovidades(); }, 60000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') atualizarNovidades(); });
 
 const fazerLogout = async () => {
   try { await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' }); }

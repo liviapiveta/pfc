@@ -6,10 +6,10 @@
  * - Sem internet e sem cópia da página → mostra /offline.html.
  * Para forçar todos a baixarem de novo, troque o número da VERSAO.
  */
-const VERSAO = 'ifplenus-v3';
+const VERSAO = 'ifplenus-v4';
 const ESSENCIAIS = [
   '/offline.html', '/portal.css', '/portal.js', '/lucide.min.js',
-  '/images/if-logo.png', '/images/icon-192.png', '/manifest.webmanifest',
+  '/images/logo.svg', '/images/favicon.png', '/images/icon-192.png', '/manifest.webmanifest',
 ];
 
 self.addEventListener('install', (e) => {

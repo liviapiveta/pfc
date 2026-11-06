@@ -103,6 +103,10 @@ router.get('/admin/presencas', adminAuth, presencaController.listarPresencas);
 router.get('/admin/presencas/:id/arquivo', adminAuth, presencaController.verArquivo);
 router.put('/admin/presencas/:id', adminAuth, presencaController.decidirPresenca);
 
+// Marcadores de novidade no menu do painel
+router.get('/admin/novidades', adminAuth, adminController.getNovidades);
+router.put('/admin/novidades/:secao', adminAuth, adminController.marcarSecaoVista);
+
 // Exportar CSV (cada um exporta só o que já vê no painel)
 const exportController = require('../controllers/exportController');
 router.get('/admin/exportar/solicitacoes', adminAuth, exportController.solicitacoes);

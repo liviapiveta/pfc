@@ -890,6 +890,63 @@ const getEstatisticas = async (req, res) => {
   }
 };
 
+// ── Novidades por aba (marcadores do menu) ────────────────────
+const SECOES_NOVIDADE = ['projetos', 'eventos', 'presencas', 'solicitacoes', 'conquistas', 'contas', 'historico'];
+const QUATORZE_DIAS = 14 * 24 * 60 * 60 * 1000;
+
+/**
+ * GET /api/admin/novidades → { projetos: 2, presencas: 5, ... }
+ * Conta o que apareceu DEPOIS da última vez que a pessoa abriu cada aba
+ * (na primeira vez, olha os últimos 14 dias). Ações da própria pessoa não contam.
+ */
+const getNovidades = async (req, res) => {
+  try {
+    const eu = await Admin.findById(req.admin.id).select('vistoEm createdAt').lean();
+    const vistos = (eu && eu.vistoEm) || {};
+    const base = new Date(Math.max(Date.now() - QUATORZE_DIAS, new Date(eu?.createdAt || 0).getTime()));
+    const desde = (sec) => (vistos[sec] ? new Date(vistos[sec]) : base);
+    const dev = ehDev(req);
+    const EventoSuap = require('../models/EventoSuap');
+    const Presenca = require('../models/Presenca');
+    const Conquista = require('../models/Conquista');
+
+    const [proj, projSuap, ev, evSuap, pres, sol, conq, contas, hist] = await Promise.all([
+      Projeto.countDocuments({ ...filtroMeusProjetos(req), createdAt: { $gt: desde('projetos') }, criadoPor: { $ne: req.admin.id } }),
+      ProjetoSuapCache.countDocuments({
+        createdAt: { $gt: desde('projetos') },
+        ...(dev ? {} : { email_coordenador: req.admin.email ? regexEmail(req.admin.email) : '__ninguem__' }),
+      }),
+      Evento.countDocuments({ createdAt: { $gt: desde('eventos') }, criadoPor: { $ne: req.admin.id } }),
+      EventoSuap.countDocuments({ createdAt: { $gt: desde('eventos') } }),
+      Presenca.countDocuments({ status: 'pendente', updatedAt: { $gt: desde('presencas') } }),
+      filtroMinhasSolicitacoes(req).then(f => Solicitacao.countDocuments({ ...f, status: 'pendente', createdAt: { $gt: desde('solicitacoes') } })),
+      Conquista.countDocuments({ createdAt: { $gt: desde('conquistas') } }),
+      dev ? Admin.countDocuments({ createdAt: { $gt: desde('contas') } }) : 0,
+      dev ? Auditoria.countDocuments({ createdAt: { $gt: desde('historico') }, adminId: { $ne: req.admin.id } }) : 0,
+    ]);
+    return res.json({
+      projetos: proj + projSuap, eventos: ev + evSuap, presencas: pres, solicitacoes: sol,
+      conquistas: conq, contas, historico: hist,
+    });
+  } catch (err) {
+    console.error('Erro nas novidades do painel:', err.message);
+    return res.status(500).json({ erro: 'Erro ao buscar novidades' });
+  }
+};
+
+/** PUT /api/admin/novidades/:secao — a pessoa abriu a aba: zera o marcador */
+const marcarSecaoVista = async (req, res) => {
+  try {
+    const secao = req.params.secao;
+    if (!SECOES_NOVIDADE.includes(secao)) return res.status(400).json({ erro: 'Seção inválida' });
+    await Admin.updateOne({ _id: req.admin.id }, { $set: { [`vistoEm.${secao}`]: new Date() } });
+    return res.json({ sucesso: true });
+  } catch (err) {
+    console.error('Erro ao marcar seção vista:', err.message);
+    return res.status(500).json({ erro: 'Erro ao salvar' });
+  }
+};
+
 module.exports = {
   verificarEmail,
   login,
@@ -920,4 +977,6 @@ module.exports = {
   getHistorico,
   getEstatisticas,
   filtroMinhasSolicitacoes,
+  getNovidades,
+  marcarSecaoVista,
 };
