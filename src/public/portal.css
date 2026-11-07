@@ -1893,3 +1893,4 @@ button.dash-tl-item:hover .dash-tl-seta { color: var(--verde); transform: transl
 }
 .priv-chip svg { width: 13px; height: 13px; }
 @media (max-width: 560px) { .priv-alterar { width: 100%; min-height: 40px; } }
+.dash-rank-row[hidden] { display: none !important; }
