@@ -1832,7 +1832,14 @@ a.btn-validar { text-decoration: none; justify-content: center; }
 .btn-ordem:hover { border-color: var(--verde); color: var(--verde); }
 .btn-ordem:focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; }
 .evc[hidden], .ev-sem-resultado[hidden] { display: none !important; }
-.ev-busca-linha { margin-top: 0.4rem; }
+/* Aba Eventos com as mesmas medidas da aba Projetos: abas → busca → lista */
+.ev-filtros-3 { margin-bottom: 1.4rem; }
+@media (min-width: 561px) {
+  .ev-filtros-3 { gap: 0.5rem; }
+  .ev-filtros-3 .ev-filtro { padding: 0.5rem 1.1rem; font-size: 0.9rem; }
+}
+.ev-busca-linha { margin: 0 0 1.2rem; }
+.ev-busca-linha + .evc-barra { margin: -0.2rem 0 1.2rem; }
 
 /* ── Ranking: "Perto de você" ───────────────────────────────── */
 .rank-perto { background: var(--card); border: 1px solid var(--borda); border-radius: 16px; padding: 1rem 1.1rem 0.6rem; margin: 1rem 0 1.4rem; }
@@ -1847,3 +1854,42 @@ a.btn-validar { text-decoration: none; justify-content: center; }
 .rank-perto .rank-lista { margin: 0; }
 @media (max-width: 560px) { .rank-meta { border-radius: 12px; align-items: flex-start; } }
 
+
+/* ── Dashboard: eventos clicáveis ───────────────────────────── */
+button.dash-tl-item {
+  width: 100%; text-align: left; font: inherit; color: inherit; background: none; border: none;
+  cursor: pointer; align-items: flex-start; border-radius: 12px;
+}
+button.dash-tl-item .dash-tl-corpo { flex: 1; min-width: 0; border-radius: 10px; transition: background .15s, border-color .15s; }
+button.dash-tl-item:hover .dash-tl-corpo { background: var(--neutro-bg); }
+button.dash-tl-item.proximo:hover .dash-tl-corpo { filter: brightness(1.08); }
+button.dash-tl-item:hover .n { color: var(--verde); }
+button.dash-tl-item:focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; }
+.dash-tl-seta { width: 18px; height: 18px; color: var(--cinza); flex-shrink: 0; align-self: center; transition: transform .15s, color .15s; }
+button.dash-tl-item:hover .dash-tl-seta { color: var(--verde); transform: translateX(2px); }
+/* Evento aberto a partir do Dashboard: destaque rápido */
+.evc.evc-destaque { border-color: var(--verde) !important; box-shadow: 0 0 0 3px var(--verde-claro); }
+.evc:focus { outline: none; }
+.evc:focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; }
+
+/* ── Privacidade no ranking ─────────────────────────────────── */
+.priv-aviso {
+  display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
+  padding: 0.75rem 0.9rem; margin: 0 0 1rem; border-radius: 12px; font-size: 0.86rem; line-height: 1.5;
+  background: var(--amarelo-claro, rgba(245,196,105,0.12)); border: 1px solid color-mix(in srgb, var(--pontos) 45%, transparent); color: var(--texto);
+}
+.priv-aviso > svg { width: 20px; height: 20px; color: var(--pontos); flex-shrink: 0; }
+.priv-aviso > span { flex: 1 1 14rem; min-width: 0; }
+.priv-alterar {
+  font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer; min-height: 36px; padding: 0.3rem 0.85rem;
+  border-radius: 99px; background: transparent; color: var(--texto); border: 1px solid var(--borda);
+}
+.priv-alterar:hover { border-color: var(--verde); color: var(--verde); }
+.dash-painel .priv-aviso { margin: 0.2rem 0 0.7rem; font-size: 0.82rem; padding: 0.6rem 0.75rem; }
+.priv-chip {
+  display: inline-flex; align-items: center; gap: 0.25rem; margin-left: 0.4rem; padding: 0.1rem 0.5rem; vertical-align: middle;
+  border-radius: 99px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+  background: var(--neutro-bg); color: var(--texto-2); border: 1px dashed var(--borda);
+}
+.priv-chip svg { width: 13px; height: 13px; }
+@media (max-width: 560px) { .priv-alterar { width: 100%; min-height: 40px; } }
