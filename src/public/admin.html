@@ -804,14 +804,6 @@
     .chip:hover { background:rgba(68,216,131,0.22); }
     .chip svg { width:14px; height:14px; }
     .chip-limpar { background:none; border:none; color:var(--texto-2); font:inherit; font-size:0.8rem; text-decoration:underline; cursor:pointer; min-height:32px; padding:0 0.3rem; }
-    /* Ordenar pela coluna */
-    .th-ord { all:unset; display:inline-flex; align-items:center; gap:0.3rem; cursor:pointer; font:inherit; color:inherit; text-transform:inherit; letter-spacing:inherit; border-radius:4px; }
-    .th-ord:hover { color:var(--texto); }
-    .th-ord:focus-visible { outline:2px solid var(--verde); outline-offset:2px; }
-    .th-seta::after { content:'↕'; opacity:0.4; font-size:0.85em; }
-    th[aria-sort="ascending"] .th-seta::after { content:'↑'; opacity:1; color:var(--verde); }
-    th[aria-sort="descending"] .th-seta::after { content:'↓'; opacity:1; color:var(--verde); }
-    th[aria-sort="ascending"] .th-ord, th[aria-sort="descending"] .th-ord { color:var(--texto); }
     /* Menu "Mais" nas ações: no computador os botões aparecem normalmente */
     .acoes-mais, .acoes-menu { display:contents; }
     .btn-mais { display:none; }
@@ -826,10 +818,10 @@
     }
     .ev-ordem-barra { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:0.5rem 1rem; margin-bottom:1rem; color:var(--texto-2); font-size:0.88rem; }
     .ev-ordem-barra > span { display:inline-flex; align-items:center; gap:0.4rem; }
-    .ordem-sel { display:inline-flex; align-items:center; gap:0.4rem; color:var(--cinza); }
-    .ordem-sel select { font:inherit; font-size:0.85rem; color:var(--texto); background:var(--card); cursor:pointer; border:1px solid var(--borda); border-radius:10px; padding:0.45rem 0.7rem; min-height:38px; }
-    .ordem-sel select:hover, .ordem-sel select:focus-visible { border-color:var(--verde); }
-    @media (max-width: 768px) { .ordem-sel select { font-size:16px; min-height:42px; } }
+    .btn-ordem { display:inline-flex; align-items:center; gap:0.45rem; min-height:40px; padding:0.45rem 0.9rem; border-radius:99px; cursor:pointer; font:inherit; font-size:0.85rem; font-weight:600; background:var(--card); color:var(--texto); border:1px solid var(--borda); transition:border-color .15s, color .15s; }
+    .btn-ordem svg { width:17px; height:17px; color:var(--verde); }
+    .btn-ordem:hover { border-color:var(--verde); color:var(--verde); }
+    .btn-ordem:focus-visible { outline:2px solid var(--verde); outline-offset:2px; }
     .sec-desc { color:var(--texto-2); font-size:0.85rem; margin-bottom:1rem; line-height:1.6; }
     .cab-acoes { display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; }
     .filtro-select { border:1.5px solid var(--borda); border-radius:9px; padding:0.45rem 0.7rem; background:var(--bg-2); color:var(--texto); font:inherit; font-size:0.84rem; }
@@ -905,8 +897,10 @@
 
 
     .topbar-dir { display:flex; align-items:center; gap:0.6rem; }
-    .topbar-busca { display:inline-flex; align-items:center; gap:0.45rem; cursor:pointer; font:inherit; font-size:0.84rem; padding:0.4rem 0.7rem; border-radius:999px; background:var(--bg-2); border:1px solid var(--borda); color:var(--texto-2); }
-    .topbar-busca svg { width:16px; height:16px; }
+    .topbar-busca { display:inline-flex; align-items:center; gap:0.6rem; cursor:pointer; font:inherit; font-size:0.92rem; min-height:44px; min-width:260px; padding:0.55rem 0.7rem 0.55rem 1rem; border-radius:999px; background:var(--bg-2); border:1px solid var(--borda); color:var(--texto-2); }
+    .topbar-busca span { flex:1; text-align:left; }
+    .topbar-busca svg { width:19px; height:19px; }
+    @media (max-width: 1100px) { .topbar-busca { min-width:200px; } }
     .topbar-busca:hover { border-color:var(--verde); color:var(--verde); }
     .topbar-busca kbd, .busca-dialog kbd { font-family:inherit; font-size:0.68rem; font-weight:700; padding:0.1rem 0.35rem; border-radius:5px; border:1px solid var(--borda); background:var(--bg); color:var(--cinza); }
     .busca-overlay {
@@ -961,7 +955,7 @@
     }
     @media (prefers-reduced-motion: reduce) { .busca-overlay { transition: none; } }
 
-    @media (max-width: 720px) { .topbar-busca span, .topbar-busca kbd { display:none; } .topbar-busca { padding:0; width:40px; height:40px; justify-content:center; } .topbar-dir .badge-cargo { display:none; } }
+    @media (max-width: 720px) { .topbar-busca span, .topbar-busca kbd { display:none; } .topbar-busca { padding:0; width:44px; height:44px; min-width:0; justify-content:center; } .topbar-dir .badge-cargo { display:none; } }
 
     /* Card "Como funciona" */
     .info-aba { margin-bottom: 1.1rem; }
@@ -1111,12 +1105,7 @@
     <section class="section" id="section-eventos">
       <div class="ev-ordem-barra">
         <span><i data-lucide="calendar-range"></i> Eventos de <span id="evAnoAtual"></span></span>
-        <label class="ordem-sel"><i data-lucide="arrow-down-up"></i>
-          <select id="evOrdemSel" onchange="ordenarEventosAdmin(this.value)" aria-label="Ordenar eventos">
-            <option value="recentes">Mais recentes</option>
-            <option value="antigos">Mais antigos</option>
-          </select>
-        </label>
+        <button type="button" class="btn-ordem" id="evOrdemBtn" onclick="ordenarEventosAdmin(state.evOrdem === 'antigos' ? 'recentes' : 'antigos')" title="Inverter a ordem dos eventos"><i data-lucide="arrow-down-wide-narrow"></i><span>Mais recentes primeiro</span></button>
       </div>
       <div class="card">
         <div class="card-header">
@@ -1479,7 +1468,7 @@ const carregarLista = async (tipo) => {
   }
   if (tipo === 'eventos') {
     const ano = document.getElementById('evAnoAtual'); if (ano) ano.textContent = new Date().getFullYear();
-    const sel = document.getElementById('evOrdemSel'); if (sel) sel.value = state.evOrdem === 'antigos' ? 'antigos' : 'recentes';
+    desenharBotaoOrdem();
     carregarEventosSuap();
   }
 
@@ -1640,8 +1629,16 @@ const renderTabelaProjetos = (dados, tipo) => {
 
 // Eventos do painel: só os do ano atual; ordem escolhida no seletor (padrão: mais recentes primeiro)
 try { state.evOrdem = localStorage.getItem('ifplenus-admin-ev-ordem') || 'recentes'; } catch (e) { state.evOrdem = 'recentes'; }
+// Botão único que alterna a ordem (mostra a ordem atual)
+const desenharBotaoOrdem = () => {
+  const b = document.getElementById('evOrdemBtn');
+  if (!b) return;
+  const antigos = state.evOrdem === 'antigos';
+  b.innerHTML = `<i data-lucide="${antigos ? 'arrow-up-narrow-wide' : 'arrow-down-wide-narrow'}"></i><span>${antigos ? 'Mais antigos primeiro' : 'Mais recentes primeiro'}</span>`;
+};
 const ordenarEventosAdmin = (v) => {
   state.evOrdem = v === 'antigos' ? 'antigos' : 'recentes';
+  desenharBotaoOrdem();
   try { localStorage.setItem('ifplenus-admin-ev-ordem', state.evOrdem); } catch (e) { /* sem armazenamento */ }
   carregarLista('eventos');
 };
@@ -2513,41 +2510,10 @@ const desenharChips = (id, itens, total, redesenhar) => {
   el.querySelector('.chip-limpar')?.addEventListener('click', () => { chips.forEach(c => c.limpar()); redesenhar(); });
 };
 
-// ── Tabelas: ordenar clicando no título da coluna + menu "Mais" nas ações (celular) ──
-const _valorOrdem = (td) => {
-  if (!td) return '';
-  if (td.dataset.ord != null) return td.dataset.ord;
-  const t = td.textContent.replace(/\s+/g, ' ').trim();
-  const d = t.match(/(\d{2})\/(\d{2})\/(\d{4})(?:,? (\d{2}):(\d{2}))?/);
-  if (d) return `${d[3]}${d[2]}${d[1]}${d[4] || '00'}${d[5] || '00'}`;
-  return t;
-};
-const ordenarTabela = (th) => {
-  const tabela = th.closest('table'); const tbody = tabela?.tBodies[0];
-  if (!tbody) return;
-  const col = [...th.parentNode.children].indexOf(th);
-  const asc = th.getAttribute('aria-sort') !== 'ascending';
-  tabela.querySelectorAll('th[aria-sort]').forEach(x => x.setAttribute('aria-sort', 'none'));
-  th.setAttribute('aria-sort', asc ? 'ascending' : 'descending');
-  const linhas = [...tbody.rows];
-  linhas.sort((a, b) => {
-    const r = String(_valorOrdem(a.cells[col])).localeCompare(String(_valorOrdem(b.cells[col])), 'pt-BR', { numeric: true, sensitivity: 'base' });
-    return asc ? r : -r;
-  });
-  linhas.forEach(l => tbody.appendChild(l));
-};
+// ── Tabelas: menu "Mais" nas ações (celular) ──
 const melhorarTabela = (tabela) => {
   if (tabela.dataset.melhorada) return;
   tabela.dataset.melhorada = '1';
-  if (tabela.tBodies[0]?.rows.length > 1) {
-    tabela.querySelectorAll('thead th').forEach(th => {
-      const rot = th.textContent.trim();
-      if (!rot || /^a[çc][õo]es$/i.test(rot)) return;
-      th.setAttribute('aria-sort', 'none');
-      th.innerHTML = `<button type="button" class="th-ord" title="Ordenar por ${esc(rot)}">${esc(rot)}<span class="th-seta" aria-hidden="true"></span></button>`;
-      th.querySelector('button').addEventListener('click', () => ordenarTabela(th));
-    });
-  }
   // Ações: com 3 botões ou mais, no celular o 1º fica à mostra e os outros vão para "Mais"
   tabela.querySelectorAll('td.td-acoes').forEach(td => {
     const botoes = [...td.children].filter(b => b.matches('button, a'));
