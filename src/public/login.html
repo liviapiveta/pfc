@@ -130,6 +130,7 @@
       color: var(--texto); background: var(--input-bg); outline: none;
       transition: border-color .2s, box-shadow .2s;
     }
+    @media (max-width: 767px) { .field input { font-size: 16px; } } /* sem zoom automático no iPhone */
     .field input::placeholder { color: var(--cinza); }
     .field input:focus { border-color: var(--cor); box-shadow: 0 0 0 4px rgba(var(--cor-rgb),0.12); }
 
