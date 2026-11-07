@@ -196,7 +196,7 @@
     @media (max-width: 860px) {
       .marca { position: static; transform: none; margin: 1.2rem auto 0; width: fit-content; }
       .abas {
-        display: flex; gap: 0.3rem; margin: 1rem 1rem 0; padding: 0.3rem;
+        display: flex; gap: 0.3rem; margin: 1rem max(1rem, calc(50% - 216px)) 0; padding: 0.3rem;
         background: rgba(255,255,255,0.04); border: 1px solid var(--borda); border-radius: 14px;
       }
       .abas button {
@@ -207,10 +207,29 @@
       .abas button.ativa[data-lado="aluno"] { background: var(--verde); color: #0b1a12; }
       .abas button.ativa[data-lado="admin"] { background: var(--azul); color: #0b1430; }
 
-      .split { display: block; min-height: auto; }
-      .lado { display: none; padding: 1.8rem 1rem 4.5rem; min-height: calc(100vh - 140px); align-items: flex-start; }
+      /* No celular o degradê fica no fundo da página inteira (não corta abaixo das abas) */
+      body {
+        display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh;
+        background:
+          radial-gradient(120% 60% at 0% 0%, rgba(68,216,131,0.20) 0%, transparent 60%),
+          linear-gradient(165deg, #13211a 0%, #141417 60%);
+        background-color: #141417;
+      }
+      html { background: #141417; height: auto; }
+      body { height: auto; }
+      body[data-lado="admin"] {
+        background:
+          radial-gradient(120% 60% at 100% 0%, rgba(122,167,255,0.20) 0%, transparent 60%),
+          linear-gradient(195deg, #151b2a 0%, #141417 60%);
+        background-color: #141417;
+      }
+      .split { display: block; min-height: auto; flex: 1; }
+      .lado, .lado.aluno, .lado.admin { background: transparent; }
+      .lado::before { display: none; }
+      .lado { display: none; padding: 1.6rem 1rem 2rem; min-height: 0; align-items: flex-start; overflow: visible; }
       .lado.ativo { display: flex; }
       .lado.admin { border-left: none; }
+      .painel { margin: 0 auto; }
       h1 { font-size: 1.65rem; }
       .rodape { position: static; transform: none; text-align: center; padding: 0 1rem 1.2rem; white-space: normal; }
     }
@@ -234,7 +253,7 @@
     .campo-senha input::-ms-reveal, .campo-senha input::-ms-clear { display: none; } /* Edge: evita 2 olhos */
   </style>
 </head>
-<body>
+<body data-lado="aluno">
 
 <header class="marca">
   <img src="/images/logo.svg" alt="Logo do IFPlenus" />
@@ -389,6 +408,7 @@
     document.querySelectorAll('.abas button').forEach((b) => b.classList.toggle('ativa', b.dataset.lado === lado));
     $('ladoAluno').classList.toggle('ativo', lado === 'aluno');
     $('ladoAdmin').classList.toggle('ativo', lado === 'admin');
+    document.body.dataset.lado = lado;
   }
   document.querySelectorAll('.abas button').forEach((b) => b.addEventListener('click', () => mostrarLado(b.dataset.lado)));
 

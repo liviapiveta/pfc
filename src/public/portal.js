@@ -352,10 +352,14 @@ const sidebarOverlayEl = document.getElementById('sidebarOverlay');
 const abrirSidebar = () => {
   sidebarEl?.classList.add('open');
   sidebarOverlayEl?.classList.add('open');
+  menuToggleEl?.setAttribute('aria-expanded', 'true');
+  menuToggleEl?.setAttribute('aria-label', 'Fechar menu');
 };
 const fecharSidebar = () => {
   sidebarEl?.classList.remove('open');
   sidebarOverlayEl?.classList.remove('open');
+  menuToggleEl?.setAttribute('aria-expanded', 'false');
+  menuToggleEl?.setAttribute('aria-label', 'Abrir menu');
 };
 
 menuToggleEl?.addEventListener('click', () => {
@@ -534,12 +538,6 @@ const carregarDados = async () => {
     const d = await api('/api/dados-pessoais');
     if (!d) return;
 
-    // Mostra o campus do aluno logado ao lado da logo (barra lateral)
-    const campusRaw = String(d.vinculo?.campus || d.campus || '').trim();
-    const elCampus = document.getElementById('sidebarCampus');
-    if (campusRaw && elCampus) {
-      elCampus.textContent = /campus/i.test(campusRaw) ? campusRaw : `Campus ${campusRaw}`;
-    }
     montarConfig(d);
   } catch (e) {
     montarConfig(null);
@@ -577,10 +575,10 @@ const fecharConfig = () => {
 };
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { fecharValidacao(); fecharNiveis(); fecharConfig(); }
+  if (e.key === 'Escape') { fecharComoValidei(); fecharValidacao(); fecharNiveis(); fecharConfig(); }
 });
 
-// ── PROJETOS (aba única: áreas Pesquisa/Extensão × fontes Sistema/Admin) ──
+// ── PROJETOS (abas Pesquisa/Extensão; SUAP e campus numa lista só) ──
 // state.projArea guarda a área (tópico) selecionada: 'pesquisa' | 'extensao'.
 
 const _projMeta = {
@@ -626,8 +624,7 @@ const recarregarProjetos = (area) => {
   renderAreaProjetos(state.projArea);
 };
 
-// Dentro da área, dois grupos: Projetos do Sistema (SUAP) e
-// Projetos Adicionados pelo Admin (locais).
+// Projetos da área (SUAP + cadastrados no painel) numa lista única.
 const renderAreaProjetos = async (area) => {
   const cont = document.getElementById('projetosArea');
   if (!cont) return;
@@ -642,46 +639,30 @@ const renderAreaProjetos = async (area) => {
     // Se o usuário trocou de área enquanto carregava, descarta esta resposta
     if (pedido !== state.projPedido) return;
 
-    const suapCards = suap === 'erro'
-      ? `<div class="proj-vazio"><i data-lucide="cloud-off"></i> Não foi possível buscar os projetos do SUAP agora. Tente de novo em instantes.</div>`
-      : (Array.isArray(suap) && suap.length)
-        ? suap.map(p => renderProjetoSuap(p, area, meta)).join('')
-        : `<div class="proj-vazio">Nenhum projeto de ${meta.label.toLowerCase()} encontrado no sistema (SUAP).</div>`;
-
-    const adminCards = (Array.isArray(internos) && internos.length)
-      ? internos.map(p => renderProjetoInterno(p, area, meta.class, meta.label)).join('')
-      : `<div class="proj-vazio">Nenhum projeto cadastrado pelo campus ainda.</div>`;
-
+    // Uma lista só: para o aluno não importa se o projeto veio do SUAP ou foi
+    // cadastrado no painel — os do SUAP primeiro, depois os do campus.
+    const cards = [
+      ...(Array.isArray(suap) ? suap.map(p => renderProjetoSuap(p, area, meta)) : []),
+      ...(Array.isArray(internos) ? internos.map(p => renderProjetoInterno(p, area, meta.class, meta.label)) : []),
+    ];
     const f = state.projFiltro || {};
-    const nSuap = Array.isArray(suap) ? suap.length : 0;
-    const nAdmin = Array.isArray(internos) ? internos.length : 0;
-    const abaFonte = (v, rot, ic, n) =>
-      `<button type="button" role="tab" class="ev-filtro ${(f.fonte || '') === v ? 'ativo' : ''}" aria-selected="${(f.fonte || '') === v}" data-fonte-aba="${v}" onclick="trocarFonteProjetos('${v}')">${ic ? `<i data-lucide="${ic}"></i>` : ''}${rot}<span>${n}</span></button>`;
+    const avisoSuap = suap === 'erro'
+      ? `<div class="proj-vazio"><i data-lucide="cloud-off"></i> Não foi possível buscar os projetos do SUAP agora${cards.length ? ' — mostrando só os cadastrados pelo campus' : ''}. Tente de novo em instantes.</div>`
+      : '';
 
     cont.innerHTML = `
       <div class="proj-filtros" role="search">
         <label class="proj-busca">
           <i data-lucide="search"></i>
-          <span class="sr-only">Buscar projetos</span>
-          <input type="search" id="projBusca" placeholder="Buscar por título, coordenador ou assunto…" value="${esc(f.texto || '')}" oninput="filtrarProjetos()" />
+          <span class="sr-only">Buscar projetos por título, coordenador ou assunto</span>
+          <input type="search" id="projBusca" placeholder="Buscar projeto…" title="Busque por título, coordenador ou assunto" value="${esc(f.texto || '')}" oninput="filtrarProjetos()" />
         </label>
         <span class="proj-contagem" id="projContagem" aria-live="polite"></span>
       </div>
-      <div class="ev-filtros proj-fontes" role="tablist" aria-label="De onde vêm os projetos">
-        ${abaFonte('', 'Todos', '', nSuap + nAdmin)}
-        ${abaFonte('suap', 'SUAP', 'server', nSuap)}
-        ${abaFonte('admin', 'Do campus', 'user-cog', nAdmin)}
-      </div>
-      <div class="proj-fonte" data-fonte="suap">
-        <div class="proj-fonte-titulo"><i data-lucide="server"></i> Projetos do SUAP</div>
-        <div class="proj-lista">${suapCards}</div>
-        <div class="proj-vazio proj-sem-resultado" hidden>Nenhum projeto do SUAP com essa busca.</div>
-      </div>
-      <div class="proj-fonte" data-fonte="admin">
-        <div class="proj-fonte-titulo"><i data-lucide="user-cog"></i> Projetos do campus (cadastrados no painel)</div>
-        <div class="proj-lista">${adminCards}</div>
-        <div class="proj-vazio proj-sem-resultado" hidden>Nenhum projeto do campus com essa busca.</div>
-      </div>`;
+      ${avisoSuap}
+      <div class="proj-lista">${cards.join('')}</div>
+      ${cards.length ? '' : (suap === 'erro' ? '' : `<div class="proj-vazio">Nenhum projeto de ${meta.label.toLowerCase()} encontrado.</div>`)}
+      <div class="proj-vazio proj-sem-resultado" hidden>Nenhum projeto com essa busca.</div>`;
     filtrarProjetos();
   } catch (e) {
     cont.innerHTML =
@@ -693,40 +674,21 @@ const renderAreaProjetos = async (area) => {
 const atributosFiltro = (titulo, coord, resumo) =>
   `data-busca="${esc(normalizarTexto([titulo, coord, resumo].filter(Boolean).join(' ')))}"`;
 
-// Abas "Todos / Do SUAP / Do campus" (antes era um menu de seleção escondido)
-const trocarFonteProjetos = (fonte) => {
-  state.projFiltro = { ...(state.projFiltro || {}), fonte };
-  document.querySelectorAll('[data-fonte-aba]').forEach(b => {
-    const ativo = b.dataset.fonteAba === fonte;
-    b.classList.toggle('ativo', ativo);
-    b.setAttribute('aria-selected', String(ativo));
-  });
-  filtrarProjetos();
-};
-
 const filtrarProjetos = () => {
-  const texto = normalizarTexto(document.getElementById('projBusca')?.value || '').trim();
-  const fonte = state.projFiltro?.fonte || '';
-  state.projFiltro = { texto: document.getElementById('projBusca')?.value || '', fonte };
-
-  let visiveis = 0, total = 0;
-  document.querySelectorAll('#projetosArea .proj-fonte').forEach(grupo => {
-    const mostrarGrupo = !fonte || grupo.dataset.fonte === fonte;
-    grupo.hidden = !mostrarGrupo;
-    const cards = grupo.querySelectorAll('.projeto-card');
-    let noGrupo = 0;
-    cards.forEach(card => {
-      total++;
-      const ok = mostrarGrupo &&
-        (!texto || texto.split(/\s+/).every(t => card.dataset.busca.includes(t)));
-      card.hidden = !ok;
-      if (ok) { noGrupo++; visiveis++; }
-    });
-    const vazio = grupo.querySelector('.proj-sem-resultado');
-    if (vazio) vazio.hidden = !(cards.length && !noGrupo);
+  const bruto = document.getElementById('projBusca')?.value || '';
+  const texto = normalizarTexto(bruto).trim();
+  state.projFiltro = { texto: bruto };
+  const cards = document.querySelectorAll('#projetosArea .projeto-card');
+  let visiveis = 0;
+  cards.forEach(card => {
+    const ok = !texto || texto.split(/\s+/).every(t => (card.dataset.busca || '').includes(t));
+    card.hidden = !ok;
+    if (ok) visiveis++;
   });
+  const vazio = document.querySelector('#projetosArea .proj-sem-resultado');
+  if (vazio) vazio.hidden = !(cards.length && !visiveis);
   const cont = document.getElementById('projContagem');
-  if (cont) cont.textContent = texto ? `${visiveis} de ${total} projeto(s)` : '';
+  if (cont) cont.textContent = texto ? `${visiveis} de ${cards.length} projeto(s)` : '';
 };
 
 // Card de um projeto vindo do SUAP (sistema).
@@ -887,19 +849,25 @@ const _periodoEv = (ev) => {
   return `${ini}${fim}${hora}`;
 };
 
+// "Ver como validei": o aluno revê o certificado/QR que enviou
+const botaoComoValidei = (chave) =>
+  `<button type="button" class="btn-link-ev" onclick="verComoValidei('${chave}')"><i data-lucide="eye"></i> Ver como validei</button>`;
+
 const acaoEvento = (ev) => {
   const p = ev.minhaPresenca;
   const chave = esc(ev.chave || '');
   if (p?.status === 'aprovada') {
-    return `<span class="ev-status ok"><i data-lucide="badge-check"></i> Presença validada</span>`;
+    return `<span class="ev-status ok"><i data-lucide="badge-check"></i> Presença validada</span>${botaoComoValidei(chave)}`;
   }
   if (p?.status === 'pendente') {
     return `<span class="ev-status espera"><i data-lucide="hourglass"></i> Em análise</span>
+      ${botaoComoValidei(chave)}
       <button type="button" class="btn-link-ev" onclick="abrirValidacao('${chave}')">Reenviar</button>`;
   }
   if (p?.status === 'recusada') {
     return `<span class="ev-status recusada" ${p.motivo ? `title="${esc(p.motivo)}"` : ''}><i data-lucide="x-circle"></i> Recusada</span>
       <button type="button" class="btn-validar secundario" onclick="abrirValidacao('${chave}')">Tentar de novo</button>
+      ${botaoComoValidei(chave)}
       ${p.motivo ? `<small class="ev-motivo">Motivo: ${esc(p.motivo)}</small>` : ''}`;
   }
   if (!_evAberto(ev)) return '';
@@ -921,7 +889,10 @@ const cartaoEvento = (ev) => {
   const premio = ev.conquista
     ? `<span class="evc-premio" title="Ao validar: ${esc(ev.conquista.nome)}"><i data-lucide="star"></i> +${Number(ev.conquista.pontos) || 0} pts</span>` : '';
   const acao = acaoEvento(ev);
-  return `<article class="evc ${ev.minhaPresenca?.status === 'aprovada' ? 'feito' : ''}">
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const fim = dataLocal(ev.data_fim) || dt;
+  const classes = ['evc', ev.minhaPresenca?.status === 'aprovada' ? 'feito' : '', fim && fim < hoje ? 'passou' : ''].filter(Boolean).join(' ');
+  return `<article class="${classes}">
     <div class="evc-data" aria-hidden="true"><span class="m">${dt ? MESES[dt.getMonth()] : ''}</span><span class="d">${dt ? dt.getDate() : '—'}</span></div>
     <div class="evc-corpo">
       <h4>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${nome}</a>` : nome}</h4>
@@ -939,10 +910,10 @@ const renderEventos = () => {
   const anoAtual = hoje.getFullYear();
   const fimEv = (ev) => dataLocal(ev.data_fim) || _dataEv(ev);
 
-  // Ano atual + o que ainda vem (eventos de anos passados ficam de fora)
+  // Só os eventos do ano atual (os de anos anteriores não dá mais para validar)
   const base = todos.filter(ev => {
     const ini = _dataEv(ev), fim = fimEv(ev);
-    return (ini && ini.getFullYear() >= anoAtual) || (fim && fim.getFullYear() >= anoAtual);
+    return (ini && ini.getFullYear() === anoAtual) || (fim && fim.getFullYear() === anoAtual);
   });
   const ehParaValidar = (ev) => _evAberto(ev) && ev.jaComecou &&
     (!ev.minhaPresenca || ev.minhaPresenca.status === 'recusada') &&
@@ -956,19 +927,18 @@ const renderEventos = () => {
   const conta = (k) => base.filter(filtros[k]).length;
   const aba = (k, rot, ic) => `<button type="button" role="tab" class="ev-filtro ${state.evFiltro === k ? 'ativo' : ''}" aria-selected="${state.evFiltro === k}" onclick="filtrarEventos('${k}')">${ic ? `<i data-lucide="${ic}"></i>` : ''}${rot}<span>${conta(k)}</span></button>`;
 
-  const lista = base.filter(filtros[state.evFiltro]);
-  const proximos = lista.filter(ev => (fimEv(ev) || 0) >= hoje).sort((a, b) => (_dataEv(a) || 0) - (_dataEv(b) || 0));
-  const passados = lista.filter(ev => (fimEv(ev) || hoje) < hoje).sort((a, b) => (_dataEv(b) || 0) - (_dataEv(a) || 0));
-  const grupo = (titulo, itens) => itens.length
-    ? `<h3 class="evc-grupo">${titulo} <span>${itens.length}</span></h3><div class="evc-lista">${itens.map(cartaoEvento).join('')}</div>` : '';
+  // Ordem cronológica, um embaixo do outro (do começo do ano para o fim)
+  const lista = base.filter(filtros[state.evFiltro])
+    .sort((a, b) => ((_dataEv(a) || 0) - (_dataEv(b) || 0)) || String(a.hora_inicio || '').localeCompare(String(b.hora_inicio || '')));
 
   el.innerHTML = `
     ${cardInfo('eventos')}
     <div class="ev-filtros" role="tablist" aria-label="Filtrar eventos">
       ${aba('todos', 'Todos', '')}${aba('validar', 'Para validar', 'badge-check')}${aba('validados', 'Validados', 'check-check')}
     </div>
+    <p class="evc-ano"><i data-lucide="calendar-range"></i> Eventos de ${anoAtual} · em ordem de data</p>
     ${lista.length
-      ? grupo('Hoje e próximos', proximos) + grupo('Já aconteceram', passados)
+      ? `<div class="evc-lista">${lista.map(cartaoEvento).join('')}</div>`
       : `<div class="empty-state"><div class="icon"><i data-lucide="${state.evFiltro === 'validar' ? 'party-popper' : 'calendar'}"></i></div><p>${
           state.evFiltro === 'validar' ? 'Nada para validar agora. 🎉'
           : state.evFiltro === 'validados' ? 'Você ainda não validou presença em nenhum evento.'
@@ -1091,6 +1061,76 @@ const fecharValidacao = () => {
   modal.classList.remove('open');
   if (!document.getElementById('configDrawer')?.classList.contains('open')) document.body.classList.remove('config-aberta');
   _focoAntesValidar?.focus?.();
+};
+
+// ── "Ver como validei" ─────────────────────────────────────────
+let _focoAntesComo = null;
+const dataHora = (v) => {
+  const d = v ? new Date(v) : null;
+  if (!d || Number.isNaN(d.getTime())) return '';
+  return `${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+};
+
+const verComoValidei = (chave) => {
+  const ev = eventoPorChave(chave);
+  const p = ev?.minhaPresenca;
+  if (!ev || !p) { aviso('Nenhum envio encontrado para este evento.', 'erro'); return; }
+  _focoAntesComo = document.activeElement;
+  let modal = document.getElementById('comoModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'comoModal';
+    modal.className = 'niveis-overlay';
+    modal.addEventListener('click', (e) => { if (e.target === modal) fecharComoValidei(); });
+    document.body.appendChild(modal);
+  }
+  const STATUS = {
+    aprovada: '<span class="ev-status ok"><i data-lucide="badge-check"></i> Presença validada</span>',
+    pendente: '<span class="ev-status espera"><i data-lucide="hourglass"></i> Em análise</span>',
+    recusada: '<span class="ev-status recusada"><i data-lucide="x-circle"></i> Recusada</span>',
+  };
+  const urlArq = `/api/eventos/${encodeURIComponent(chave)}/comprovante`;
+  const ehImg = /^image\//.test(p.arquivoTipo || '');
+  const qrLink = p.qrConteudo ? urlSegura(p.qrConteudo) : '';
+  const linhas = [
+    ['Forma', p.metodo === 'certificado' ? '<i data-lucide="file-text"></i> Certificado enviado' : '<i data-lucide="qr-code"></i> QR Code do e-mail de inscrição'],
+    [p.status === 'pendente' ? 'Enviado em' : (p.status === 'aprovada' ? 'Validada em' : 'Conferida em'),
+      esc(dataHora(p.status === 'pendente' ? p.atualizadoEm : (p.decididoEm || p.atualizadoEm)) || '—')],
+    p.conferidoPor ? ['Conferido por', esc(p.conferidoPor)] : null,
+    p.motivo ? ['Motivo', esc(p.motivo)] : null,
+  ].filter(Boolean);
+  const comprovante = p.metodo === 'certificado'
+    ? `<div class="como-arq">
+        ${ehImg ? `<img src="${urlArq}" alt="Certificado enviado" class="como-img" loading="lazy" />` : `<div class="como-pdf"><i data-lucide="file-text"></i><span>${esc(p.arquivo || 'certificado.pdf')}</span></div>`}
+        <a class="btn-validar secundario largo" href="${urlArq}" target="_blank" rel="noopener"><i data-lucide="external-link"></i> Abrir certificado</a>
+      </div>`
+    : (p.qrConteudo
+      ? `<div class="como-qr"><span>Conteúdo lido do QR Code</span>${qrLink ? `<a href="${esc(qrLink)}" target="_blank" rel="noopener noreferrer"><code>${esc(p.qrConteudo)}</code></a>` : `<code>${esc(p.qrConteudo)}</code>`}</div>`
+      : '');
+  modal.innerHTML = `
+    <div class="niveis-dialog validar-dialog" role="dialog" aria-modal="true" aria-labelledby="comoTitulo">
+      <div class="niveis-head">
+        <h2 id="comoTitulo"><i data-lucide="eye"></i> Como você validou</h2>
+        <button type="button" class="config-fechar" onclick="fecharComoValidei()" aria-label="Fechar"><i data-lucide="x"></i></button>
+      </div>
+      <div class="niveis-body">
+        <p class="val-evento"><strong>${esc(ev.nome || ev.titulo || 'Evento')}</strong><br><small>${esc(_periodoEv(ev))}</small></p>
+        <div class="como-status">${STATUS[p.status] || ''}</div>
+        <dl class="como-dados">${linhas.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+        ${comprovante}
+      </div>
+    </div>`;
+  modal.classList.add('open');
+  document.body.classList.add('config-aberta');
+  modal.querySelector('.config-fechar')?.focus();
+};
+
+const fecharComoValidei = () => {
+  const modal = document.getElementById('comoModal');
+  if (!modal || !modal.classList.contains('open')) return;
+  modal.classList.remove('open');
+  if (!document.getElementById('configDrawer')?.classList.contains('open')) document.body.classList.remove('config-aberta');
+  _focoAntesComo?.focus?.();
 };
 
 // Atualiza um evento na lista e redesenha (sem recarregar tudo do servidor)
@@ -2013,17 +2053,20 @@ const renderTrajetoria = () => {
   const item = (it) => {
     const t = TRAJ_TIPOS[it.tipo] || TRAJ_TIPOS.conquista;
     const d = new Date(it.data);
-    const quando = isNaN(d) ? '' : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    // Data e horário em que foi conquistado/validado (ex.: 06/11/2026 às 14:32)
+    const quando = isNaN(d) ? '' : `${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
     const extra = it.tipo === 'conquista' && it.pontos
       ? `<span class="traj-pts">+${it.pontos} pts</span>`
       : it.projetoTipo ? `<span class="traj-tag ${esc(it.projetoTipo)}">${it.projetoTipo === 'pesquisa' ? 'Pesquisa' : 'Extensão'}</span>` : '';
     return `<li class="ti ${t.cls}">
       <span class="ti-ic" aria-hidden="true">${it.tipo === 'conquista' && it.icone ? esc(it.icone) : `<i data-lucide="${t.ic}"></i>`}</span>
       <div class="ti-corpo">
-        <div class="ti-topo"><strong>${esc(it.titulo)}</strong>${extra}</div>
+        <div class="ti-topo">
+          <div class="ti-nome"><strong>${esc(it.titulo)}</strong>${extra}</div>
+          ${quando ? `<time class="ti-data" datetime="${esc(it.data || '')}"><i data-lucide="clock"></i> ${quando}</time>` : ''}
+        </div>
         <p>${esc(it.descricao || t.rot)}</p>
       </div>
-      <time class="ti-data" datetime="${esc(it.data || '')}">${quando}</time>
     </li>`;
   };
 

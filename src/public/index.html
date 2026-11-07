@@ -42,12 +42,10 @@
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <span class="logo-mark" aria-hidden="true">
-      <img class="logo-img" src="/images/logo.svg" alt="" />
-    </span>
-    <div>
+    <img class="logo-img" src="/images/logo.svg" width="38" height="38" alt="" />
+    <div class="logo-txt">
       <h1>IF<span>Plenus</span></h1>
-      <p id="sidebarCampus">Instituto Federal do Paraná</p>
+      <p>Campus Assis Chateaubriand</p>
     </div>
   </div>
 
@@ -92,8 +90,8 @@
 <main class="main">
   <div class="topbar">
     <div class="topbar-left">
-      <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">
-        <i data-lucide="menu"></i>
+      <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu" aria-controls="sidebar" aria-expanded="false">
+        <span class="hamb" aria-hidden="true"><span></span><span></span><span></span></span>
       </button>
       <span class="topbar-title" id="topbarTitle">Dashboard</span>
     </div>
@@ -440,12 +438,8 @@
   <footer class="site-footer">
     <div class="footer-cols">
       <div class="footer-col footer-about">
-        <h2 class="footer-logo"><img src="/images/logo.svg" alt="" width="22" height="20" class="footer-logo-img" />IF<span>Plenus</span></h2>
-        <p>
-          Portal do Aluno do IFPR — Campus Assis Chateaubriand. Acesso rápido aos
-          seus dados acadêmicos, projetos de pesquisa e extensão e
-          eventos, integrado diretamente à API do SUAP.
-        </p>
+        <h2 class="footer-logo"><img src="/images/logo.svg" alt="" width="28" height="28" class="footer-logo-img" /><span class="footer-nome">IF<span>Plenus</span></span></h2>
+        <p>Portal do Aluno do IFPR — Campus Assis Chateaubriand: projetos, eventos, conquistas e ranking, integrados ao SUAP.</p>
       </div>
 
       <div class="footer-col">
