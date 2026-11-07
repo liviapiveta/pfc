@@ -53,6 +53,7 @@ router.get('/eventos', auth, presencaController.listarEventos);
 router.post('/eventos/:chave/qrcode', auth, limiteQr, presencaController.validarPorQr);
 router.post('/eventos/:chave/certificado', auth, corpoArquivo, presencaController.enviarCertificado);
 router.delete('/eventos/:chave/presenca', auth, presencaController.cancelarPresenca);
+router.get('/eventos/:chave/comprovante', auth, presencaController.verMeuComprovante);
 
 // ── Preferências (persistidas no MongoDB) ─────────────────────
 router.put('/preferencias', auth, suapController.updatePreferencias);

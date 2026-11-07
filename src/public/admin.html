@@ -27,7 +27,7 @@
       --amarelo: #f5b942;
       --amarelo-claro: rgba(245,185,66,0.14);
       --vermelho: #ff6b6b;
-      --sidebar-w: 240px;
+      --sidebar-w: 250px;
     }
 
     body {
@@ -50,21 +50,20 @@
       z-index: 100;
     }
 
+    /* Cabeçalho da barra lateral — igual ao do portal do aluno */
     .sidebar-logo {
-      padding: 1.5rem 1.5rem 1.2rem;
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 1.5rem 1.2rem 1.3rem;
       border-bottom: 1px solid rgba(255,255,255,0.07);
     }
-
+    .sidebar-logo .logo-img { width: 38px; height: 38px; object-fit: contain; display: block; flex-shrink: 0; }
+    .sidebar-logo .logo-txt { min-width: 0; }
     .sidebar-logo h1 {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: 1.4rem;
-      color: white;
-      letter-spacing: -0.5px;
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.32rem;
+      color: #fff; letter-spacing: -0.5px; line-height: 1;
     }
-
     .sidebar-logo h1 span { color: var(--verde); }
-    .sidebar-logo p { font-size: 0.7rem; color: rgba(255,255,255,0.62); margin-top: 0.2rem; }
+    .sidebar-logo p { font-size: 0.68rem; color: rgba(255,255,255,0.62); margin-top: 0.3rem; line-height: 1.35; }
 
     .admin-pill {
       margin: 0.75rem 1.5rem;
@@ -176,21 +175,15 @@
     }
 
     .menu-toggle {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: none;
-      border: none;
-      color: var(--texto);
-      cursor: pointer;
-      padding: 0.4rem;
-      margin-right: 0.9rem;
-      border-radius: 8px;
+      display: none; align-items: center; justify-content: center; flex-shrink: 0;
+      width: 44px; height: 44px; margin-right: 0.75rem; padding: 0;
+      background: var(--card); border: 1px solid var(--borda); border-radius: 12px;
+      color: var(--texto); cursor: pointer;
     }
-    .menu-toggle:hover { background: rgba(255,255,255,0.05); }
-    .menu-toggle { position: relative; }
-    .menu-toggle.tem-novidade::after { content: ''; position: absolute; top: 6px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--amarelo); box-shadow: 0 0 0 2px var(--bg); }
-    .menu-toggle svg { width: 24px; height: 24px; }
+    .menu-toggle:hover { border-color: var(--verde); color: var(--verde); }
+    .menu-toggle:focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; }
+    .hamb { display: flex; flex-direction: column; justify-content: space-between; width: 22px; height: 16px; }
+    .hamb span { display: block; height: 2.5px; border-radius: 2px; background: currentColor; }
 
     .sidebar-overlay {
       display: none;
@@ -383,14 +376,14 @@
     .items-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.85rem;
+      font-size: 0.9rem;
     }
 
     .items-table th {
       background: var(--bg);
       padding: 0.6rem 0.85rem;
       text-align: left;
-      font-size: 0.68rem;
+      font-size: 0.72rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -747,7 +740,6 @@
 
     @media (max-width: 480px) {
       .stats-row { grid-template-columns: 1fr 1fr; }
-      .sidebar-logo h1 { font-size: 1.2rem; }
       .admin-pill { margin: 0.6rem 1.2rem; }
       .nav-item { padding: 0.6rem 1.2rem; }
     }
@@ -769,7 +761,18 @@
     .cab-acoes { display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; }
     .filtro-select { border:1.5px solid var(--borda); border-radius:9px; padding:0.45rem 0.7rem; background:var(--bg-2); color:var(--texto); font:inherit; font-size:0.84rem; }
     .filtro-select:focus { outline:2px solid var(--verde); outline-offset:1px; }
-    .sub-cel { font-size:0.76rem; color:var(--cinza); }
+    .sub-cel { font-size:0.8rem; color:var(--cinza); }
+    /* Catálogo de conquistas: mesmo tamanho de texto do resto do painel */
+    .conq-tabela td { font-size: 0.92rem; }
+    .conq-tabela .btn-edit, .conq-tabela .btn-del, .conq-tabela .btn-add { font-size: 0.84rem; padding: 0.42rem 0.8rem; min-height: 34px; }
+    .conq-tabela .conq-nome { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem; font-size: 0.95rem; }
+    .conq-tabela .conq-ic { font-size: 1.15rem; line-height: 1; }
+    .conq-tabela .conq-cat { color: var(--texto-2); }
+    .conq-tabela .conq-pts { font-weight: 700; color: #f5c469; white-space: nowrap; }
+    .conq-tabela .sub-cel { display: block; margin-top: 0.25rem; font-size: 0.84rem; line-height: 1.45; }
+    .conq-selo { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.15rem 0.55rem; border-radius: 99px; font-size: 0.74rem; font-weight: 600; }
+    .conq-selo.auto { background: rgba(96,165,250,0.16); color: #93c5fd; }
+    .conq-selo.antiga { background: rgba(139,144,155,0.18); color: #c3c6cd; }
     .pres-barra { display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center; justify-content:space-between; margin-bottom:1rem; }
     .pres-abas { display:flex; flex-wrap:wrap; gap:0.4rem; }
     .pres-abas button { display:inline-flex; align-items:center; gap:0.4rem; cursor:pointer; font:inherit; font-size:0.84rem; font-weight:600; padding:0.5rem 0.9rem; border-radius:99px; border:1.5px solid var(--borda); background:var(--bg-2); color:var(--texto-2); min-height:36px; }
@@ -848,9 +851,11 @@
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <img src="/images/logo.svg" width="34" height="34" alt="Logo do IFPlenus" style="object-fit:contain;display:block;margin-bottom:0.55rem" />
-    <h1>IF<span>Plenus</span></h1>
-    <p>IFPR — Campus Assis Chateaubriand</p>
+    <img class="logo-img" src="/images/logo.svg" width="38" height="38" alt="" />
+    <div class="logo-txt">
+      <h1>IF<span>Plenus</span></h1>
+      <p>Campus Assis Chateaubriand</p>
+    </div>
   </div>
   <div class="admin-pill"><i data-lucide="settings"></i> Painel Admin</div>
   <nav>
@@ -894,8 +899,8 @@
 <main class="main">
   <div class="topbar">
     <div class="topbar-left">
-      <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">
-        <i data-lucide="menu"></i>
+      <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu" aria-controls="sidebar" aria-expanded="false">
+        <span class="hamb" aria-hidden="true"><span></span><span></span><span></span></span>
       </button>
       <span class="topbar-title" id="topbarTitle">Visão Geral</span>
     </div>
@@ -1207,10 +1212,14 @@ const sidebarOverlayEl = document.getElementById('sidebarOverlay');
 const abrirSidebar = () => {
   sidebarEl?.classList.add('open');
   sidebarOverlayEl?.classList.add('open');
+  menuToggleEl?.setAttribute('aria-expanded', 'true');
+  menuToggleEl?.setAttribute('aria-label', 'Fechar menu');
 };
 const fecharSidebar = () => {
   sidebarEl?.classList.remove('open');
   sidebarOverlayEl?.classList.remove('open');
+  menuToggleEl?.setAttribute('aria-expanded', 'false');
+  menuToggleEl?.setAttribute('aria-label', 'Abrir menu');
 };
 
 menuToggleEl?.addEventListener('click', () => {
@@ -2530,16 +2539,16 @@ const renderTabelaConquistas = (dados) => {
   const rows = dados.map(c => {
     // Só conquistas desativadas na versão antiga ainda podem aparecer assim
     const antiga = c.ativa === false
-      ? ` <span style="display:inline-block;padding:0.12rem 0.5rem;border-radius:99px;font-size:0.7rem;font-weight:600;background:rgba(139,144,155,0.18);color:#c3c6cd" title="Desativada numa versão antiga do painel. Os alunos não veem. Exclua se não for mais usar.">Desativada</span>`
+      ? ` <span class="conq-selo antiga" title="Desativada numa versão antiga do painel. Os alunos não veem. Exclua se não for mais usar.">Desativada</span>`
       : '';
     const autoBadge = c.origem === 'automatica'
-      ? ` <span style="display:inline-block;padding:0.12rem 0.5rem;border-radius:99px;font-size:0.66rem;font-weight:600;background:rgba(96,165,250,0.16);color:#93c5fd" title="Concedida automaticamente pelo sistema"><i data-lucide="settings"></i> Auto</span>`
+      ? ` <span class="conq-selo auto" title="Concedida automaticamente pelo sistema"><i data-lucide="settings"></i> Auto</span>`
       : '';
     return `
     <tr>
-      <td data-label="Conquista">${esc(c.icone || '🏆')} ${esc(c.nome)}${autoBadge}${antiga}${c.comoGanhar ? `<br><span class="sub-cel">${esc(c.comoGanhar)}</span>` : ''}</td>
-      <td data-label="Categoria" style="font-size:0.8rem;color:var(--cinza)">${esc(catLabel(c.categoria))}</td>
-      <td data-label="Pontos" style="font-weight:700;color:#f5c469"><i data-lucide="star"></i> ${Number(c.pontos) || 0}</td>
+      <td data-label="Conquista"><span class="conq-nome"><span class="conq-ic" aria-hidden="true">${esc(c.icone || '🏆')}</span> ${esc(c.nome)}${autoBadge}${antiga}</span>${c.comoGanhar ? `<span class="sub-cel">${esc(c.comoGanhar)}</span>` : ''}</td>
+      <td data-label="Categoria" class="conq-cat">${esc(catLabel(c.categoria))}</td>
+      <td data-label="Pontos" class="conq-pts"><i data-lucide="star"></i> ${Number(c.pontos) || 0}</td>
       <td data-label="Ações" class="td-acoes">
         ${c.origem === 'automatica' || c.ativa === false
           ? ''
@@ -2552,7 +2561,7 @@ const renderTabelaConquistas = (dados) => {
   }).join('');
 
   return `<div class="table-wrap">
-    <table class="items-table">
+    <table class="items-table conq-tabela">
       <thead>
         <tr><th>Conquista</th><th>Categoria</th><th>Pontos</th><th>Ações</th></tr>
       </thead>
@@ -3018,9 +3027,6 @@ const marcadorNovidade = (sec, n) => {
   b.hidden = !n;
   b.setAttribute('aria-label', `${n} ${ROTULO_NOVIDADE[sec]}`);
   b.title = `${n} ${ROTULO_NOVIDADE[sec]}`;
-  // No celular o menu fica escondido: a bolinha aparece no botão do menu
-  const algum = [...document.querySelectorAll('.nav-item .nav-badge')].some(x => !x.hidden);
-  document.getElementById('menuToggle')?.classList.toggle('tem-novidade', algum);
 };
 const atualizarNovidades = async () => {
   try {

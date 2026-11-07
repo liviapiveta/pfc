@@ -27,6 +27,11 @@ const resumoPresenca = (p) => p && ({
   metodo: p.metodo,
   motivo: p.status === 'recusada' ? (p.motivo || '') : '',
   arquivo: p.metodo === 'certificado' ? (p.arquivo?.nome || '') : '',
+  arquivoTipo: p.metodo === 'certificado' ? (p.arquivo?.tipo || '') : '',
+  // O próprio aluno pode rever o que leu do QR (o hash fica só no servidor)
+  qrConteudo: p.metodo === 'qrcode' ? String(p.qrConteudo || '').slice(0, 500) : '',
+  conferidoPor: p.status !== 'pendente' ? (p.decididoPorNome || '') : '',
+  decididoEm: p.status !== 'pendente' ? (p.decididoEm || p.updatedAt) : null,
   atualizadoEm: p.updatedAt,
 });
 
@@ -316,27 +321,51 @@ const listarPresencas = async (req, res) => {
   }
 };
 
+// Envia o arquivo do certificado de uma presença (para o professor ou o próprio aluno)
+const enviarArquivoDe = async (pres, res) => {
+  // Sem .lean(): assim o Mongoose devolve um Buffer de verdade (e não um Binary do BSON)
+  const arq = await Comprovante.findOne({ presenca: pres._id });
+  if (!arq || !arq.dados) return res.status(404).json({ erro: 'Certificado não encontrado' });
+  const dados = Buffer.from(arq.dados);
+  if (!P.TIPOS_ARQUIVO.includes(arq.tipo) || P.tipoReal(dados) !== arq.tipo) {
+    return res.status(415).json({ erro: 'Arquivo inválido' });
+  }
+  res.set({
+    'Content-Type': arq.tipo,
+    'Content-Length': String(dados.length),
+    'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(pres.arquivo?.nome || 'certificado')}`,
+    'Cache-Control': 'private, no-store',
+    'X-Content-Type-Options': 'nosniff',
+  });
+  return res.end(dados);
+};
+
 /** GET /api/admin/presencas/:id/arquivo — abre o certificado enviado */
 const verArquivo = async (req, res) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ erro: 'Certificado não encontrado' });
     const pres = await Presenca.findById(req.params.id).lean();
     if (!pres) return res.status(404).json({ erro: 'Certificado não encontrado' });
-    // Sem .lean(): assim o Mongoose devolve um Buffer de verdade (e não um Binary do BSON)
-    const arq = await Comprovante.findOne({ presenca: pres._id });
-    if (!arq || !arq.dados) return res.status(404).json({ erro: 'Certificado não encontrado' });
-    const dados = Buffer.from(arq.dados);
-    if (!P.TIPOS_ARQUIVO.includes(arq.tipo) || P.tipoReal(dados) !== arq.tipo) {
-      return res.status(415).json({ erro: 'Arquivo inválido' });
-    }
-    res.set({
-      'Content-Type': arq.tipo,
-      'Content-Length': String(dados.length),
-      'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(pres.arquivo?.nome || 'certificado')}`,
-      'Cache-Control': 'private, no-store',
-    });
-    return res.end(dados);
+    return await enviarArquivoDe(pres, res);
   } catch (err) {
     console.error('Erro ao abrir certificado:', err.message);
+    return res.status(500).json({ erro: 'Erro ao abrir certificado' });
+  }
+};
+
+/** GET /api/eventos/:chave/comprovante — o aluno revê o certificado que ELE enviou */
+const verMeuComprovante = async (req, res) => {
+  try {
+    const k = P.lerChave(req.params.chave);
+    if (!k) return res.status(404).json({ erro: 'Certificado não encontrado' });
+    const filtro = k.origem === 'local'
+      ? { origem: 'local', evento: k.id, matricula: req.user.matricula }
+      : { origem: 'suap', eventoSuapId: k.id, matricula: req.user.matricula };
+    const pres = await Presenca.findOne({ ...filtro, metodo: 'certificado' }).lean();
+    if (!pres) return res.status(404).json({ erro: 'Certificado não encontrado' });
+    return await enviarArquivoDe(pres, res);
+  } catch (err) {
+    console.error('Erro ao abrir comprovante do aluno:', err.message);
     return res.status(500).json({ erro: 'Erro ao abrir certificado' });
   }
 };
@@ -481,7 +510,7 @@ const sugerirPadraoQr = (req, res) => {
 
 module.exports = {
   listarEventos, validarPorQr, enviarCertificado, cancelarPresenca,
-  listarPresencas, verArquivo, decidirPresenca,
+  listarPresencas, verArquivo, verMeuComprovante, decidirPresenca,
   listarEventosSuap, configurarEventoSuap, sugerirPadraoQr,
   lerConfigEvento, contagemPorEvento, validacaoDe, conquistaServeParaEvento,
 };
