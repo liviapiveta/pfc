@@ -20,9 +20,11 @@
       --bg: #1b1b1f;
       --bg-2: #242428;
       --card: #26262b;
+      --elev: #2b2b31;        /* pop-ups: um degrau mais claros que os cartões */
+      --verde-fill: #3bbd74;  /* verde menos vibrante para botões/abas cheios */
       --texto: #f4f5f7;
       --texto-2: #c2c6cf;
-      --cinza: #8b909b;
+      --cinza: #9da2ad;  /* ≥ 4.5:1 também sobre os pop-ups (mais claros) */
       --borda: rgba(255,255,255,0.1);
       --amarelo: #f5b942;
       --amarelo-claro: rgba(245,185,66,0.14);
@@ -299,7 +301,7 @@
 
     /* ── BOTÕES ── */
     .btn-primary {
-      background: var(--verde);
+      background: var(--verde-fill);
       color: #06281a;
       border: none;
       border-radius: 9px;
@@ -317,7 +319,7 @@
     .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
 
     .btn-add {
-      background: var(--verde);
+      background: var(--verde-fill);
       color: #06281a;
       border: none;
       border-radius: 9px;
@@ -480,7 +482,8 @@
     .modal-overlay.open { display: grid; }
 
     .modal {
-      background: var(--card);
+      background: var(--elev);
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: 16px;
       padding: 1.8rem;
       width: 100%;
@@ -790,9 +793,37 @@
       background:transparent; color:var(--texto-2); border:1px solid var(--borda); transition:all .15s;
     }
     .proj-area-tabs button:hover { border-color:var(--verde); color:#fff; }
-    .proj-area-tabs button.ativo { background:var(--verde); color:#06281a; border-color:var(--verde); }
+    .proj-area-tabs button.ativo { background:var(--verde-fill); color:#06281a; border-color:var(--verde-fill); }
 
     /* ── Eventos / presenças / QR / busca ── */
+    /* Filtros ativos (etiquetas) */
+    .chips-filtro { display:flex; flex-wrap:wrap; align-items:center; gap:0.4rem; margin:-0.3rem 0 1rem; }
+    .chips-filtro[hidden] { display:none; }
+    .chips-total { display:inline-flex; align-items:center; gap:0.35rem; font-size:0.8rem; color:var(--cinza); margin-right:0.2rem; }
+    .chip { display:inline-flex; align-items:center; gap:0.35rem; min-height:32px; padding:0.25rem 0.55rem 0.25rem 0.75rem; border-radius:99px; cursor:pointer; font:inherit; font-size:0.8rem; font-weight:600; background:var(--verde-claro); color:var(--verde); border:1px solid rgba(68,216,131,0.35); }
+    .chip:hover { background:rgba(68,216,131,0.22); }
+    .chip svg { width:14px; height:14px; }
+    .chip-limpar { background:none; border:none; color:var(--texto-2); font:inherit; font-size:0.8rem; text-decoration:underline; cursor:pointer; min-height:32px; padding:0 0.3rem; }
+    /* Ordenar pela coluna */
+    .th-ord { all:unset; display:inline-flex; align-items:center; gap:0.3rem; cursor:pointer; font:inherit; color:inherit; text-transform:inherit; letter-spacing:inherit; border-radius:4px; }
+    .th-ord:hover { color:var(--texto); }
+    .th-ord:focus-visible { outline:2px solid var(--verde); outline-offset:2px; }
+    .th-seta::after { content:'↕'; opacity:0.4; font-size:0.85em; }
+    th[aria-sort="ascending"] .th-seta::after { content:'↑'; opacity:1; color:var(--verde); }
+    th[aria-sort="descending"] .th-seta::after { content:'↓'; opacity:1; color:var(--verde); }
+    th[aria-sort="ascending"] .th-ord, th[aria-sort="descending"] .th-ord { color:var(--texto); }
+    /* Menu "Mais" nas ações: no computador os botões aparecem normalmente */
+    .acoes-mais, .acoes-menu { display:contents; }
+    .btn-mais { display:none; }
+    @media (max-width: 768px) {
+      .acoes-mais { display:block; position:relative; flex:1 1 0; min-width:88px; }
+      .btn-mais { display:inline-flex; align-items:center; justify-content:center; gap:0.35rem; width:100%; min-height:42px; cursor:pointer; font:inherit; font-size:0.84rem; border-radius:9px; background:none; border:1.5px solid var(--borda); color:var(--texto-2); }
+      .acoes-mais.aberto .btn-mais { border-color:var(--verde); color:var(--verde); }
+      .acoes-menu { display:none; position:absolute; right:0; bottom:calc(100% + 6px); z-index:20; min-width:190px; padding:0.35rem; border-radius:12px; background:var(--elev); border:1px solid rgba(255,255,255,0.12); box-shadow:0 14px 40px rgba(0,0,0,0.45); }
+      .acoes-mais.aberto .acoes-menu { display:flex; flex-direction:column; gap:0.25rem; }
+      .acoes-menu button, .acoes-menu a { width:100%; justify-content:flex-start !important; border:none !important; background:none; min-height:44px; padding:0 0.75rem; font-size:0.9rem; }
+      .acoes-menu button:hover, .acoes-menu a:hover { background:rgba(255,255,255,0.06); }
+    }
     .ev-ordem-barra { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:0.5rem 1rem; margin-bottom:1rem; color:var(--texto-2); font-size:0.88rem; }
     .ev-ordem-barra > span { display:inline-flex; align-items:center; gap:0.4rem; }
     .ordem-sel { display:inline-flex; align-items:center; gap:0.4rem; color:var(--cinza); }
@@ -826,7 +857,7 @@
     .pres-abas button svg { width:15px; height:15px; }
     .pres-abas button span { font-size:0.72rem; padding:0.05rem 0.45rem; border-radius:99px; background:rgba(255,255,255,0.08); color:var(--cinza); }
     .pres-abas button:hover { border-color:var(--verde); color:var(--texto); }
-    .pres-abas button.ativa { background:var(--verde); border-color:var(--verde); color:#06281a; }
+    .pres-abas button.ativa { background:var(--verde-fill); border-color:var(--verde-fill); color:#06281a; }
     .pres-abas button.ativa span { background:rgba(6,40,26,0.18); color:#06281a; }
     .pres-busca { flex:1 1 220px; max-width:340px; min-height:36px; }
     @media (max-width: 768px) {
@@ -887,7 +918,7 @@
     /* Pop-up da busca: mesmo estilo do pop-up dos níveis (título + X para fechar) */
     .busca-dialog {
       width: min(760px, 100%); max-height: min(620px, 78vh); max-height: min(620px, 78dvh);
-      background: var(--bg); border: 1px solid var(--borda); border-radius: 20px;
+      background: var(--elev); border: 1px solid var(--borda); border-radius: 20px;
       box-shadow: 0 30px 70px rgba(0,0,0,0.45); overflow: hidden; display: flex; flex-direction: column;
     }
     .busca-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.9rem 1rem 0.9rem 1.3rem; border-bottom: 1px solid var(--borda); }
@@ -1010,7 +1041,7 @@
       <span class="topbar-title" id="topbarTitle">Visão Geral</span>
     </div>
     <div class="topbar-dir">
-      <button type="button" class="topbar-busca" onclick="abrirBuscaAdmin()" aria-label="Busca rápida (Ctrl+K)" title="Busca rápida (Ctrl+K)"><i data-lucide="search"></i><span>Buscar</span><kbd>Ctrl K</kbd></button>
+      <button type="button" class="topbar-busca" onclick="abrirBuscaAdmin()" aria-label="Buscar Ctrl K" title="Busca rápida (Ctrl+K)"><i data-lucide="search"></i><span>Buscar</span><kbd>Ctrl K</kbd></button>
       <span class="topbar-badge" id="topbarAdminBadge"><i data-lucide="lock"></i> Administrador</span>
     </div>
   </div>
@@ -1128,6 +1159,7 @@
           </div>
           <input type="search" id="presBusca" class="filtro-select pres-busca" placeholder="Buscar aluno, matrícula ou evento…" aria-label="Buscar presenças" oninput="desenharPresencas()" />
         </div>
+        <div class="chips-filtro" id="chipsPres" hidden></div>
         <div id="presencasList"><div data-skel="tabela"></div></div>
       </div>
     </section>
@@ -1219,6 +1251,7 @@
           </div>
           <span id="resumoContas" style="color:var(--cinza);font-size:0.8rem;"></span>
         </div>
+        <div class="chips-filtro" id="chipsContas" hidden></div>
         <div id="contasList">
           <div data-skel="tabela"></div>
         </div>
@@ -2465,6 +2498,89 @@ const atualizarStats = (stats) => {
     card('solicitacoes', 'mail', meus ? 'Pedidos nos meus projetos' : 'Solicitações pendentes', stats.solicitacoes ?? 0, (stats.solicitacoes ?? 0) ? 'para aceitar ou recusar' : 'tudo em dia', true);
 };
 
+
+// ── Filtros ativos como etiquetas removíveis (com o total de resultados) ──
+const desenharChips = (id, itens, total, redesenhar) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const chips = itens.filter(Boolean);
+  if (!chips.length) { el.hidden = true; el.innerHTML = ''; return; }
+  el.hidden = false;
+  el.innerHTML = `<span class="chips-total"><i data-lucide="filter"></i> ${esc(total)} resultado(s)</span>` +
+    chips.map((c, i) => `<button type="button" class="chip" data-i="${i}" aria-label="Remover filtro ${esc(c.rot)}">${esc(c.rot)} <i data-lucide="x"></i></button>`).join('') +
+    (chips.length > 1 ? '<button type="button" class="chip-limpar">Limpar tudo</button>' : '');
+  el.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { chips[Number(b.dataset.i)].limpar(); redesenhar(); }));
+  el.querySelector('.chip-limpar')?.addEventListener('click', () => { chips.forEach(c => c.limpar()); redesenhar(); });
+};
+
+// ── Tabelas: ordenar clicando no título da coluna + menu "Mais" nas ações (celular) ──
+const _valorOrdem = (td) => {
+  if (!td) return '';
+  if (td.dataset.ord != null) return td.dataset.ord;
+  const t = td.textContent.replace(/\s+/g, ' ').trim();
+  const d = t.match(/(\d{2})\/(\d{2})\/(\d{4})(?:,? (\d{2}):(\d{2}))?/);
+  if (d) return `${d[3]}${d[2]}${d[1]}${d[4] || '00'}${d[5] || '00'}`;
+  return t;
+};
+const ordenarTabela = (th) => {
+  const tabela = th.closest('table'); const tbody = tabela?.tBodies[0];
+  if (!tbody) return;
+  const col = [...th.parentNode.children].indexOf(th);
+  const asc = th.getAttribute('aria-sort') !== 'ascending';
+  tabela.querySelectorAll('th[aria-sort]').forEach(x => x.setAttribute('aria-sort', 'none'));
+  th.setAttribute('aria-sort', asc ? 'ascending' : 'descending');
+  const linhas = [...tbody.rows];
+  linhas.sort((a, b) => {
+    const r = String(_valorOrdem(a.cells[col])).localeCompare(String(_valorOrdem(b.cells[col])), 'pt-BR', { numeric: true, sensitivity: 'base' });
+    return asc ? r : -r;
+  });
+  linhas.forEach(l => tbody.appendChild(l));
+};
+const melhorarTabela = (tabela) => {
+  if (tabela.dataset.melhorada) return;
+  tabela.dataset.melhorada = '1';
+  if (tabela.tBodies[0]?.rows.length > 1) {
+    tabela.querySelectorAll('thead th').forEach(th => {
+      const rot = th.textContent.trim();
+      if (!rot || /^a[çc][õo]es$/i.test(rot)) return;
+      th.setAttribute('aria-sort', 'none');
+      th.innerHTML = `<button type="button" class="th-ord" title="Ordenar por ${esc(rot)}">${esc(rot)}<span class="th-seta" aria-hidden="true"></span></button>`;
+      th.querySelector('button').addEventListener('click', () => ordenarTabela(th));
+    });
+  }
+  // Ações: com 3 botões ou mais, no celular o 1º fica à mostra e os outros vão para "Mais"
+  tabela.querySelectorAll('td.td-acoes').forEach(td => {
+    const botoes = [...td.children].filter(b => b.matches('button, a'));
+    if (botoes.length < 3) return;
+    const mais = document.createElement('div');
+    mais.className = 'acoes-mais';
+    mais.innerHTML = '<button type="button" class="btn-mais" aria-haspopup="true" aria-expanded="false"><i data-lucide="more-horizontal"></i> Mais</button><div class="acoes-menu" role="menu"></div>';
+    const menu = mais.querySelector('.acoes-menu');
+    botoes.slice(1).forEach(b => { b.setAttribute('role', 'menuitem'); menu.appendChild(b); });
+    td.appendChild(mais);
+  });
+};
+new MutationObserver(() => document.querySelectorAll('.items-table:not([data-melhorada])').forEach(melhorarTabela))
+  .observe(document.body, { childList: true, subtree: true });
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn-mais');
+  document.querySelectorAll('.acoes-mais.aberto').forEach(m => {
+    if (!btn || !m.contains(btn)) { m.classList.remove('aberto'); m.querySelector('.btn-mais')?.setAttribute('aria-expanded', 'false'); }
+  });
+  if (btn) {
+    const m = btn.parentElement;
+    const abrir = !m.classList.contains('aberto');
+    m.classList.toggle('aberto', abrir);
+    btn.setAttribute('aria-expanded', String(abrir));
+    if (abrir) m.querySelector('.acoes-menu button, .acoes-menu a')?.focus();
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const aberto = document.querySelector('.acoes-mais.aberto');
+  if (aberto) { aberto.classList.remove('aberto'); const b = aberto.querySelector('.btn-mais'); b.setAttribute('aria-expanded', 'false'); b.focus(); }
+});
+
 // Vai para uma seção do painel (como clicar no menu)
 const irSecaoAdmin = (secao) => document.querySelector(`.nav-item[data-section="${secao}"]`)?.click();
 
@@ -2558,6 +2674,11 @@ const filtrarContas = () => {
     (!cargo || c.cargo === cargo) &&
     (!termo || `${c.nome} ${c.email} ${c.area || ''}`.toLowerCase().includes(termo))
   );
+  const ROT_CARGO = { professor: 'Docentes', substituto: 'Substitutos', tecnico: 'Técnicos administrativos', desenvolvedor: 'Desenvolvedor(a)' };
+  desenharChips('chipsContas', [
+    termo && { rot: `Busca: “${termo}”`, limpar: () => { document.getElementById('buscaContas').value = ''; } },
+    cargo && { rot: `Cargo: ${ROT_CARGO[cargo] || cargo}`, limpar: () => { document.getElementById('filtroCargoContas').value = ''; } },
+  ], `${lista.length} de ${_contasCache.length}`, filtrarContas);
   const comSenha = _contasCache.filter(c => c.temSenha).length;
   const resumo = document.getElementById('resumoContas');
   if (resumo) resumo.textContent = `${lista.length} de ${_contasCache.length} contas · ${comSenha} com senha cadastrada`;
@@ -2947,6 +3068,12 @@ const desenharPresencas = () => {
   const termo = _normBusca(document.getElementById('presBusca')?.value || '').trim();
   const lista = todas.filter(p => (!state.presFiltro || p.status === state.presFiltro) &&
     (!termo || _normBusca(`${p.nomeAluno} ${p.matricula} ${p.eventoNome} ${p.curso}`).includes(termo)));
+  const ROT_SIT = { pendente: 'Para analisar', aprovada: 'Validadas', recusada: 'Recusadas' };
+  const buscaBruta = (document.getElementById('presBusca')?.value || '').trim();
+  desenharChips('chipsPres', [
+    state.presFiltro && { rot: `Situação: ${ROT_SIT[state.presFiltro]}`, limpar: () => { state.presFiltro = ''; } },
+    buscaBruta && { rot: `Busca: “${buscaBruta}”`, limpar: () => { document.getElementById('presBusca').value = ''; } },
+  ], `${lista.length} de ${todas.length}`, desenharPresencas);
 
   if (!lista.length) {
     el.innerHTML = `<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>${

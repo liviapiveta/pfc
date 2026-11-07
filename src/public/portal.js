@@ -420,6 +420,12 @@ document.querySelectorAll('.nav-item').forEach(item => {
     document.querySelectorAll('.nav-item').forEach(i => { i.classList.remove('active'); i.removeAttribute('aria-current'); });
     item.classList.add('active');
     item.setAttribute('aria-current', 'page');
+    // Barra de baixo (celular) acompanha a aba aberta
+    document.querySelectorAll('.nav-inf-item').forEach(b => {
+      const on = b.dataset.alvo === sec;
+      b.classList.toggle('ativo', on);
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
     window.scrollTo(0, 0); // nova aba começa do topo (no celular ficava no meio da página)
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById(`section-${sec}`).classList.add('active');
@@ -1956,11 +1962,34 @@ const renderRanking = async () => {
           : eu.posicao ? `<button type="button" class="rank-onde" onclick="irParaMinhaPosicao()"><i data-lucide="locate-fixed"></i> Ver onde estou</button>` : ''}
       </div>`;
 
+    // ── Perto de você: quem está logo acima e logo abaixo, e quanto falta para subir ──
+    const perto = Array.isArray(dados.perto) ? dados.perto : [];
+    const prox = dados.proximo;
+    const linhaPerto = (r) => `
+      <div class="rank-row ${r.isMe ? 'eu' : ''}">
+        <div class="col-pos ${medalha(r.posicao)}">${r.posicao}º</div>
+        <div class="col-nome">
+          <span class="col-nome-linha">${esc(r.nome)}${r.isMe ? '<span class="vc">VOCÊ</span>' : ''}</span>
+          ${r.nivel ? `<span class="col-nivel">Nível ${r.nivel.nivel} · ${esc(r.nivel.nome)}</span>` : ''}
+        </div>
+        <div class="col-pts"><i data-lucide="star"></i> ${r.pontos}</div>
+      </div>`;
+    const cardPerto = (!eu.oculto && eu.posicao && perto.length > 1) ? `
+      <section class="rank-perto" aria-labelledby="rankPertoTit">
+        <div class="rank-perto-topo">
+          <h2 id="rankPertoTit"><i data-lucide="users"></i> Perto de você</h2>
+          ${prox
+            ? `<p class="rank-meta"><i data-lucide="trending-up"></i><span>Faltam <strong>${prox.faltam} pt${prox.faltam === 1 ? '' : 's'}</strong> para passar ${esc(prox.nome)} e ficar em <strong>${prox.posicao}º</strong></span></p>`
+            : `<p class="rank-meta topo"><i data-lucide="crown"></i><span>Você está em <strong>1º lugar</strong>${dados.escopo === 'curso' ? ' no curso' : ''}! Continue assim.</span></p>`}
+        </div>
+        <div class="rank-lista">${perto.map(linhaPerto).join('')}</div>
+      </section>` : '';
+
     let lista;
     if (!dados.ranking.length) {
       lista = `<div class="rank-vazio">Ninguém pontuou ainda. Seja o primeiro! <i data-lucide="rocket"></i></div>`;
     } else {
-      lista = `<div class="rank-lista">` + dados.ranking.map(r => `
+      lista = `<div class="rank-lista" id="rankListaGeral">` + dados.ranking.map(r => `
         <div class="rank-row ${r.isMe ? 'eu' : ''}">
           <div class="col-pos ${medalha(r.posicao)}">${simbolo(r.posicao)}</div>
           <div class="col-nome">
@@ -1986,7 +2015,7 @@ const renderRanking = async () => {
           </div>`).join('') + `</div>`;
     }
 
-    el.innerHTML = rankInfo + toggle + cabecalhoEu + lista;
+    el.innerHTML = rankInfo + toggle + cabecalhoEu + cardPerto + (dados.ranking.length ? '<h2 class="rank-titulo-lista">Classificação</h2>' : '') + lista;
   } catch (e) {
     el.innerHTML = '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar o ranking.</p></div>';
   }
@@ -1994,7 +2023,8 @@ const renderRanking = async () => {
 
 // Rola até a linha do aluno no ranking e dá um destaque rápido
 const irParaMinhaPosicao = () => {
-  const linha = document.querySelector('#rankingContent .rank-row.eu');
+  // A linha do aluno na classificação (não a do card "Perto de você")
+  const linha = document.querySelector('#rankListaGeral .rank-row.eu, #rankVizinhos .rank-row.eu');
   if (!linha) return;
   linha.scrollIntoView({ behavior: semAnimacao() ? 'auto' : 'smooth', block: 'center' });
   linha.classList.remove('piscar'); void linha.offsetWidth; linha.classList.add('piscar');

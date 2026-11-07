@@ -96,7 +96,7 @@
     </div>
     <div class="topbar-right">
       <div class="topbar-actions" id="topbarActions"></div>
-      <button type="button" class="topbar-busca" onclick="abrirBusca()" aria-label="Busca rápida (Ctrl+K)" title="Busca rápida (Ctrl+K)">
+      <button type="button" class="topbar-busca" onclick="abrirBusca()" aria-label="Buscar Ctrl K" title="Busca rápida (Ctrl+K)">
         <i data-lucide="search"></i><span>Buscar</span><kbd>Ctrl K</kbd>
       </button>
       <button type="button" class="topbar-config" onclick="abrirConfig()" aria-label="Configurações" title="Configurações">
@@ -464,6 +464,15 @@
     </div>
   </footer>
 </main>
+
+<!-- Navegação de baixo (só no celular): as abas principais a um toque do polegar -->
+<nav class="nav-inferior" aria-label="Navegação principal">
+  <button type="button" class="nav-inf-item ativo" data-alvo="dashboard" aria-current="page" onclick="irParaSecao('dashboard')"><i data-lucide="layout-dashboard"></i><span>Início</span></button>
+  <button type="button" class="nav-inf-item" data-alvo="projetos" onclick="irParaSecao('projetos')"><i data-lucide="folder"></i><span>Projetos</span></button>
+  <button type="button" class="nav-inf-item" data-alvo="eventos" onclick="irParaSecao('eventos')"><i data-lucide="ticket"></i><span>Eventos</span></button>
+  <button type="button" class="nav-inf-item" data-alvo="conquistas" onclick="irParaSecao('conquistas')"><i data-lucide="trophy"></i><span>Conquistas</span></button>
+  <button type="button" class="nav-inf-item" data-alvo="ranking" onclick="irParaSecao('ranking')"><i data-lucide="trending-up"></i><span>Ranking</span></button>
+</nav>
 
 <!-- CONFIGURAÇÕES (painel lateral: perfil, dados do SUAP e aparência) -->
 <div class="config-overlay" id="configOverlay" onclick="fecharConfig()"></div>
