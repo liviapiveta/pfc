@@ -966,6 +966,12 @@ const renderEventos = () => {
 };
 
 const filtrarEventos = (k) => { state.evFiltro = k; renderEventos(); };
+// Clique em qualquer lugar do bloco do ranking no Dashboard → aba Ranking
+// (menos nos botões de dentro, como "Alterar" da privacidade, que têm ação própria)
+const abrirRankingDoPainel = (e) => {
+  if (e.target.closest('button, a, input')) return;
+  irParaSecao('ranking');
+};
 // Dashboard → aba Eventos, rolando até o evento clicado e destacando-o
 const abrirEventoDoDashboard = async (chave) => {
   state.evFiltro = 'todos';
@@ -1614,7 +1620,7 @@ const carregarDashboard = async () => {
       </div>
 
       <div class="dash-grid">
-        <div>
+        <div class="dash-col">
           <div class="dash-mini-row">
             <button type="button" class="dash-mini" onclick="abrirNiveis()" aria-haspopup="dialog">
               <span class="seta"><i data-lucide="arrow-right"></i></span>
@@ -1630,17 +1636,17 @@ const carregarDashboard = async () => {
             </button>
           </div>
 
-          <div class="dash-painel">
+          <div class="dash-painel dash-flex clicavel" onclick="abrirRankingDoPainel(event)" title="Abrir o Ranking">
             <div class="titulo">Ranking Geral</div>
-            ${podioHtml}
+            <div class="dash-rank-lista">${podioHtml}</div>
             <button type="button" class="rodape-link" onclick="irParaSecao('ranking')">Ver Ranking Completo</button>
           </div>
         </div>
 
-        <div class="dash-painel">
+        <div class="dash-painel dash-flex">
           <div class="titulo">Eventos</div>
           <div class="dash-timeline">${timelineHtml}</div>
-          <button type="button" class="rodape-link" onclick="irParaSecao('eventos')">Ver todos os eventos</button>
+          <button type="button" class="rodape-link" onclick="irParaSecao('eventos')">Ver todos os Eventos</button>
         </div>
       </div>
     `;
