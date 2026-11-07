@@ -53,7 +53,7 @@ const TEMAS = [
   { id: 'hc-claro',  nome: 'Alto contraste claro',  desc: 'Branco, preto e azul',    cores: ['#ffffff', '#000000', '#0033a0'] },
   { id: 'daltonico', nome: 'Daltonismo',          desc: 'Azul e laranja no lugar de verde e vermelho', cores: ['#1b1b1f', '#56b4e9', '#e69f00'] },
 ];
-const ACESS_PADRAO = { tema: 'dark', texto: 'normal', fonte: false, espaco: false, links: false, movimento: false };
+const ACESS_PADRAO = { tema: 'dark', texto: 'normal', fonte: false, espaco: false, links: false };
 
 const lerAcess = () => {
   try { return { ...ACESS_PADRAO, ...(JSON.parse(localStorage.getItem(ACESS_KEY) || '{}') || {}) }; }
@@ -68,7 +68,7 @@ const aplicarAcess = (p) => {
   attr('data-fonte', p.fonte ? 'legivel' : null);
   attr('data-espaco', p.espaco ? 'amplo' : null);
   attr('data-links', p.links ? 'destaque' : null);
-  attr('data-movimento', p.movimento ? 'reduzido' : null);
+  d.removeAttribute('data-movimento'); // opção antiga "Reduzir animações" (removida)
   if (p.fonte && !document.getElementById('fonteLegivel')) {
     const l = document.createElement('link');
     l.id = 'fonteLegivel'; l.rel = 'stylesheet';
@@ -84,7 +84,7 @@ const aplicarAcess = (p) => {
     const ativo = b.dataset.acessTexto === p.texto;
     b.classList.toggle('active', ativo); b.setAttribute('aria-checked', ativo);
   });
-  ['fonte', 'espaco', 'links', 'movimento'].forEach(k => {
+  ['fonte', 'espaco', 'links'].forEach(k => {
     const el = document.getElementById(`acess-${k}`);
     if (el) el.checked = !!p[k];
   });
@@ -138,7 +138,6 @@ const painelAcessibilidade = () => {
         ${chave('fonte', 'Fonte de leitura fácil', 'Atkinson Hyperlegible: criada pelo Braille Institute para baixa visão, com letras fáceis de distinguir.')}
         ${chave('espaco', 'Espaçamento de texto maior', 'Mais espaço entre linhas, letras e palavras.')}
         ${chave('links', 'Destacar links e botões', 'Sublinha os links e contorna tudo o que é clicável.')}
-        ${chave('movimento', 'Reduzir animações', 'Desliga transições e efeitos de movimento.')}
         <button type="button" class="acess-restaurar" onclick="restaurarAcess()"><i data-lucide="rotate-ccw"></i> Restaurar padrão</button>
       </div>
     </div>`;
@@ -927,16 +926,28 @@ const renderEventos = () => {
   const conta = (k) => base.filter(filtros[k]).length;
   const aba = (k, rot, ic) => `<button type="button" role="tab" class="ev-filtro ${state.evFiltro === k ? 'ativo' : ''}" aria-selected="${state.evFiltro === k}" onclick="filtrarEventos('${k}')">${ic ? `<i data-lucide="${ic}"></i>` : ''}${rot}<span>${conta(k)}</span></button>`;
 
-  // Um embaixo do outro, do último (mais recente/futuro) para o primeiro do ano
+  // Um embaixo do outro; o aluno escolhe: do mais recente para o mais antigo (padrão) ou o contrário
+  const recentes = state.evOrdem !== 'antigos';
   const lista = base.filter(filtros[state.evFiltro])
-    .sort((a, b) => ((_dataEv(b) || 0) - (_dataEv(a) || 0)) || String(b.hora_inicio || '').localeCompare(String(a.hora_inicio || '')));
+    .sort((a, b) => {
+      const d = ((_dataEv(b) || 0) - (_dataEv(a) || 0)) || String(b.hora_inicio || '').localeCompare(String(a.hora_inicio || ''));
+      return recentes ? d : -d;
+    });
 
   el.innerHTML = `
     ${cardInfo('eventos')}
     <div class="ev-filtros ev-filtros-3" role="tablist" aria-label="Filtrar eventos">
       ${aba('todos', 'Todos', '')}${aba('validar', 'Para validar', 'badge-check')}${aba('validados', 'Validados', 'check-check')}
     </div>
-    <p class="evc-ano"><i data-lucide="calendar-range"></i> Eventos de ${anoAtual} · do mais recente para o mais antigo</p>
+    <div class="evc-barra">
+      <p class="evc-ano"><i data-lucide="calendar-range"></i> Eventos de ${anoAtual}</p>
+      <label class="ordem-sel"><i data-lucide="arrow-down-up"></i><span class="sr-only">Ordenar eventos</span>
+        <select onchange="ordenarEventos(this.value)" aria-label="Ordenar eventos">
+          <option value="recentes" ${recentes ? 'selected' : ''}>Mais recentes</option>
+          <option value="antigos" ${recentes ? '' : 'selected'}>Mais antigos</option>
+        </select>
+      </label>
+    </div>
     ${lista.length
       ? `<div class="evc-lista">${lista.map(cartaoEvento).join('')}</div>`
       : `<div class="empty-state"><div class="icon"><i data-lucide="${state.evFiltro === 'validar' ? 'party-popper' : 'calendar'}"></i></div><p>${
@@ -946,6 +957,13 @@ const renderEventos = () => {
 };
 
 const filtrarEventos = (k) => { state.evFiltro = k; renderEventos(); };
+const ordenarEventos = (v) => {
+  state.evOrdem = v === 'antigos' ? 'antigos' : 'recentes';
+  try { localStorage.setItem('ifplenus-ev-ordem', state.evOrdem); } catch (e) { /* sem armazenamento */ }
+  renderEventos();
+  document.querySelector('.ordem-sel select')?.focus();
+};
+try { state.evOrdem = localStorage.getItem('ifplenus-ev-ordem') || 'recentes'; } catch (e) { /* sem armazenamento */ }
 
 const carregarEventos = async () => {
   state.loaded['eventos'] = true;
@@ -1574,12 +1592,11 @@ const carregarDashboard = async () => {
 };
 
 // ── Novidades: conquista nova / subiu de nível (com confetes) ──
-const semAnimacao = () =>
-  document.documentElement.hasAttribute('data-movimento') ||
-  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+// Respeita o ajuste de "reduzir movimento" do próprio sistema (celular/computador)
+const semAnimacao = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // Confetes desenhados num <canvas> (sem biblioteca externa). Respeita
-// "Reduzir animações" e o ajuste de movimento reduzido do sistema.
+// o ajuste de movimento reduzido do sistema.
 const soltarConfetes = (duracaoMs = 3200) => {
   if (semAnimacao()) return;
   const canvas = document.createElement('canvas');
@@ -1979,7 +1996,7 @@ const renderRanking = async () => {
 const irParaMinhaPosicao = () => {
   const linha = document.querySelector('#rankingContent .rank-row.eu');
   if (!linha) return;
-  linha.scrollIntoView({ behavior: document.documentElement.hasAttribute('data-movimento') ? 'auto' : 'smooth', block: 'center' });
+  linha.scrollIntoView({ behavior: semAnimacao() ? 'auto' : 'smooth', block: 'center' });
   linha.classList.remove('piscar'); void linha.offsetWidth; linha.classList.add('piscar');
   linha.setAttribute('tabindex', '-1'); linha.focus({ preventScroll: true });
 };
@@ -2106,7 +2123,7 @@ const _itensBusca = () => [
   { titulo: 'Minha posição no ranking', grupo: 'Ações', icone: 'trending-up', termos: 'onde estou', acao: () => irParaSecao('ranking') },
   { titulo: 'Configurações', grupo: 'Configurações', icone: 'settings', acao: () => abrirConfig() },
   { titulo: 'Tema (escuro, claro, alto contraste…)', grupo: 'Configurações', icone: 'palette', termos: 'cores modo escuro claro daltonismo', acao: () => abrirConfig('tema') },
-  { titulo: 'Acessibilidade', grupo: 'Configurações', icone: 'accessibility', termos: 'fonte texto tamanho animacoes', acao: () => abrirConfig('acessibilidade') },
+  { titulo: 'Acessibilidade', grupo: 'Configurações', icone: 'accessibility', termos: 'fonte texto tamanho espacamento links', acao: () => abrirConfig('acessibilidade') },
   { titulo: 'Notificações por e-mail', grupo: 'Configurações', icone: 'mail', termos: 'email avisos', acao: () => abrirConfig('notificacoes') },
   { titulo: 'Privacidade no ranking', grupo: 'Configurações', icone: 'eye', termos: 'anonimo oculto', acao: () => abrirConfig('privacidade') },
   { titulo: 'Meus dados do SUAP', grupo: 'Configurações', icone: 'user', termos: 'perfil curso matricula', acao: () => abrirConfig('dados') },

@@ -793,6 +793,12 @@
     .proj-area-tabs button.ativo { background:var(--verde); color:#06281a; border-color:var(--verde); }
 
     /* ── Eventos / presenças / QR / busca ── */
+    .ev-ordem-barra { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:0.5rem 1rem; margin-bottom:1rem; color:var(--texto-2); font-size:0.88rem; }
+    .ev-ordem-barra > span { display:inline-flex; align-items:center; gap:0.4rem; }
+    .ordem-sel { display:inline-flex; align-items:center; gap:0.4rem; color:var(--cinza); }
+    .ordem-sel select { font:inherit; font-size:0.85rem; color:var(--texto); background:var(--card); cursor:pointer; border:1px solid var(--borda); border-radius:10px; padding:0.45rem 0.7rem; min-height:38px; }
+    .ordem-sel select:hover, .ordem-sel select:focus-visible { border-color:var(--verde); }
+    @media (max-width: 768px) { .ordem-sel select { font-size:16px; min-height:42px; } }
     .sec-desc { color:var(--texto-2); font-size:0.85rem; margin-bottom:1rem; line-height:1.6; }
     .cab-acoes { display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; }
     .filtro-select { border:1.5px solid var(--borda); border-radius:9px; padding:0.45rem 0.7rem; background:var(--bg-2); color:var(--texto); font:inherit; font-size:0.84rem; }
@@ -1072,6 +1078,15 @@
 
     <!-- EVENTOS -->
     <section class="section" id="section-eventos">
+      <div class="ev-ordem-barra">
+        <span><i data-lucide="calendar-range"></i> Eventos de <span id="evAnoAtual"></span></span>
+        <label class="ordem-sel"><i data-lucide="arrow-down-up"></i>
+          <select id="evOrdemSel" onchange="ordenarEventosAdmin(this.value)" aria-label="Ordenar eventos">
+            <option value="recentes">Mais recentes</option>
+            <option value="antigos">Mais antigos</option>
+          </select>
+        </label>
+      </div>
       <div class="card">
         <div class="card-header">
           <span class="card-title">Eventos</span>
@@ -1429,7 +1444,11 @@ const carregarLista = async (tipo) => {
     const busca = document.getElementById('presBusca'); if (busca) busca.value = '';
     return carregarPresencas();
   }
-  if (tipo === 'eventos')    carregarEventosSuap();
+  if (tipo === 'eventos') {
+    const ano = document.getElementById('evAnoAtual'); if (ano) ano.textContent = new Date().getFullYear();
+    const sel = document.getElementById('evOrdemSel'); if (sel) sel.value = state.evOrdem === 'antigos' ? 'antigos' : 'recentes';
+    carregarEventosSuap();
+  }
 
   const elMap = { eventos: 'eventosList', solicitacoes: 'solicitacoesList' };
   const el = document.getElementById(elMap[tipo]);
@@ -1586,17 +1605,25 @@ const renderTabelaProjetos = (dados, tipo) => {
   </div>`;
 };
 
-// Eventos do painel: só os do ano atual, do último para o primeiro
+// Eventos do painel: só os do ano atual; ordem escolhida no seletor (padrão: mais recentes primeiro)
+try { state.evOrdem = localStorage.getItem('ifplenus-admin-ev-ordem') || 'recentes'; } catch (e) { state.evOrdem = 'recentes'; }
+const ordenarEventosAdmin = (v) => {
+  state.evOrdem = v === 'antigos' ? 'antigos' : 'recentes';
+  try { localStorage.setItem('ifplenus-admin-ev-ordem', state.evOrdem); } catch (e) { /* sem armazenamento */ }
+  carregarLista('eventos');
+};
 const anoDe = (v) => { const m = String(v || '').match(/^(\d{4})-/); return m ? Number(m[1]) : null; };
 const eventosDoAno = (lista) => {
   const ano = new Date().getFullYear();
   const doAno = lista.filter(ev => anoDe(ev.data_inicio) === ano || anoDe(ev.data_fim) === ano);
-  doAno.sort((a, b) => String(b.data_inicio || '').localeCompare(String(a.data_inicio || '')));
+  const recentes = state.evOrdem !== 'antigos';
+  doAno.sort((a, b) => {
+    const d = String(b.data_inicio || '').localeCompare(String(a.data_inicio || ''));
+    return recentes ? d : -d;
+  });
   return { ano, lista: doAno, outros: lista.length - doAno.length };
 };
-const avisoOutrosAnos = (n, ano) => n
-  ? `<p class="sub-cel ev-outros-anos"><i data-lucide="calendar-range"></i> Mostrando só os eventos de ${ano}, do mais recente para o mais antigo (${n} de outros anos ${n === 1 ? 'fica' : 'ficam'} de fora).</p>`
-  : `<p class="sub-cel ev-outros-anos"><i data-lucide="calendar-range"></i> Eventos de ${ano}, do mais recente para o mais antigo.</p>`;
+const avisoOutrosAnos = () => ''; // (aviso removido: só os eventos do ano aparecem, sem texto extra)
 
 const renderTabelaEventos = (todos) => {
   const { ano, lista: dados, outros } = eventosDoAno(todos);
@@ -3099,6 +3126,7 @@ const carregarConquistasParaEvento = async (selecionada) => {
 // Pendências na barra lateral (atualiza ao abrir o painel)
 // ── Card "Como funciona" no topo de cada aba ───────────────
 const INFO_ADMIN = {
+  overview: ['layout-dashboard', 'Bem-vindo ao Painel Administrativo', 'Aqui você cuida do que os alunos veem no portal: cadastra <strong>projetos</strong> e <strong>eventos</strong>, valida a <strong>presença</strong> nos eventos (QR Code ou certificado), responde às <strong>solicitações</strong> e entrega <strong>conquistas</strong>. Tudo complementa o que já vem do SUAP. Os cartões abaixo levam direto para o que precisa da sua atenção.'],
   projetos: ['folder-open', 'Projetos', 'Cadastre projetos de <strong>pesquisa</strong> e <strong>extensão</strong> do campus. Os do SUAP aparecem sozinhos (somente leitura). Os alunos pedem para participar e os pedidos chegam em <strong>Solicitações</strong>.'],
   eventos: ['ticket', 'Eventos', 'Cadastre os eventos do campus ou configure os que vêm do SUAP: escolha se o aluno valida a presença pelo <strong>certificado</strong> e/ou pelo <strong>QR Code do e-mail de inscrição</strong>, e qual <strong>conquista</strong> ele ganha.'],
   presencas: ['badge-check', 'Presenças', 'Aqui chegam as validações de presença dos alunos. <strong>Certificados</strong> sempre esperam sua aprovação; <strong>QR Codes</strong> que batem com o padrão do evento entram validados. Qualquer servidor pode aprovar, recusar ou desfazer.'],
