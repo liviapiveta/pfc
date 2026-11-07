@@ -420,6 +420,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     document.querySelectorAll('.nav-item').forEach(i => { i.classList.remove('active'); i.removeAttribute('aria-current'); });
     item.classList.add('active');
     item.setAttribute('aria-current', 'page');
+    if (sec === 'dashboard') requestAnimationFrame(preencherRankingDash);
     window.scrollTo(0, 0); // nova aba começa do topo (no celular ficava no meio da página)
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById(`section-${sec}`).classList.add('active');
@@ -966,6 +967,32 @@ const renderEventos = () => {
 };
 
 const filtrarEventos = (k) => { state.evFiltro = k; renderEventos(); };
+// Dashboard: quando o bloco do ranking fica mais alto que o conteúdo (por estar
+// ao lado dos Eventos), mostra os próximos colocados até preencher o espaço
+const preencherRankingDash = () => {
+  const lista = document.querySelector('#section-dashboard .dash-rank-lista');
+  if (!lista || !lista.offsetParent) return; // Dashboard escondido: mede quando voltar a ele
+  const extras = [...lista.querySelectorAll('.dash-rank-row.extra')];
+  extras.forEach(r => { r.hidden = true; });
+  // Uma coluna só (celular/tablet em pé): ficam os 5 primeiros
+  const grid = lista.closest('.dash-grid');
+  if (!grid || getComputedStyle(grid).gridTemplateColumns.split(' ').length < 2) return;
+  const col = lista.closest('.dash-col');
+  const evPainel = grid.querySelector(':scope > .dash-painel');
+  if (!col || !evPainel) return;
+  // Mede as alturas "naturais" (sem esticar) e mostra colocados enquanto couber
+  grid.style.alignItems = 'start';
+  const alvo = evPainel.getBoundingClientRect().height;
+  for (const r of extras) {
+    r.hidden = false;
+    if (col.getBoundingClientRect().height > alvo + 1) { r.hidden = true; break; }
+  }
+  grid.style.alignItems = '';
+};
+let _preencherTimer;
+window.addEventListener('resize', () => { clearTimeout(_preencherTimer); _preencherTimer = setTimeout(preencherRankingDash, 150); });
+document.fonts?.ready?.then(() => preencherRankingDash()); // as fontes mudam a altura das linhas
+
 // Clique em qualquer lugar do bloco do ranking no Dashboard → aba Ranking
 // (menos nos botões de dentro, como "Alterar" da privacidade, que têm ação própria)
 const abrirRankingDoPainel = (e) => {
@@ -1525,13 +1552,14 @@ const carregarDashboard = async () => {
       return isNaN(d) ? { dia: '–', mes: '' } : { dia: String(d.getDate()).padStart(2,'0'), mes: MESES[d.getMonth()] };
     };
 
-    // ── Ranking: os 5 primeiros colocados ──
-    const top5 = (rank?.ranking || []).slice(0, 5);
+    // ── Ranking: os 5 primeiros sempre; mais alguns (escondidos) para preencher
+    //    o bloco quando ele fica alto ao lado dos Eventos (tablet/PC) ──
+    const top5 = (rank?.ranking || []).slice(0, 20);
     const podioHtml = avisoPrivacidade(rank?.eu, true) + (top5.length
-      ? top5.map(r => {
+      ? top5.map((r, i) => {
           const cls = r.posicao === 1 ? 'ouro' : r.posicao === 2 ? 'prata' : r.posicao === 3 ? 'bronze' : '';
           return `
-            <div class="dash-rank-row ${r.isMe ? 'eu' : ''}">
+            <div class="dash-rank-row ${r.isMe ? 'eu' : ''} ${i >= 5 ? 'extra' : ''}" ${i >= 5 ? 'hidden' : ''}>
               <div class="pos ${cls}">${r.posicao}º</div>
               <div class="av"><i data-lucide="user"></i></div>
               <div class="nm">${esc(r.nome)}${r.isMe ? ` (Você)${chipPriv(rank?.eu)}` : ''}</div>
@@ -1650,6 +1678,7 @@ const carregarDashboard = async () => {
         </div>
       </div>
     `;
+    requestAnimationFrame(preencherRankingDash);
   } catch (e) {
     el.innerHTML = '<div class="empty-state"><div class="icon"><i data-lucide="alert-triangle"></i></div><p>Erro ao carregar o painel.</p></div>';
   }
