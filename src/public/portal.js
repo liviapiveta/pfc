@@ -377,7 +377,7 @@ const INFO_ABAS = {
   eventos: { ic: 'ticket', titulo: 'Como validar sua presença', texto: 'Foi a um evento? Clique em <strong>“Validar participação”</strong> e envie o <strong>certificado</strong> ou o <strong>QR Code do seu e-mail de inscrição</strong>. Presença validada vale pontos e entra na sua trajetória.' },
   conquistas: { ic: 'trophy', titulo: 'Como funcionam as conquistas', texto: 'Cada conquista vale pontos. Algumas chegam <strong>sozinhas</strong> (notas, projetos, eventos) e outras são dadas por um <strong>professor</strong>. As que você ainda não tem mostram como ganhar.' },
   ranking: { ic: 'trending-up', titulo: 'Como o ranking funciona', texto: 'Os alunos ficam em ordem de <strong>pontos</strong>. No empate, fica na frente quem chegou primeiro àquele total. Em <strong>Configurações</strong> você escolhe aparecer com nome, como anônimo ou ficar oculto.' },
-  trajetoria: { ic: 'route', titulo: 'Sua história no campus', texto: 'Tudo o que você conquistou aqui fica registrado: <strong>conquistas</strong>, <strong>projetos</strong> e <strong>eventos</strong>, do mais recente ao mais antigo. Dá para imprimir e usar no currículo.' },
+  trajetoria: { ic: 'route', titulo: 'Sua história no campus', texto: 'Tudo o que você conquistou aqui fica registrado: <strong>conquistas</strong>, <strong>projetos</strong> e <strong>eventos</strong>, do mais recente ao mais antigo, com a data e o horário de cada um.' },
 };
 const _infoOcultos = () => { try { return JSON.parse(localStorage.getItem('ifplenus-info-ocultos') || '[]'); } catch (e) { return []; } };
 const cardInfo = (aba) => {
@@ -420,12 +420,6 @@ document.querySelectorAll('.nav-item').forEach(item => {
     document.querySelectorAll('.nav-item').forEach(i => { i.classList.remove('active'); i.removeAttribute('aria-current'); });
     item.classList.add('active');
     item.setAttribute('aria-current', 'page');
-    // Barra de baixo (celular) acompanha a aba aberta
-    document.querySelectorAll('.nav-inf-item').forEach(b => {
-      const on = b.dataset.alvo === sec;
-      b.classList.toggle('ativo', on);
-      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
-    });
     window.scrollTo(0, 0); // nova aba começa do topo (no celular ficava no meio da página)
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById(`section-${sec}`).classList.add('active');
@@ -897,7 +891,8 @@ const cartaoEvento = (ev) => {
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
   const fim = dataLocal(ev.data_fim) || dt;
   const classes = ['evc', ev.minhaPresenca?.status === 'aprovada' ? 'feito' : '', fim && fim < hoje ? 'passou' : ''].filter(Boolean).join(' ');
-  return `<article class="${classes}">
+  const busca = normalizarTexto(`${ev.nome || ev.titulo || ''} ${ev.local || ev.localizacao || ''} ${_periodoEv(ev)} ${ev.origem === 'suap' ? 'suap' : 'campus'}`);
+  return `<article class="${classes}" data-busca="${esc(busca)}">
     <div class="evc-data" aria-hidden="true"><span class="m">${dt ? MESES[dt.getMonth()] : ''}</span><span class="d">${dt ? dt.getDate() : '—'}</span></div>
     <div class="evc-corpo">
       <h4>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${nome}</a>` : nome}</h4>
@@ -945,29 +940,50 @@ const renderEventos = () => {
     <div class="ev-filtros ev-filtros-3" role="tablist" aria-label="Filtrar eventos">
       ${aba('todos', 'Todos', '')}${aba('validar', 'Para validar', 'badge-check')}${aba('validados', 'Validados', 'check-check')}
     </div>
+    <div class="proj-filtros ev-busca-linha" role="search">
+      <label class="proj-busca">
+        <i data-lucide="search"></i>
+        <span class="sr-only">Buscar eventos por nome, local ou data</span>
+        <input type="search" id="evBusca" placeholder="Buscar evento…" title="Busque por nome, local ou data" value="${esc(state.evBusca || '')}" oninput="buscarEventos()" />
+      </label>
+      <span class="proj-contagem" id="evContagem" aria-live="polite"></span>
+    </div>
     <div class="evc-barra">
       <p class="evc-ano"><i data-lucide="calendar-range"></i> Eventos de ${anoAtual}</p>
-      <label class="ordem-sel"><i data-lucide="arrow-down-up"></i><span class="sr-only">Ordenar eventos</span>
-        <select onchange="ordenarEventos(this.value)" aria-label="Ordenar eventos">
-          <option value="recentes" ${recentes ? 'selected' : ''}>Mais recentes</option>
-          <option value="antigos" ${recentes ? '' : 'selected'}>Mais antigos</option>
-        </select>
-      </label>
+      <button type="button" class="btn-ordem" onclick="ordenarEventos('${recentes ? 'antigos' : 'recentes'}')" title="Inverter a ordem dos eventos">
+        <i data-lucide="${recentes ? 'arrow-down-wide-narrow' : 'arrow-up-narrow-wide'}"></i>
+        <span>${recentes ? 'Mais recentes primeiro' : 'Mais antigos primeiro'}</span>
+      </button>
     </div>
     ${lista.length
       ? `<div class="evc-lista">${lista.map(cartaoEvento).join('')}</div>`
       : `<div class="empty-state"><div class="icon"><i data-lucide="${state.evFiltro === 'validar' ? 'party-popper' : 'calendar'}"></i></div><p>${
           state.evFiltro === 'validar' ? 'Nada para validar agora. 🎉'
           : state.evFiltro === 'validados' ? 'Você ainda não validou presença em nenhum evento.'
-          : `Nenhum evento encontrado para ${anoAtual}.`}</p></div>`}`;
+          : `Nenhum evento encontrado para ${anoAtual}.`}</p></div>`}
+    <div class="empty-state ev-sem-resultado" hidden><div class="icon"><i data-lucide="search-x"></i></div><p>Nenhum evento com essa busca.</p></div>`;
+  if (state.evBusca) buscarEventos();
 };
 
 const filtrarEventos = (k) => { state.evFiltro = k; renderEventos(); };
+// Busca na lista de eventos (sem redesenhar: o foco continua no campo)
+const buscarEventos = () => {
+  const bruto = document.getElementById('evBusca')?.value || '';
+  state.evBusca = bruto;
+  const termos = normalizarTexto(bruto).trim().split(/\s+/).filter(Boolean);
+  const cards = document.querySelectorAll('#eventosContent .evc');
+  let vis = 0;
+  cards.forEach(c => { const ok = termos.every(t => (c.dataset.busca || '').includes(t)); c.hidden = !ok; if (ok) vis++; });
+  const vazio = document.querySelector('#eventosContent .ev-sem-resultado');
+  if (vazio) vazio.hidden = !(cards.length && !vis);
+  const cont = document.getElementById('evContagem');
+  if (cont) cont.textContent = termos.length ? `${vis} de ${cards.length} evento(s)` : '';
+};
 const ordenarEventos = (v) => {
   state.evOrdem = v === 'antigos' ? 'antigos' : 'recentes';
   try { localStorage.setItem('ifplenus-ev-ordem', state.evOrdem); } catch (e) { /* sem armazenamento */ }
   renderEventos();
-  document.querySelector('.ordem-sel select')?.focus();
+  document.querySelector('#eventosContent .btn-ordem')?.focus();
 };
 try { state.evOrdem = localStorage.getItem('ifplenus-ev-ordem') || 'recentes'; } catch (e) { /* sem armazenamento */ }
 
@@ -1519,7 +1535,7 @@ const carregarDashboard = async () => {
 
     let timelineHtml = '';
     // Futuros no topo (o mais próximo recebe destaque "proximo")
-    futuros.slice(0, 4).reverse().forEach(ev => {       // os 4 mais perto; reverse: mais distante em cima
+    futuros.slice(0, 3).reverse().forEach(ev => {       // o próximo + os 2 seguintes; reverse: mais distante em cima
       const ehProximo = idEv(ev) === idProximo;
       timelineHtml += linhaEvento(ev, ehProximo ? 'futuro proximo' : 'futuro');
     });
@@ -1532,7 +1548,7 @@ const carregarDashboard = async () => {
         </div>`;
     }
     // Passados embaixo
-    passados.slice(0, 3).forEach(ev => { timelineHtml += linhaEvento(ev, 'passado'); });
+    passados.slice(0, 2).forEach(ev => { timelineHtml += linhaEvento(ev, 'passado'); });   // os 2 anteriores
 
     if (!comData.length) {
       timelineHtml = `<div style="color:var(--cinza);font-size:0.88rem;padding:0.5rem 0">Nenhum evento no calendário ainda. <i data-lucide="sprout"></i></div>`;
@@ -2125,7 +2141,6 @@ const renderTrajetoria = () => {
       <div class="ev-filtros" role="tablist" aria-label="Filtrar trajetória">
         ${aba('', 'Tudo', itens.length)}${aba('conquista', 'Conquistas', r.conquistas)}${aba('projeto', 'Projetos', r.projetos)}${aba('evento', 'Eventos', r.eventos)}
       </div>
-      <button type="button" class="btn-link-ev traj-imprimir" onclick="window.print()"><i data-lucide="printer"></i> Imprimir</button>
     </div>
     ${lista.length ? grupos.map(g => `
       <section class="traj-mes">
