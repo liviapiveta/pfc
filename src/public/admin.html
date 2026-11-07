@@ -816,6 +816,30 @@
       .acoes-menu button, .acoes-menu a { width:100%; justify-content:flex-start !important; border:none !important; background:none; min-height:44px; padding:0 0.75rem; font-size:0.9rem; }
       .acoes-menu button:hover, .acoes-menu a:hover { background:rgba(255,255,255,0.06); }
     }
+    /* ── Rodapé (igual ao do portal do aluno) ─────────────────── */
+    .main { display: flex; flex-direction: column; }
+    .main > .content { flex: 1; }
+    .site-footer {
+      background: #121214; color: rgba(255,255,255,0.72);
+      padding: 2.4rem clamp(1rem, 4vw, 2.5rem) 1.3rem; border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    .footer-cols { display: grid; gap: 2rem 2.5rem; width: 100%; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1fr); }
+    .footer-logo { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem; color: #fff; letter-spacing: -0.5px; line-height: 1; }
+    .footer-logo-img { width: 28px; height: 28px; object-fit: contain; display: block; flex-shrink: 0; }
+    .footer-nome { white-space: nowrap; }
+    .footer-nome span { color: var(--verde); }
+    .footer-about p { font-size: 0.86rem; line-height: 1.65; max-width: 46ch; color: rgba(255,255,255,0.66); }
+    .footer-col h3 { font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.7rem; }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.15rem; margin: 0; padding: 0; }
+    .footer-col a { display: inline-flex; align-items: center; min-height: 32px; color: rgba(255,255,255,0.66); text-decoration: none; font-size: 0.88rem; transition: color 0.15s; }
+    .footer-col a:hover, .footer-col a:focus-visible { color: var(--verde); }
+    .footer-bottom { margin-top: 1.8rem; padding-top: 1.1rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; font-size: 0.78rem; color: rgba(255,255,255,0.55); }
+    .footer-priv { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 32px; color: rgba(255,255,255,0.7); text-decoration: none; }
+    .footer-priv:hover, .footer-priv:focus-visible { color: var(--verde); }
+    .footer-priv svg { width: 15px; height: 15px; }
+    @media (max-width: 860px) { .footer-cols { grid-template-columns: 1fr 1fr; } .footer-about { grid-column: 1 / -1; } }
+    @media (max-width: 767px) { .footer-col a { min-height: 40px; } }
+    @media (max-width: 380px) { .footer-cols { grid-template-columns: 1fr; } }
     .ev-ordem-barra { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:0.5rem 1rem; margin-bottom:1rem; color:var(--texto-2); font-size:0.88rem; }
     .ev-ordem-barra > span { display:inline-flex; align-items:center; gap:0.4rem; }
     .btn-ordem { display:inline-flex; align-items:center; gap:0.45rem; min-height:40px; padding:0.45rem 0.9rem; border-radius:99px; cursor:pointer; font:inherit; font-size:0.85rem; font-weight:600; background:var(--card); color:var(--texto); border:1px solid var(--borda); transition:border-color .15s, color .15s; }
@@ -1248,6 +1272,38 @@
     </section>
 
   </div>
+
+  <!-- Rodapé: o mesmo do portal do aluno -->
+  <footer class="site-footer">
+    <div class="footer-cols">
+      <div class="footer-col footer-about">
+        <h2 class="footer-logo"><img src="/images/logo.svg" alt="" width="28" height="28" class="footer-logo-img" /><span class="footer-nome">IF<span>Plenus</span></span></h2>
+        <p>Painel Administrativo do IFPlenus — IFPR Campus Assis Chateaubriand: projetos, eventos, presenças e conquistas dos alunos, integrados ao SUAP.</p>
+      </div>
+
+      <div class="footer-col">
+        <h3>Acadêmico</h3>
+        <ul>
+          <li><a href="#" onclick="irSecaoAdmin('projetos'); return false;">Projetos</a></li>
+          <li><a href="#" onclick="irSecaoAdmin('eventos'); return false;">Eventos</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h3>Institucional</h3>
+        <ul>
+          <li><a href="https://www.ifpr.edu.br" target="_blank" rel="noopener">Site do IFPR</a></li>
+          <li><a href="https://suap.ifpr.edu.br" target="_blank" rel="noopener">SUAP IFPR</a></li>
+          <li><a href="/privacidade">Política de Privacidade</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© <span id="footerYear"></span> IFPlenus · IFPR — Instituto Federal do Paraná</span>
+      <a class="footer-priv" href="/privacidade"><i data-lucide="shield-check"></i> Política de Privacidade</a>
+    </div>
+  </footer>
 </main>
 
 <!-- MODAL -->
@@ -2549,6 +2605,7 @@ document.addEventListener('keydown', (e) => {
 
 // Vai para uma seção do painel (como clicar no menu)
 const irSecaoAdmin = (secao) => document.querySelector(`.nav-item[data-section="${secao}"]`)?.click();
+{ const ano = document.getElementById('footerYear'); if (ano) ano.textContent = new Date().getFullYear(); }
 
 // ─────────────────────────────────────────────────────
 // Toast
