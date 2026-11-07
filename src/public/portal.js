@@ -892,7 +892,7 @@ const cartaoEvento = (ev) => {
   const fim = dataLocal(ev.data_fim) || dt;
   const classes = ['evc', ev.minhaPresenca?.status === 'aprovada' ? 'feito' : '', fim && fim < hoje ? 'passou' : ''].filter(Boolean).join(' ');
   const busca = normalizarTexto(`${ev.nome || ev.titulo || ''} ${ev.local || ev.localizacao || ''} ${_periodoEv(ev)} ${ev.origem === 'suap' ? 'suap' : 'campus'}`);
-  return `<article class="${classes}" data-busca="${esc(busca)}">
+  return `<article class="${classes}" data-busca="${esc(busca)}" data-chave="${esc(ev.chave || '')}" tabindex="-1">
     <div class="evc-data" aria-hidden="true"><span class="m">${dt ? MESES[dt.getMonth()] : ''}</span><span class="d">${dt ? dt.getDate() : '—'}</span></div>
     <div class="evc-corpo">
       <h4>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${nome}</a>` : nome}</h4>
@@ -966,6 +966,21 @@ const renderEventos = () => {
 };
 
 const filtrarEventos = (k) => { state.evFiltro = k; renderEventos(); };
+// Dashboard → aba Eventos, rolando até o evento clicado e destacando-o
+const abrirEventoDoDashboard = async (chave) => {
+  state.evFiltro = 'todos';
+  state.evBusca = '';
+  irParaSecao('eventos');
+  if (state.eventos) renderEventos(); // aba já carregada: mostra "Todos" sem busca
+  const achar = () => chave && document.querySelector(`#eventosContent .evc[data-chave="${CSS.escape(chave)}"]`);
+  let card = achar();
+  for (let i = 0; !card && i < 30; i++) { await new Promise(r => setTimeout(r, 150)); card = achar(); }
+  if (!card) return;
+  card.scrollIntoView({ behavior: semAnimacao() ? 'auto' : 'smooth', block: 'center' });
+  card.focus({ preventScroll: true });
+  card.classList.add('evc-destaque');
+  setTimeout(() => card.classList.remove('evc-destaque'), 2400);
+};
 // Busca na lista de eventos (sem redesenhar: o foco continua no campo)
 const buscarEventos = () => {
   const bruto = document.getElementById('evBusca')?.value || '';
@@ -1460,6 +1475,25 @@ const irParaSecao = (sec) => {
   if (item) item.click();
 };
 
+// ── Privacidade no ranking: aviso visível e etiqueta na própria linha ──
+const privDe = (eu) => (eu?.oculto ? 'oculto' : eu?.anonimo ? 'anonimo' : 'nome');
+const avisoPrivacidade = (eu, compacto = false) => {
+  const priv = privDe(eu);
+  if (priv === 'nome') return '';
+  const txt = priv === 'oculto'
+    ? (compacto ? 'Você está <strong>oculto</strong>: os outros alunos não te veem no ranking.' : 'Você está <strong>oculto</strong> no ranking: os outros alunos não veem seu nome nem sua posição. Seus pontos e níveis continuam valendo.')
+    : (compacto ? 'Você aparece como <strong>“Aluno anônimo”</strong> para os outros.' : 'Você está <strong>anônimo</strong>: para os outros alunos, seu nome aparece como <strong>“Aluno anônimo”</strong>. Só você vê seu nome aqui.');
+  return `<div class="priv-aviso ${priv}" role="status">
+    <i data-lucide="${priv === 'oculto' ? 'eye-off' : 'venetian-mask'}"></i>
+    <span>${txt}</span>
+    <button type="button" class="priv-alterar" onclick="abrirConfig('privacidade')">Alterar</button>
+  </div>`;
+};
+const chipPriv = (eu) => {
+  const priv = privDe(eu);
+  return priv === 'anonimo' ? '<span class="priv-chip" title="Os outros alunos veem “Aluno anônimo”"><i data-lucide="venetian-mask"></i> anônimo</span>' : '';
+};
+
 const carregarDashboard = async () => {
   state.loaded['dashboard'] = true;
   const el = document.getElementById('dashboardContent');
@@ -1485,20 +1519,20 @@ const carregarDashboard = async () => {
       return isNaN(d) ? { dia: '–', mes: '' } : { dia: String(d.getDate()).padStart(2,'0'), mes: MESES[d.getMonth()] };
     };
 
-    // ── Pódio do ranking (top 3) ──
-    const top3 = (rank?.ranking || []).slice(0, 3);
-    const podioHtml = top3.length
-      ? top3.map(r => {
+    // ── Ranking: os 5 primeiros colocados ──
+    const top5 = (rank?.ranking || []).slice(0, 5);
+    const podioHtml = avisoPrivacidade(rank?.eu, true) + (top5.length
+      ? top5.map(r => {
           const cls = r.posicao === 1 ? 'ouro' : r.posicao === 2 ? 'prata' : r.posicao === 3 ? 'bronze' : '';
           return `
             <div class="dash-rank-row ${r.isMe ? 'eu' : ''}">
               <div class="pos ${cls}">${r.posicao}º</div>
               <div class="av"><i data-lucide="user"></i></div>
-              <div class="nm">${esc(r.nome)}${r.isMe ? ' (Você)' : ''}</div>
+              <div class="nm">${esc(r.nome)}${r.isMe ? ` (Você)${chipPriv(rank?.eu)}` : ''}</div>
               <div class="xp">${r.pontos} pts</div>
             </div>`;
         }).join('')
-      : `<div style="color:var(--cinza);font-size:0.88rem;padding:0.5rem 0">Ninguém pontuou ainda. <i data-lucide="rocket"></i></div>`;
+      : `<div style="color:var(--cinza);font-size:0.88rem;padding:0.5rem 0">Ninguém pontuou ainda. <i data-lucide="rocket"></i></div>`);
 
     // ── Timeline de eventos (passados + futuros) ──
     const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
@@ -1506,7 +1540,8 @@ const carregarDashboard = async () => {
       .map(ev => ({ ...ev, _d: dataLocal(ev.data_inicio || ev.data) }))
       .filter(ev => ev._d);
 
-    const futuros  = comData.filter(ev => ev._d >= hoje).sort((a,b) => a._d - b._d); // mais perto primeiro
+    // Só eventos do ano atual (os mesmos da aba Eventos — assim o clique sempre acha o evento)
+    const futuros  = comData.filter(ev => ev._d >= hoje && ev._d.getFullYear() === hoje.getFullYear()).sort((a,b) => a._d - b._d); // mais perto primeiro
     // Passados: só os do ano atual (os de anos anteriores não dá mais para validar)
     const passados = comData.filter(ev => ev._d < hoje && ev._d.getFullYear() === hoje.getFullYear()).sort((a,b) => b._d - a._d); // mais recente primeiro
 
@@ -1524,13 +1559,14 @@ const carregarDashboard = async () => {
         : (classe === 'passado' && ev.jaComecou && (ev.validacao?.certificado || ev.validacao?.qrcode)) ? 'participou? valide a presença' : '';
       const linha2 = [local, pres].filter(Boolean).join(' · ');
       return `
-        <div class="dash-tl-item ${classe}">
+        <button type="button" class="dash-tl-item ${classe}" onclick="abrirEventoDoDashboard('${esc(ev.chave || '')}')" aria-label="Ver o evento ${esc(ev.nome || 'Evento')} na aba Eventos">
           <div class="dash-tl-data"><div class="dia">${dia}</div><div class="mes">${mes}</div></div>
           <div class="dash-tl-corpo">
             <div class="n">${esc(ev.nome || 'Evento')}</div>
             ${linha2 ? `<div class="s">${esc(linha2)}</div>` : ''}
           </div>
-        </div>`;
+          <i data-lucide="chevron-right" class="dash-tl-seta" aria-hidden="true"></i>
+        </button>`;
     };
 
     let timelineHtml = '';
@@ -1963,18 +1999,18 @@ const renderRanking = async () => {
     const eu = dados.eu || {};
     const nivelEu = eu.nivel ? `<span class="col-nivel">Nível ${eu.nivel.nivel} · ${esc(eu.nivel.nome)}</span>` : '';
     const vizinhos = Array.isArray(dados.vizinhos) ? dados.vizinhos : [];
-    const cabecalhoEu = `
+    const cabecalhoEu = avisoPrivacidade(eu) + `
       <div class="rank-eu">
         <div class="pos">${eu.posicao ? `${eu.posicao}º` : '—'}</div>
         <div class="meta">
           <div class="n">${esc(eu.nome || 'Você')}${nivelEu}</div>
           <div class="s">${eu.oculto
-            ? 'Você está <strong>oculto</strong> no ranking — os outros alunos não te veem.'
-            : `Sua posição ${dados.escopo === 'curso' ? 'no curso' : 'geral'} · entre ${dados.total} aluno(s)${eu.anonimo ? ' · aparece como anônimo' : ''}`}</div>
+            ? 'Fora da lista enquanto estiver oculto'
+            : `Sua posição ${dados.escopo === 'curso' ? 'no curso' : 'geral'} · entre ${dados.total} aluno(s)`}</div>
         </div>
         <div class="pts"><i data-lucide="star"></i> ${eu.pontos || 0}</div>
         ${eu.oculto
-          ? `<button type="button" class="rank-onde" onclick="abrirConfig('privacidade')"><i data-lucide="eye"></i> Privacidade</button>`
+          ? ''
           : eu.posicao ? `<button type="button" class="rank-onde" onclick="irParaMinhaPosicao()"><i data-lucide="locate-fixed"></i> Ver onde estou</button>` : ''}
       </div>`;
 
@@ -1985,7 +2021,7 @@ const renderRanking = async () => {
       <div class="rank-row ${r.isMe ? 'eu' : ''}">
         <div class="col-pos ${medalha(r.posicao)}">${r.posicao}º</div>
         <div class="col-nome">
-          <span class="col-nome-linha">${esc(r.nome)}${r.isMe ? '<span class="vc">VOCÊ</span>' : ''}</span>
+          <span class="col-nome-linha">${esc(r.nome)}${r.isMe ? `<span class="vc">VOCÊ</span>${chipPriv(eu)}` : ''}</span>
           ${r.nivel ? `<span class="col-nivel">Nível ${r.nivel.nivel} · ${esc(r.nivel.nome)}</span>` : ''}
         </div>
         <div class="col-pts"><i data-lucide="star"></i> ${r.pontos}</div>
@@ -2009,7 +2045,7 @@ const renderRanking = async () => {
         <div class="rank-row ${r.isMe ? 'eu' : ''}">
           <div class="col-pos ${medalha(r.posicao)}">${simbolo(r.posicao)}</div>
           <div class="col-nome">
-            <span class="col-nome-linha">${esc(r.nome)}${r.isMe ? '<span class="vc">VOCÊ</span>' : ''}</span>
+            <span class="col-nome-linha">${esc(r.nome)}${r.isMe ? `<span class="vc">VOCÊ</span>${chipPriv(eu)}` : ''}</span>
             ${r.nivel ? `<span class="col-nivel">Nível ${r.nivel.nivel} · ${esc(r.nivel.nome)}</span>` : ''}
           </div>
           <div class="col-pts"><i data-lucide="star"></i> ${r.pontos}</div>
@@ -2024,7 +2060,7 @@ const renderRanking = async () => {
           <div class="rank-row ${r.isMe ? 'eu' : ''}">
             <div class="col-pos">${r.posicao}</div>
             <div class="col-nome">
-              <span class="col-nome-linha">${esc(r.nome)}${r.isMe ? '<span class="vc">VOCÊ</span>' : ''}</span>
+              <span class="col-nome-linha">${esc(r.nome)}${r.isMe ? `<span class="vc">VOCÊ</span>${chipPriv(eu)}` : ''}</span>
               ${r.nivel ? `<span class="col-nivel">Nível ${r.nivel.nivel} · ${esc(r.nivel.nome)}</span>` : ''}
             </div>
             <div class="col-pts"><i data-lucide="star"></i> ${r.pontos}</div>
