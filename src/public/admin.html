@@ -242,9 +242,10 @@
     /* ── FORMULÁRIO ── */
     .form-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 1rem;
     }
+    .form-grid > * { min-width: 0; }
 
     .form-grid .full { grid-column: 1 / -1; }
 
@@ -262,6 +263,14 @@
       text-transform: uppercase;
     }
 
+    .field { min-width: 0; }
+    /* Campos nunca passam da largura do modal (o campo de data do iPhone tem largura própria) */
+    .field input, .field textarea, .field select { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+    .field input[type="date"], .field input[type="time"], .field input[type="datetime-local"] {
+      -webkit-appearance: none; appearance: none; display: block; min-height: 44px; text-align: left;
+    }
+    .field input::-webkit-date-and-time-value { text-align: left; }
+    .field input[type="checkbox"], .field input[type="radio"], .field input[type="file"] { width: auto; }
     .field input,
     .field textarea,
     .field select {
@@ -475,6 +484,8 @@
       max-width: 560px;
       max-height: 90vh;
       overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
       animation: slideUp 0.22s ease;
     }
 
@@ -666,7 +677,7 @@
 
       .card { padding: 1.1rem; }
       .card-header { flex-direction: column; align-items: stretch; }
-      .card-header .btn-add { width: 100%; justify-content: center; }
+      .card-header .btn-add, .card-header .btn-csv { width: 100%; justify-content: center; margin-left: 0; min-height: 44px; }
 
       .stats-row { grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
       .stat-card { padding: 0.9rem 1rem; }
@@ -682,56 +693,51 @@
       .proj-area-tabs { flex-wrap: wrap; }
       .proj-area-tabs button { flex: 1 1 auto; text-align: center; }
 
-      /* Tabelas viram listas de cards no mobile */
+      /* Tabelas viram cards no celular: título em cima, campos curtos em duas
+         colunas (rótulo pequeno em cima do valor, tudo alinhado à esquerda) e
+         ações embaixo ocupando a largura toda. */
       .table-wrap { overflow-x: visible; }
       .items-table thead { display: none; }
       .items-table, .items-table tbody { display: block; width: 100%; }
       .items-table tr {
-        display: block;
-        background: var(--bg-2);
-        border: 1px solid var(--borda);
-        border-radius: 12px;
-        padding: 0.85rem 0.9rem;
-        margin-bottom: 0.7rem;
+        display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem 1rem;
+        background: var(--bg-2); border: 1px solid var(--borda); border-radius: 14px;
+        padding: 1rem; margin-bottom: 0.8rem;
       }
       .items-table tr:hover td { background: none; }
-      /* Rótulo flutua à esquerda e o conteúdo corre à direita. Antes era flex:
-         cada pedaço da célula (nome, matrícula, curso…) virava uma coluna
-         espremida — e um link longo de QR virava uma coluna de 1 letra. */
       .items-table td {
-        display: block;
-        text-align: right;
-        padding: 0.45rem 0;
-        border-bottom: 1px solid var(--borda);
-        max-width: none;
-        overflow-wrap: anywhere;
+        display: block; min-width: 0; max-width: none; padding: 0; border: none;
+        text-align: left; overflow-wrap: anywhere; font-size: 0.9rem;
       }
-      .items-table td::after { content: ''; display: table; clear: both; }
-      .items-table td:last-child { border-bottom: none; }
       .items-table td::before {
-        content: attr(data-label);
-        font-size: 0.7rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        color: var(--cinza);
-        text-align: left;
-        float: left;
-        max-width: 42%;
-        margin-right: 0.75rem;
-        padding-top: 0.1rem;
+        content: attr(data-label); display: block; margin-bottom: 0.2rem;
+        font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--cinza);
       }
-      .items-table td:first-child { color: var(--texto); }
-      .items-table td.td-acoes { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.4rem; padding-top: 0.6rem; }
-      .items-table td.td-acoes::after { display: none; }
+      /* 1ª célula = título do card (sem rótulo, largura toda) */
+      .items-table td:first-child { grid-column: 1 / -1; color: var(--texto); font-size: 0.98rem; font-weight: 600; line-height: 1.4; padding-bottom: 0.75rem; border-bottom: 1px solid var(--borda); }
+      .items-table td:first-child::before { display: none; }
+      .items-table td:first-child .sub-cel { font-weight: 400; }
+      .items-table td.td-full, .items-table td.col-longa { grid-column: 1 / -1; }
+      .items-table .selos { justify-content: flex-start; }
+      .items-table td.td-acoes {
+        grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.5rem;
+        padding-top: 0.8rem; border-top: 1px solid var(--borda); min-width: 0;
+      }
       .items-table td.td-acoes::before { display: none; }
-      .items-table td.td-acoes button { flex: 1 1 0; min-width: 0; justify-content: center; margin-right: 0; }
+      .items-table td.td-acoes button, .items-table td.td-acoes a { flex: 1 1 0; min-width: 0; min-height: 42px; justify-content: center; margin: 0; }
+      .items-table td.td-acoes .sem-acao { min-width: 0; }
+
+      /* Modais no celular: sem "arrastar para os lados" e sem zoom do iPhone */
+      .items-table td[style*="font-size"] { font-size: 0.88rem !important; }
+      .modal { overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y; }
+      .field input, .field select, .field textarea { font-size: 16px; }
 
       /* Contas: card compacto (nome, e-mail, selos e ações) — 78 contas
          em cards altos viravam uma página enorme no celular */
       .tabela-contas tr { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.4rem; padding: 0.75rem 0.85rem; }
       .tabela-contas td { display: block; border: none; padding: 0; text-align: left; }
       .tabela-contas td::before { display: none; }
+      .tabela-contas td:first-child { border: none; padding: 0; font-size: inherit; }
       .tabela-contas td.c-nome, .tabela-contas td.c-email { flex: 1 1 100%; }
       .tabela-contas td.c-nome { font-weight: 600; }
       .tabela-contas td.c-email { margin-bottom: 0.15rem; overflow-wrap: anywhere; }
@@ -764,6 +770,11 @@
     .sub-cel { font-size:0.8rem; color:var(--cinza); }
     /* Catálogo de conquistas: mesmo tamanho de texto do resto do painel */
     .conq-tabela td { font-size: 0.92rem; }
+    @media (min-width: 769px) {
+      .conq-tabela th:first-child { width: 52%; }
+      .conq-tabela th:last-child, .conq-tabela td.td-acoes { text-align: right; }
+      .conq-tabela td.td-acoes { white-space: nowrap; }
+    }
     .conq-tabela .btn-edit, .conq-tabela .btn-del, .conq-tabela .btn-add { font-size: 0.84rem; padding: 0.42rem 0.8rem; min-height: 34px; }
     .conq-tabela .conq-nome { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem; font-size: 0.95rem; }
     .conq-tabela .conq-ic { font-size: 1.15rem; line-height: 1; }
@@ -782,7 +793,16 @@
     .pres-abas button.ativa { background:var(--verde); border-color:var(--verde); color:#06281a; }
     .pres-abas button.ativa span { background:rgba(6,40,26,0.18); color:#06281a; }
     .pres-busca { flex:1 1 220px; max-width:340px; min-height:36px; }
-    @media (max-width: 768px) { .pres-abas { width:100%; } .pres-abas button { flex:1 1 auto; justify-content:center; } .pres-busca { max-width:none; } }
+    @media (max-width: 768px) {
+      .pres-abas { width:100%; display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); }
+      .pres-abas button { justify-content:center; min-height:42px; padding:0.5rem 0.6rem; }
+      .pres-busca { max-width:none; width:100%; font-size:16px; min-height:44px; }
+    }
+    /* Celular bem estreito: o selo do cargo vira só o cadeado (o título da página não é cortado) */
+    @media (max-width: 420px) {
+      .topbar-badge { display: inline-flex; align-items: center; font-size: 0 !important; width: 40px; height: 40px; padding: 0 !important; justify-content: center; border-radius: 50%; flex-shrink: 0; }
+      .topbar-badge svg { width: 17px; height: 17px; }
+    }
     .nav-badge { margin-left:auto; min-width:20px; height:20px; padding:0 6px; border-radius:99px; background:var(--amarelo); color:#3a2a00; font-size:0.7rem; font-weight:800; display:inline-grid; place-items:center; }
     .nav-badge[hidden] { display:none; }
     .pres-badge { display:inline-block; padding:0.2rem 0.6rem; border-radius:99px; font-size:0.72rem; font-weight:600; white-space:nowrap; }
@@ -793,7 +813,17 @@
     .pres-met svg, .ev-met svg { width:13px; height:13px; }
     .btn-aprovar { border-color:rgba(68,216,131,0.5) !important; color:#5fe39a !important; }
     .link-pend { background:none; border:none; color:#f5c469; font:inherit; font-size:0.76rem; text-decoration:underline; cursor:pointer; padding:0.3rem 0; min-height:24px; }
-    .est-topo { display:flex; justify-content:space-between; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-bottom:1rem; color:var(--texto-2); font-size:0.88rem; }
+    /* Botão "Exportar CSV": o mesmo em todas as páginas, sempre no canto direito do cabeçalho */
+    .btn-csv {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; margin-left: auto;
+      min-height: 38px; padding: 0.45rem 0.95rem; border-radius: 9px; cursor: pointer;
+      background: transparent; border: 1.5px solid var(--borda); color: var(--texto);
+      font-family: inherit; font-size: 0.84rem; font-weight: 600; white-space: nowrap; transition: border-color .15s, color .15s;
+    }
+    .btn-csv:hover { border-color: var(--verde); color: var(--verde); }
+    .btn-csv:focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; }
+    .btn-csv svg { width: 16px; height: 16px; }
+    .est-cabecalho { background: var(--card); border: 1px solid var(--borda); border-radius: 14px; padding: 0.85rem 1.1rem; }
 
     .val-fieldset { border:1.5px solid var(--borda); border-radius:12px; padding:0.8rem 0.9rem; display:flex; flex-direction:column; gap:0.65rem; }
     .val-fieldset legend { padding:0 0.35rem; font-size:0.78rem; font-weight:600; color:var(--texto-2); text-transform:uppercase; letter-spacing:0.3px; }
@@ -811,20 +841,58 @@
     .topbar-busca svg { width:16px; height:16px; }
     .topbar-busca:hover { border-color:var(--verde); color:var(--verde); }
     .topbar-busca kbd, .busca-dialog kbd { font-family:inherit; font-size:0.68rem; font-weight:700; padding:0.1rem 0.35rem; border-radius:5px; border:1px solid var(--borda); background:var(--bg); color:var(--cinza); }
-    .busca-overlay { position:fixed; inset:0; z-index:700; background:rgba(0,0,0,0.5); display:none; justify-content:center; align-items:flex-start; padding:12vh 1rem 1rem; }
-    .busca-overlay.open { display:flex; }
-    .busca-dialog { width:min(560px,100%); background:var(--bg); border:1px solid var(--verde); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; max-height:70vh; box-shadow:0 30px 70px rgba(0,0,0,0.45); }
-    .busca-campo { display:flex; align-items:center; gap:0.6rem; padding:0.85rem 1rem; border-bottom:1px solid var(--borda); }
-    .busca-campo svg { color:var(--verde); width:20px; height:20px; }
-    .busca-campo input { flex:1; min-width:0; min-height:32px; background:none; border:none; color:var(--texto); font:inherit; font-size:1rem; outline:none; }
-    .busca-resultados { list-style:none; overflow-y:auto; padding:0.4rem; }
-    .busca-item { display:flex; align-items:center; gap:0.7rem; padding:0.6rem 0.75rem; border-radius:10px; cursor:pointer; color:var(--texto); font-size:0.9rem; }
-    .busca-item svg { width:17px; height:17px; color:var(--cinza); }
-    .busca-item span { flex:1; }
-    .busca-item small { color:var(--cinza); font-size:0.74rem; }
-    .busca-item[aria-selected="true"] { background:var(--verde-claro); }
-    .busca-item[aria-selected="true"] svg { color:var(--verde); }
-    .busca-vazio { padding:1rem; color:var(--cinza); text-align:center; font-size:0.88rem; }
+    .busca-overlay {
+      position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.55); backdrop-filter: blur(2px);
+      display: flex; justify-content: center; align-items: flex-start; padding: 10vh 1rem 1rem;
+      opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .15s, visibility 0s linear .15s;
+    }
+    .busca-overlay.open { opacity: 1; pointer-events: auto; visibility: visible; transition: opacity .15s; }
+    /* Pop-up da busca: mesmo estilo do pop-up dos níveis (título + X para fechar) */
+    .busca-dialog {
+      width: min(760px, 100%); max-height: min(620px, 78vh); max-height: min(620px, 78dvh);
+      background: var(--bg); border: 1px solid var(--borda); border-radius: 20px;
+      box-shadow: 0 30px 70px rgba(0,0,0,0.45); overflow: hidden; display: flex; flex-direction: column;
+    }
+    .busca-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.9rem 1rem 0.9rem 1.3rem; border-bottom: 1px solid var(--borda); }
+    .busca-head h2 { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--texto); display: flex; align-items: center; gap: 0.5rem; margin: 0; }
+    .busca-head h2 svg { color: var(--verde); width: 20px; height: 20px; }
+    .busca-fechar {
+      display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+      width: 40px; height: 40px; border-radius: 10px; cursor: pointer;
+      background: transparent; border: 1px solid var(--borda); color: var(--texto-2);
+    }
+    .busca-fechar:hover { border-color: var(--verde); color: var(--verde); }
+    .busca-fechar svg { width: 20px; height: 20px; }
+    .busca-campo {
+      display: flex; align-items: center; gap: 0.6rem; margin: 0.9rem 1rem 0.4rem; padding: 0.35rem 0.6rem 0.35rem 0.9rem;
+      border: 1px solid var(--borda); border-radius: 12px; background: var(--bg-2);
+    }
+    .busca-campo:focus-within { border-color: var(--verde); box-shadow: 0 0 0 3px var(--verde-claro); }
+    .busca-campo svg { color: var(--verde); width: 19px; height: 19px; flex-shrink: 0; }
+    .busca-campo input { flex: 1; min-width: 0; min-height: 40px; background: none; border: none; color: var(--texto); font: inherit; font-size: 1rem; outline: none; }
+    .busca-campo input:focus { outline: none; }
+    .busca-resultados { list-style: none; overflow-y: auto; padding: 0.4rem 0.6rem 0.6rem; margin: 0; overscroll-behavior: contain; }
+    .busca-item { display: flex; align-items: center; gap: 0.7rem; padding: 0.7rem 0.8rem; min-height: 44px; border-radius: 11px; cursor: pointer; color: var(--texto); font-size: 0.93rem; }
+    .busca-item svg { width: 18px; height: 18px; color: var(--cinza); flex-shrink: 0; }
+    .busca-item span { flex: 1; min-width: 0; }
+    .busca-item small { color: var(--cinza); font-size: 0.75rem; flex-shrink: 0; }
+    .busca-item[aria-selected="true"] { background: var(--verde-claro); }
+    .busca-item[aria-selected="true"] svg { color: var(--verde); }
+    .busca-item[aria-selected="true"] small { color: var(--texto-2); }
+    .busca-vazio { padding: 1.1rem; color: var(--cinza); font-size: 0.88rem; text-align: center; }
+    .busca-rodape { display: flex; flex-wrap: wrap; gap: 0.9rem; padding: 0.6rem 1.3rem; border-top: 1px solid var(--borda); font-size: 0.72rem; color: var(--cinza); }
+    @media (max-width: 720px) {
+      /* No celular continua um pop-up (não ocupa a tela toda): fácil de fechar no X ou tocando fora */
+      .busca-overlay { padding: 4.8rem 0.75rem 0.75rem; }
+      .busca-dialog { max-height: min(560px, 72vh); max-height: min(560px, 72dvh); border-radius: 18px; }
+      .busca-head { padding: 0.7rem 0.75rem 0.7rem 1rem; }
+      .busca-campo { margin: 0.75rem 0.75rem 0.3rem; }
+      .busca-campo input { font-size: 16px; } /* evita o zoom automático do iPhone */
+      .busca-campo kbd, .busca-rodape { display: none; }
+      .busca-item small { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) { .busca-overlay { transition: none; } }
+
     @media (max-width: 720px) { .topbar-busca span, .topbar-busca kbd { display:none; } .topbar-busca { padding:0.45rem; } .topbar-dir .badge-cargo { display:none; } }
 
     /* Card "Como funciona" */
@@ -1000,7 +1068,7 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Presenças em eventos</span>
-          <button class="btn-edit" onclick="exportarCsv('presencas', { status: state.presFiltro })"><i data-lucide="download"></i> Exportar CSV</button>
+          <button type="button" class="btn-csv" onclick="exportarCsv('presencas', { status: state.presFiltro })" title="Baixar a lista (com o filtro escolhido) em planilha"><i data-lucide="download"></i> Exportar CSV</button>
         </div>
         
         <!-- Filtro visível em abas (antes era um menu escondido que abria em "Para analisar") -->
@@ -1022,7 +1090,7 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Solicitações de Participação</span>
-          <button class="btn-edit" onclick="exportarCsv('solicitacoes')"><i data-lucide="download"></i> Exportar CSV</button>
+          <button type="button" class="btn-csv" onclick="exportarCsv('solicitacoes')" title="Baixar as solicitações em planilha"><i data-lucide="download"></i> Exportar CSV</button>
         </div>
         
         <div id="solicitacoesList">
@@ -1116,7 +1184,11 @@
 <!-- MODAL -->
 <!-- Busca rápida -->
 <div class="busca-overlay" id="buscaAdmin">
-  <div class="busca-dialog" role="dialog" aria-modal="true" aria-label="Busca rápida">
+  <div class="busca-dialog" role="dialog" aria-modal="true" aria-labelledby="buscaAdminTit">
+    <div class="busca-head">
+      <h2 id="buscaAdminTit"><i data-lucide="search"></i> Buscar</h2>
+      <button type="button" class="busca-fechar" onclick="fecharBuscaAdmin()" aria-label="Fechar busca"><i data-lucide="x"></i></button>
+    </div>
     <div class="busca-campo">
       <i data-lucide="search"></i>
       <input type="text" id="buscaAdminInput" role="combobox" aria-expanded="true" aria-controls="buscaAdminRes" aria-autocomplete="list" placeholder="Ir para… criar… exportar…" autocomplete="off" spellcheck="false" />
@@ -1282,7 +1354,9 @@ document.querySelectorAll('.nav-item').forEach(item => {
       const cargoLabel = ({ desenvolvedor: 'Desenvolvedor(a)', substituto: 'Substituto(a)', tecnico: 'Técnico(a) Adm.' })[me.cargo] || 'Docente';
       const primeiroNome = String(me.nome || '').trim().split(/\s+/)[0] || 'Admin';
       document.getElementById('topbarAdminBadge').innerHTML =
-        `<i data-lucide="lock"></i> <span>${esc(primeiroNome)}</span><span class="badge-cargo"> · ${cargoLabel}</span>`;
+        `<i data-lucide="lock"></i> <span>${esc(primeiroNome)}</span>${
+          // Não repete "Desenvolvedor · Desenvolvedor(a)" quando o nome da conta já é o cargo
+          _normBusca(cargoLabel).startsWith(_normBusca(primeiroNome).slice(0, 6)) ? '' : `<span class="badge-cargo"> · ${cargoLabel}</span>`}`;
       document.getElementById('topbarAdminBadge').title = `${me.nome} · ${cargoLabel}`;
       const dev = me.cargo === 'desenvolvedor';
       if (dev) {
@@ -1496,7 +1570,21 @@ const renderTabelaProjetos = (dados, tipo) => {
   </div>`;
 };
 
-const renderTabelaEventos = (dados) => {
+// Eventos do painel: só os do ano atual, do último para o primeiro
+const anoDe = (v) => { const m = String(v || '').match(/^(\d{4})-/); return m ? Number(m[1]) : null; };
+const eventosDoAno = (lista) => {
+  const ano = new Date().getFullYear();
+  const doAno = lista.filter(ev => anoDe(ev.data_inicio) === ano || anoDe(ev.data_fim) === ano);
+  doAno.sort((a, b) => String(b.data_inicio || '').localeCompare(String(a.data_inicio || '')));
+  return { ano, lista: doAno, outros: lista.length - doAno.length };
+};
+const avisoOutrosAnos = (n, ano) => n
+  ? `<p class="sub-cel ev-outros-anos"><i data-lucide="calendar-range"></i> Mostrando só os eventos de ${ano}, do mais recente para o mais antigo (${n} de outros anos ${n === 1 ? 'fica' : 'ficam'} de fora).</p>`
+  : `<p class="sub-cel ev-outros-anos"><i data-lucide="calendar-range"></i> Eventos de ${ano}, do mais recente para o mais antigo.</p>`;
+
+const renderTabelaEventos = (todos) => {
+  const { ano, lista: dados, outros } = eventosDoAno(todos);
+  if (!dados.length) return `${avisoOutrosAnos(outros, ano)}<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>Nenhum evento cadastrado em ${ano}.</p></div>`;
   const rows = dados.map(ev => {
     const v = ev.validacao || {};
     const p = ev.presencas || {};
@@ -1508,8 +1596,8 @@ const renderTabelaEventos = (dados) => {
     <tr>
       <td data-label="Nome">${esc(ev.nome)}${ev.conquista ? `<br><span class="sub-cel">${esc(ev.conquista.icone || '🏆')} ${esc(ev.conquista.nome)} · +${Number(ev.conquista.pontos) || 0}</span>` : ''}</td>
       <td data-label="Data" style="font-size:0.8rem">${esc(dataBR(ev.data_inicio))}${ev.data_fim && ev.data_fim !== ev.data_inicio ? ` – ${esc(dataBR(ev.data_fim))}` : ''}</td>
-      <td data-label="Local" class="col-opc" style="font-size:0.8rem;color:var(--cinza)">${esc(ev.local || '—')}</td>
-      <td data-label="Validação">${selos}</td>
+      <td data-label="Local" class="col-opc td-full" style="font-size:0.8rem;color:var(--cinza)">${esc(ev.local || '—')}</td>
+      <td data-label="Validação" class="td-full">${selos}</td>
       <td data-label="Presenças" style="font-size:0.8rem">${p.aprovada || 0} validada(s)${p.pendente ? `<br><button class="link-pend" onclick="irParaPresencas()">${p.pendente} para analisar</button>` : ''}</td>
       <td data-label="Ações" class="td-acoes">
         ${ev.podeEditar === false ? '<span class="sem-acao" title="Só quem cadastrou (ou a desenvolvedora) pode editar">Cadastrado por outra pessoa</span>' : `
@@ -1519,7 +1607,7 @@ const renderTabelaEventos = (dados) => {
     </tr>`;
   }).join('');
 
-  return `<div class="table-wrap">
+  return `${avisoOutrosAnos(outros, ano)}<div class="table-wrap">
     <table class="items-table">
       <thead>
         <tr>
@@ -1542,11 +1630,12 @@ const carregarEventosSuap = async () => {
   if (!el) return;
   el.innerHTML = esqueletoAdmin();
   try {
-    const dados = await apiJSON('/api/admin/eventos-suap');
-    if (!dados) return;
-    state.eventosSuap = dados;
+    const todos = await apiJSON('/api/admin/eventos-suap');
+    if (!todos) return;
+    state.eventosSuap = todos;
+    const { ano, lista: dados, outros } = eventosDoAno(todos);
     if (!dados.length) {
-      el.innerHTML = '<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>Nenhum evento do SUAP ainda. Eles aparecem quando um aluno abre a aba Eventos do portal.</p></div>';
+      el.innerHTML = `${outros ? avisoOutrosAnos(outros, ano) : ''}<div class="empty-table"><div class="icon"><i data-lucide="inbox"></i></div><p>${todos.length ? `Nenhum evento do SUAP em ${ano}.` : 'Nenhum evento do SUAP ainda. Eles aparecem quando um aluno abre a aba Eventos do portal.'}</p></div>`;
       return;
     }
     const rows = dados.map(ev => {
@@ -1554,12 +1643,12 @@ const carregarEventosSuap = async () => {
       return `<tr>
         <td data-label="Nome">${esc(ev.nome)}${ev.oculto ? ' <span class="pres-badge pres-rec" title="Os alunos não veem este evento">Oculto</span>' : ''}${ev.conquista ? `<br><span class="sub-cel">${esc(ev.conquista.icone || '🏆')} ${esc(ev.conquista.nome)} · +${Number(ev.conquista.pontos) || 0}</span>` : ''}</td>
         <td data-label="Data" style="font-size:0.8rem">${esc(dataBR(ev.data_inicio))}${ev.data_fim && ev.data_fim !== ev.data_inicio ? ` – ${esc(dataBR(ev.data_fim))}` : ''}</td>
-        <td data-label="Validação"><span class="selos">${metodosValidacao(ev.validacao).filter(Boolean).join(' ') || '—'}</span></td>
+        <td data-label="Validação" class="td-full"><span class="selos">${metodosValidacao(ev.validacao).filter(Boolean).join(' ') || '—'}</span></td>
         <td data-label="Presenças" style="font-size:0.8rem">${p.aprovada || 0} validada(s)${p.pendente ? `<br><button class="link-pend" onclick="irParaPresencas()">${p.pendente} para analisar</button>` : ''}</td>
         <td data-label="Ações" class="td-acoes"><button class="btn-edit" onclick="configurarEventoSuap(${Number(ev.suapId)})"><i data-lucide="settings-2"></i> Configurar</button></td>
       </tr>`;
     }).join('');
-    el.innerHTML = `<div class="table-wrap"><table class="items-table">
+    el.innerHTML = `${avisoOutrosAnos(outros, ano)}<div class="table-wrap"><table class="items-table">
       <thead><tr><th>Nome</th><th>Data</th><th>Validação</th><th>Presenças</th><th>Ações</th></tr></thead>
       <tbody>${rows}</tbody></table></div>`;
   } catch (e) {
@@ -1633,9 +1722,9 @@ const carregarEstatisticas = async () => {
     const maxEvo = Math.max(1, ...d.evolucao.map(m => m.conquistas));
 
     el.innerHTML = `
-      <div class="est-topo">
-        <span></span>
-        <button class="btn-edit" onclick="exportarCsv('ranking')"><i data-lucide="download"></i> Exportar ranking (CSV)</button>
+      <div class="card-header est-cabecalho">
+        <span class="card-title">Estatísticas do campus</span>
+        <button type="button" class="btn-csv" onclick="exportarCsv('ranking')" title="Baixar o ranking dos alunos em planilha"><i data-lucide="download"></i> Exportar CSV</button>
       </div>
       <div class="stats-row">
         <div class="stat-card"><div class="stat-label">Alunos no IFPlenus</div><div class="stat-value">${t.alunos ?? 0}</div></div>
@@ -1773,7 +1862,7 @@ const renderTabelaSolicitacoes = (dados) => {
   const rows = dados.map(s => `
     <tr>
       <td data-label="Aluno">${esc(s.nomeAluno || '—')}<br><span style="font-size:0.78rem;color:var(--cinza)">${esc(s.matricula)}</span></td>
-      <td data-label="Projeto">${esc(s.projetoTitulo)}</td>
+      <td data-label="Projeto" class="td-full">${esc(s.projetoTitulo)}</td>
       <td data-label="Origem">${origemBadge(s.origem)}</td>
       <td data-label="Tipo" style="font-size:0.8rem;color:var(--cinza)">${tipoTxt(s.projetoTipo)}</td>
       <td data-label="Status">${badge(s.status)}</td>
@@ -2827,8 +2916,8 @@ const desenharPresencas = () => {
         ${p.status !== 'recusada' ? `<button class="btn-del" onclick="decidirPresenca('${p._id}','recusada', ${p.status === 'aprovada'})"><i data-lucide="x"></i> ${p.status === 'aprovada' ? 'Desfazer' : 'Recusar'}</button>` : ''}`;
       return `<tr>
         <td data-label="Aluno">${esc(p.nomeAluno || '—')}<br><span class="sub-cel">${esc(p.matricula)}${p.curso ? ` · ${esc(p.curso)}` : ''}</span></td>
-        <td data-label="Evento">${esc(p.eventoNome)}<br><span class="sub-cel">${esc(dataBR(p.eventoData))}${p.origem === 'suap' ? ' · SUAP' : ''}</span></td>
-        <td data-label="Validação">${metodo}</td>
+        <td data-label="Evento" class="td-full">${esc(p.eventoNome)}<br><span class="sub-cel">${esc(dataBR(p.eventoData))}${p.origem === 'suap' ? ' · SUAP' : ''}</span></td>
+        <td data-label="Validação" class="td-full">${metodo}</td>
         <td data-label="Enviado em" class="sub-cel col-opc">${esc(new Date(p.updatedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }))}</td>
         <td data-label="Situação"><span class="pres-badge ${cls}">${rot}</span>${p.status === 'recusada' && p.motivo ? `<br><span class="sub-cel">${esc(p.motivo)}</span>` : ''}</td>
         <td data-label="Ações" class="td-acoes">${acoes}</td>
@@ -2940,7 +3029,14 @@ document.getElementById('buscaAdminInput')?.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowDown') { e.preventDefault(); _bSel = Math.min(_bLista.length - 1, _bSel + 1); desenharBuscaAdmin('', true); }
   else if (e.key === 'ArrowUp') { e.preventDefault(); _bSel = Math.max(0, _bSel - 1); desenharBuscaAdmin('', true); }
   else if (e.key === 'Enter') { e.preventDefault(); executarBuscaAdmin(_bSel); }
-  else if (e.key === 'Tab') e.preventDefault();
+});
+// Tab alterna entre o campo e o X (o foco não sai do pop-up)
+document.querySelector('#buscaAdmin .busca-dialog')?.addEventListener('keydown', (e) => {
+  if (e.key !== 'Tab') return;
+  e.preventDefault();
+  const inp = document.getElementById('buscaAdminInput');
+  const x = document.querySelector('#buscaAdmin .busca-fechar');
+  (document.activeElement === inp ? x : inp).focus();
 });
 document.getElementById('buscaAdmin')?.addEventListener('click', (e) => { if (e.target.id === 'buscaAdmin') fecharBuscaAdmin(); });
 document.addEventListener('keydown', (e) => {
