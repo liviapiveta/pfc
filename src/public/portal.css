@@ -1811,3 +1811,7 @@ a.btn-validar { text-decoration: none; justify-content: center; }
   body .footer-col a { min-height: 40px; }
   .proj-busca input, .acess-painel select, .config-drawer input, .config-drawer select { font-size: 16px; }
 }
+
+/* Pop-up de conquista nova: os dois botões com o mesmo tamanho */
+.nov-acoes { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; }
+.nov-acoes .nv-cta, .nov-acoes .acess-restaurar { width: 100%; min-height: 44px; font-size: 0.95rem; justify-content: center; }

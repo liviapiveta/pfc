@@ -6,7 +6,7 @@
  * - Sem internet e sem cópia da página → mostra /offline.html.
  * Para forçar todos a baixarem de novo, troque o número da VERSAO.
  */
-const VERSAO = 'ifplenus-v7';
+const VERSAO = 'ifplenus-v8';
 const ESSENCIAIS = [
   '/offline.html', '/portal.css', '/portal.js', '/lucide.min.js',
   '/images/logo.svg', '/images/favicon.png', '/images/icon-192.png', '/manifest.webmanifest',

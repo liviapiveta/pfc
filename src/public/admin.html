@@ -381,6 +381,8 @@
     }
     /* Entre 769 e 1279px a coluna "Local" dos eventos sai (cabe o resto sem rolar) */
     @media (min-width: 769px) and (max-width: 1279px) { .items-table .col-opc { display: none; } }
+    /* Telas largas: botões de ação lado a lado (linhas mais baixas) */
+    @media (min-width: 1100px) { .items-table td.td-acoes { white-space: nowrap; } }
 
     .items-table {
       width: 100%;
@@ -421,6 +423,7 @@
     }
 
     .empty-table .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .empty-table p { line-height: 1.6; max-width: 46ch; margin: 0 auto; }
 
     /* ── BADGES ── */
     .badge-tipo {
@@ -548,7 +551,7 @@
     /* ── STATS ── */
     .stats-row {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
       gap: 1rem;
       margin-bottom: 1.5rem;
     }
@@ -560,7 +563,23 @@
       padding: 1.1rem 1.2rem;
     }
 
-    .stat-label { font-size: 0.72rem; color: var(--cinza); font-weight: 500; }
+    .stat-label { font-size: 0.8rem; color: var(--texto-2); font-weight: 600; }
+    .stat-link { display: flex; align-items: center; gap: 0.85rem; text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; transition: border-color .15s, transform .15s; }
+    .stat-link:hover { border-color: var(--verde); transform: translateY(-1px); }
+    .stat-link:focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; }
+    .stat-ic { width: 42px; height: 42px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--verde-claro); color: var(--verde); font-size: 1.2rem; }
+    .stat-link.alerta .stat-ic { background: var(--amarelo-claro); color: #f5c469; }
+    .stat-link.alerta .stat-value { color: #f5c469; }
+    .stat-txt { display: flex; flex-direction: column; min-width: 0; gap: 0.1rem; }
+    .stat-sub { font-size: 0.74rem; color: var(--cinza); }
+    .atalhos { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0.7rem; margin-bottom: 1rem; }
+    .atalho { display: flex; align-items: center; gap: 0.8rem; text-align: left; padding: 0.85rem 1rem; min-height: 64px; border-radius: 12px; cursor: pointer; font: inherit; background: var(--bg-2); border: 1px solid var(--borda); color: var(--texto); transition: border-color .15s, background .15s; }
+    .atalho:hover { border-color: var(--verde); background: var(--verde-claro); }
+    .atalho:focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; }
+    .atalho-ic { width: 38px; height: 38px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--verde-claro); color: var(--verde); font-size: 1.1rem; }
+    .atalho strong { display: block; font-size: 0.92rem; }
+    .atalho small { display: block; font-size: 0.78rem; color: var(--cinza); margin-top: 0.1rem; }
+    .stats-row .stat-card.stat-link { border: 1px solid var(--borda); }
     .stat-value { font-family: 'Syne', sans-serif; font-size: 1.7rem; font-weight: 700; color: var(--texto); line-height: 1.2; }
 
     /* ── Painel do professor / Estatísticas / Histórico ── */
@@ -679,9 +698,13 @@
 
       .card { padding: 1.1rem; }
       .card-header { flex-direction: column; align-items: stretch; }
-      .card-header .btn-add, .card-header .btn-csv { width: 100%; justify-content: center; margin-left: 0; min-height: 44px; }
+      .card-header .btn-add, .card-header .btn-csv, .card-header .btn-edit { width: 100%; justify-content: center; margin-left: 0; margin-right: 0; min-height: 44px; }
+      .card-header > div { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; }
 
-      .stats-row { grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
+      .stats-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7rem; }
+      .stat-link { flex-direction: column; align-items: flex-start; gap: 0.55rem; }
+      .stat-ic { width: 36px; height: 36px; font-size: 1.05rem; }
+      .atalhos { grid-template-columns: 1fr; }
       .stat-card { padding: 0.9rem 1rem; }
       .stat-value { font-size: 1.35rem; }
 
@@ -726,7 +749,7 @@
         padding-top: 0.8rem; border-top: 1px solid var(--borda); min-width: 0;
       }
       .items-table td.td-acoes::before { display: none; }
-      .items-table td.td-acoes button, .items-table td.td-acoes a { flex: 1 1 0; min-width: 0; min-height: 42px; justify-content: center; margin: 0; }
+      .items-table td.td-acoes button, .items-table td.td-acoes a { flex: 1 1 auto; min-width: 88px; min-height: 42px; justify-content: center; margin: 0; white-space: nowrap; }
       .items-table td.td-acoes .sem-acao { min-width: 0; }
 
       /* Modais no celular: sem "arrastar para os lados" e sem zoom do iPhone */
@@ -994,15 +1017,16 @@
       </div>
       <div class="card">
         <div class="card-header">
-          <span class="card-title">Bem-vindo ao Painel Administrativo</span>
+          <span class="card-title">Atalhos</span>
         </div>
-        <p style="color:var(--texto-2);font-size:0.9rem;line-height:1.7;">
-          Aqui você gerencia os dados que são exibidos no portal para os alunos. Use o menu lateral para
-          cadastrar ou editar <strong>Projetos de Pesquisa</strong>, <strong>Projetos de Extensão</strong>
-          e <strong>Eventos</strong> — e valida a presença dos alunos nos eventos (QR Code ou certificado).<br><br>
-          Estes dados complementam as informações que vêm diretamente do SUAP, preenchendo lacunas
-          ou adicionando registros locais.
-        </p>
+        <div class="atalhos">
+          <button type="button" class="atalho" onclick="irSecaoAdmin('eventos'); abrirModal('evento')"><span class="atalho-ic"><i data-lucide="calendar-plus"></i></span><span><strong>Novo evento</strong><small>Cadastre um evento do campus</small></span></button>
+          <button type="button" class="atalho" onclick="irSecaoAdmin('projetos'); abrirModal(state.projArea || 'pesquisa')"><span class="atalho-ic"><i data-lucide="folder-plus"></i></span><span><strong>Novo projeto</strong><small>Pesquisa ou extensão</small></span></button>
+          <button type="button" class="atalho" onclick="irParaPresencas()"><span class="atalho-ic"><i data-lucide="badge-check"></i></span><span><strong>Analisar presenças</strong><small>Certificados e QR para conferir</small></span></button>
+          <button type="button" class="atalho" onclick="irSecaoAdmin('solicitacoes')"><span class="atalho-ic"><i data-lucide="mail"></i></span><span><strong>Responder solicitações</strong><small>Alunos querendo entrar em projetos</small></span></button>
+          <button type="button" class="atalho" onclick="irSecaoAdmin('conquistas')"><span class="atalho-ic"><i data-lucide="trophy"></i></span><span><strong>Conquistas</strong><small>Catálogo e conceder a um aluno</small></span></button>
+          <button type="button" class="atalho" onclick="irSecaoAdmin('estatisticas')"><span class="atalho-ic"><i data-lucide="pie-chart"></i></span><span><strong>Estatísticas</strong><small>Números do campus e ranking em CSV</small></span></button>
+        </div>
         <p id="avisoEscopo" class="aviso-escopo" hidden>
           <i data-lucide="user-check"></i>
           <span>Você está no <strong>painel do servidor</strong>: gerencia os <strong>seus projetos</strong>
@@ -1034,7 +1058,7 @@
         <div class="card-header">
           <span class="card-title">Projetos do Sistema · SUAP · <span id="projAreaLabel2">Pesquisa</span></span>
         </div>
-        <p style="color:var(--texto-2);font-size:0.85rem;margin-bottom:1rem;">
+        <p class="sec-desc">
           Espelho dos projetos que vêm do SUAP (somente leitura). A lista é preenchida
           conforme os alunos abrem a aba <strong>Projetos</strong> no portal — o painel
           não acessa o SUAP diretamente. Os alunos podem solicitar participação nestes
@@ -1383,23 +1407,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
   try {
     const stats = await apiJSON('/api/admin/stats');
     if (!stats) return;
-    document.getElementById('statsRow').innerHTML = `
-      <div class="stat-card">
-        <div class="stat-label">${stats.escopo === 'meus' ? 'Meus proj. de pesquisa' : 'Proj. Pesquisa'}</div>
-        <div class="stat-value">${stats.pesquisa ?? 0}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">${stats.escopo === 'meus' ? 'Meus proj. de extensão' : 'Proj. Extensão'}</div>
-        <div class="stat-value">${stats.extensao ?? 0}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Eventos</div>
-        <div class="stat-value">${stats.eventos ?? 0}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">${stats.escopo === 'meus' ? 'Pendentes nos meus projetos' : 'Solicitações pendentes'}</div>
-        <div class="stat-value">${stats.solicitacoes ?? 0}</div>
-      </div>`;
+    atualizarStats(stats);
   } catch(e) {
     document.getElementById('statsRow').innerHTML = '';
   }
@@ -1521,7 +1529,7 @@ const renderTabelaProjetosSuap = (dados) => {
       <td data-label="Título">${titulo}</td>
       <td data-label="Tipo">${tipoBadge(p.tipo)}</td>
       <td data-label="Coordenador" style="font-size:0.8rem;color:var(--cinza)">${esc(p.coordenador || '—')}</td>
-      <td data-label="Período" style="font-size:0.8rem">${esc(dataBR(p.dt_inicio))} – ${esc(dataBR(p.dt_final))}</td>
+      <td data-label="Período" style="font-size:0.8rem">${esc(periodoBR(p.dt_inicio, p.dt_final))}</td>
       <td data-label="Situação" style="font-size:0.8rem">${esc(p.situacao || '—')}</td>
       <td data-label="Link" style="font-size:0.8rem">${link}</td>
     </tr>`;
@@ -1555,7 +1563,7 @@ const renderTabelaProjetos = (dados, tipo) => {
       <td data-label="Título">${titulo}</td>
       <td data-label="Tipo">${badge}</td>
       <td data-label="Coordenador" style="font-size:0.8rem;color:var(--cinza)">${esc(p.coordenador || '—')}</td>
-      <td data-label="Período" style="font-size:0.8rem">${esc(dataBR(p.dt_inicio))} – ${esc(dataBR(p.dt_final))}</td>
+      <td data-label="Período" style="font-size:0.8rem">${esc(periodoBR(p.dt_inicio, p.dt_final))}</td>
       <td data-label="Situação" style="font-size:0.8rem">${esc(p.situacao || '—')}</td>
       <td data-label="Link" style="font-size:0.8rem">${link}</td>
       <td data-label="Ações" class="td-acoes">
@@ -1697,6 +1705,15 @@ const irParaPresencas = () => {
   document.querySelector('.nav-item[data-section="presencas"]')?.click();
 };
 
+
+// Período de um projeto: "01/03/2026 – 15/12/2026", "desde 01/03/2026", "até …" ou "—"
+const periodoBR = (ini, fim) => {
+  const a = ini ? dataBR(ini) : '', b = fim ? dataBR(fim) : '';
+  if (a && b) return `${a} – ${b}`;
+  if (a) return `desde ${a}`;
+  if (b) return `até ${b}`;
+  return '—';
+};
 
 // "2026-08-17" → "17/08/2026"
 const dataBR = (v) => {
@@ -2403,24 +2420,26 @@ const deletarItem = async (tipo, id) => {
 // Stats
 // ─────────────────────────────────────────────────────
 const atualizarStats = (stats) => {
-  document.getElementById('statsRow').innerHTML = `
-    <div class="stat-card">
-      <div class="stat-label">${stats.escopo === 'meus' ? 'Meus proj. de pesquisa' : 'Proj. Pesquisa'}</div>
-      <div class="stat-value">${stats.pesquisa ?? 0}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">${stats.escopo === 'meus' ? 'Meus proj. de extensão' : 'Proj. Extensão'}</div>
-      <div class="stat-value">${stats.extensao ?? 0}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Eventos</div>
-      <div class="stat-value">${stats.eventos ?? 0}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">${stats.escopo === 'meus' ? 'Pendentes nos meus projetos' : 'Solicitações pendentes'}</div>
-      <div class="stat-value">${stats.solicitacoes ?? 0}</div>
-    </div>`;
+  const meus = stats.escopo === 'meus';
+  const card = (secao, icone, rotulo, valor, sub, alerta) => `
+    <button type="button" class="stat-card stat-link ${alerta && valor ? 'alerta' : ''}" onclick="${secao === 'presencas' ? 'irParaPresencas()' : `irSecaoAdmin('${secao}')`}">
+      <span class="stat-ic"><i data-lucide="${icone}"></i></span>
+      <span class="stat-txt">
+        <span class="stat-label">${rotulo}</span>
+        <span class="stat-value">${valor}</span>
+        ${sub ? `<span class="stat-sub">${sub}</span>` : ''}
+      </span>
+    </button>`;
+  const pesq = stats.pesquisa ?? 0, ext = stats.extensao ?? 0;
+  document.getElementById('statsRow').innerHTML =
+    card('projetos', 'folder-open', meus ? 'Meus projetos' : 'Projetos do campus', pesq + ext, `${pesq} pesquisa · ${ext} extensão`) +
+    card('eventos', 'ticket', 'Eventos cadastrados', stats.eventos ?? 0, 'além dos que vêm do SUAP') +
+    card('presencas', 'badge-check', 'Presenças para analisar', stats.presencas ?? 0, (stats.presencas ?? 0) ? 'esperando um professor' : 'tudo em dia', true) +
+    card('solicitacoes', 'mail', meus ? 'Pedidos nos meus projetos' : 'Solicitações pendentes', stats.solicitacoes ?? 0, (stats.solicitacoes ?? 0) ? 'para aceitar ou recusar' : 'tudo em dia', true);
 };
+
+// Vai para uma seção do painel (como clicar no menu)
+const irSecaoAdmin = (secao) => document.querySelector(`.nav-item[data-section="${secao}"]`)?.click();
 
 // ─────────────────────────────────────────────────────
 // Toast

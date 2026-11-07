@@ -1467,7 +1467,8 @@ const carregarDashboard = async () => {
       .filter(ev => ev._d);
 
     const futuros  = comData.filter(ev => ev._d >= hoje).sort((a,b) => a._d - b._d); // mais perto primeiro
-    const passados = comData.filter(ev => ev._d <  hoje).sort((a,b) => b._d - a._d); // mais recente primeiro
+    // Passados: só os do ano atual (os de anos anteriores não dá mais para validar)
+    const passados = comData.filter(ev => ev._d < hoje && ev._d.getFullYear() === hoje.getFullYear()).sort((a,b) => b._d - a._d); // mais recente primeiro
 
     // Os eventos não têm mais "id" (agora é "chave"): antes null === null marcava
     // TODOS os futuros como "próximo"

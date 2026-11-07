@@ -438,13 +438,15 @@ const stats = async (req, res) => {
   try {
     const meus = filtroMeusProjetos(req);
     const filtroSol = await filtroMinhasSolicitacoes(req);
-    const [pesquisa, extensao, eventos, solicitacoes] = await Promise.all([
+    const [pesquisa, extensao, eventos, solicitacoes, presencas] = await Promise.all([
       Projeto.countDocuments({ ...meus, tipo: 'pesquisa' }),
       Projeto.countDocuments({ ...meus, tipo: 'extensao' }),
       Evento.countDocuments(),
       Solicitacao.countDocuments({ ...filtroSol, status: 'pendente' }),
+      // qualquer servidor pode validar presença: conta todas as que esperam análise
+      Presenca.countDocuments({ status: 'pendente' }),
     ]);
-    return res.json({ pesquisa, extensao, eventos, solicitacoes, escopo: ehDev(req) ? 'tudo' : 'meus' });
+    return res.json({ pesquisa, extensao, eventos, solicitacoes, presencas, escopo: ehDev(req) ? 'tudo' : 'meus' });
   } catch (err) {
     console.error('Erro ao buscar stats:', err.message);
     return res.status(500).json({ erro: 'Erro ao buscar estatísticas' });
