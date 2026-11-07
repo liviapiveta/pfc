@@ -23,6 +23,7 @@ const limiteEmail = limiteTaxa({ max: 5, mensagem: 'Muitos pedidos de e-mail. Ag
 router.post('/auth/login', limiteLogin, authController.login);
 router.post('/auth/logout', auth, authController.logout);
 router.get('/auth/me', auth, authController.me);
+router.delete('/auth/conta', auth, authController.excluirConta);
 
 // ── Dados SUAP (requer autenticação) ──────────────────────────
 router.get('/dados-pessoais', auth, suapController.getDadosPessoais);
