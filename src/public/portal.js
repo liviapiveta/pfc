@@ -872,7 +872,7 @@ const acaoEvento = (ev) => {
   }
   if (!_evAberto(ev)) return '';
   if (!ev.jaComecou) return '<span class="ev-status futuro"><i data-lucide="clock"></i> Validação abre no dia do evento</span>';
-  if (ev.validacao.qrcode && !ev.validacao.certificado && !ev.qrNoPrazo) return '<span class="ev-status futuro">Prazo de validação encerrado</span>';
+  if (ev.validacao?.qrcode && !ev.validacao?.certificado && !ev.qrNoPrazo) return '<span class="ev-status futuro">Prazo de validação encerrado</span>';
   return `<button type="button" class="btn-validar" onclick="abrirValidacao('${chave}')"><i data-lucide="badge-check"></i> Validar participação</button>`;
 };
 
@@ -917,7 +917,7 @@ const renderEventos = () => {
   });
   const ehParaValidar = (ev) => _evAberto(ev) && ev.jaComecou &&
     (!ev.minhaPresenca || ev.minhaPresenca.status === 'recusada') &&
-    (ev.validacao.certificado || ev.qrNoPrazo);
+    (ev.validacao?.certificado || ev.qrNoPrazo);
   const filtros = {
     todos: () => true,
     validar: ehParaValidar,

@@ -1801,3 +1801,13 @@ a.btn-validar { text-decoration: none; justify-content: center; }
   .ev-filtros-3 .ev-filtro span { padding-left: 0.3rem; padding-right: 0.3rem; }
   .ev-filtros-3 .ev-filtro svg { display: none; }
 }
+
+/* ── Celular: alvos de toque com pelo menos 40px de altura ──────── */
+@media (max-width: 767px) {
+  body .ev-filtro, body .rank-onde, body .rodape-link, body .traj-imprimir, body .btn-logout, body .acess-restaurar, body .btn-participar, body .rank-toggle button, body .btn-link-ev, body .ver-niveis, body .nv-cta, body .btn-validar, body .topbar-busca {
+    min-height: 40px;
+  }
+  body .rodape-link, body .rank-onde, body .traj-imprimir, body .btn-logout { display: inline-flex; align-items: center; }
+  body .footer-col a { min-height: 40px; }
+  .proj-busca input, .acess-painel select, .config-drawer input, .config-drawer select { font-size: 16px; }
+}

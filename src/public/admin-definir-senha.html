@@ -182,6 +182,11 @@
     .ver-senha:hover { color: var(--texto); background: rgba(255,255,255,0.06); }
     .ver-senha:focus-visible { outline: 2px solid var(--cor, var(--verde, #44d883)); outline-offset: 1px; color: var(--texto); }
     .campo-senha input::-ms-reveal, .campo-senha input::-ms-clear { display: none; } /* Edge: evita 2 olhos */
+      /* Celular: campos de 16px (sem zoom do iPhone) e link com área de toque confortável */
+    @media (max-width: 767px) {
+      input { font-size: 16px !important; }
+      .back-link { display: inline-flex; align-items: center; min-height: 44px; }
+    }
   </style>
 </head>
 <body>
