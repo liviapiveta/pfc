@@ -1861,7 +1861,7 @@ button.dash-tl-item {
   cursor: pointer; align-items: flex-start; border-radius: 12px;
 }
 button.dash-tl-item .dash-tl-corpo { flex: 1; min-width: 0; border-radius: 10px; transition: background .15s, border-color .15s; }
-button.dash-tl-item:hover .dash-tl-corpo { background: var(--neutro-bg); }
+button.dash-tl-item:hover .dash-tl-corpo { background: var(--neutro-bg); border-color: var(--borda); }
 button.dash-tl-item.proximo:hover .dash-tl-corpo { filter: brightness(1.08); }
 button.dash-tl-item:hover .n { color: var(--verde); }
 button.dash-tl-item:focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; }

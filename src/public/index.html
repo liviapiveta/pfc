@@ -173,7 +173,16 @@
       .dash-hero .indicador .l { color:var(--cinza,#8b909b); font-size:0.76rem; }
 
       /* Grade de 2 colunas (esquerda: cards + ranking | direita: eventos) */
-      .dash-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.1rem; align-items:start; }
+      .dash-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.1rem; align-items:stretch; }
+      /* Coluna da esquerda (mini cards + ranking) e painel de eventos terminam na mesma altura */
+      .dash-col { display:flex; flex-direction:column; min-width:0; }
+      .dash-col > .dash-painel { flex:1; }
+      .dash-painel.dash-flex { display:flex; flex-direction:column; }
+      .dash-painel.dash-flex .dash-timeline, .dash-painel.dash-flex .dash-rank-lista { flex:1; }
+      .dash-painel.dash-flex .rodape-link { margin-top:auto; }
+      /* Bloco do ranking inteiro leva à aba Ranking */
+      .dash-painel.clicavel { cursor:pointer; transition:border-color .15s; }
+      .dash-painel.clicavel:hover { border-color:color-mix(in srgb, var(--verde) 45%, transparent); }
       @media (max-width:900px){ .dash-grid { grid-template-columns:1fr; } }
 
       .dash-mini-row { display:grid; grid-template-columns:1fr 1fr; gap:1.1rem; margin-bottom:1.1rem; }
@@ -229,12 +238,12 @@
       .dash-tl-data { flex-shrink:0; width:42px; text-align:center; font-family:'Syne',sans-serif; }
       .dash-tl-data .dia { font-weight:800; font-size:1.05rem; color:var(--verde,#44d883); line-height:1; }
       .dash-tl-data .mes { font-size:0.66rem; color:var(--cinza,#8b909b); text-transform:uppercase; }
-      .dash-tl-corpo { flex:1; padding-bottom:0.9rem; }
+      /* Todos os eventos com o mesmo respiro interno do "próximo" (o destaque do hover não desloca o texto) */
+      .dash-tl-corpo { flex:1; padding:0.6rem 0.8rem; margin:-0.6rem 0 0.5rem; border:1px solid transparent; border-radius:10px; }
       .dash-tl-corpo .n { font-weight:600; color:var(--texto,#f4f5f7); font-size:0.9rem; }
       .dash-tl-corpo .s { color:var(--cinza,#8b909b); font-size:0.78rem; margin-top:0.15rem; }
       .dash-tl-item.proximo .dash-tl-corpo {
         background:color-mix(in srgb, var(--verde) 7%, transparent); border:1px solid color-mix(in srgb, var(--verde) 45%, transparent);
-        border-radius:10px; padding:0.6rem 0.8rem; margin-bottom:0.3rem;
       }
       /* Passados: só o nó/data ficam neutros (antes usava opacidade, que deixava o texto abaixo do contraste mínimo) */
       .dash-tl-item.passado .dash-tl-corpo .n { color:var(--texto-2); }
