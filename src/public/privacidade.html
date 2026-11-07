@@ -160,7 +160,7 @@
   <div class="pp-wrap">
     <nav class="pp-indice" aria-label="Nesta página">
       <details id="ppIndice" open>
-      <summary><h2>Nesta página</h2><span class="pp-ind-qtd">16 tópicos</span></summary>
+      <summary><h2>Nesta página</h2><span class="pp-ind-qtd">17 tópicos</span></summary>
       <ol>
         <li><a href="#o-que-e">O que é o IFPlenus</a></li>
         <li><a href="#lgpd">Palavras da LGPD</a></li>
@@ -176,6 +176,7 @@
         <li><a href="#terceiros">Serviços que ajudam o site</a></li>
         <li><a href="#navegador">O que fica no seu navegador</a></li>
         <li><a href="#tempo">Por quanto tempo</a></li>
+        <li><a href="#excluir">Como excluir a conta</a></li>
         <li><a href="#direitos">Seus direitos</a></li>
         <li><a href="#contato">Dúvidas e pedidos</a></li>
       </ol>
@@ -193,8 +194,8 @@
       <div class="pp-resumo" aria-label="Resumo">
         <div><i data-lucide="key-round"></i><strong>Sua senha não fica com a gente</strong><span>Ela vai direto para o SUAP conferir e não é guardada em lugar nenhum.</span></div>
         <div><i data-lucide="eye"></i><strong>Só leitura</strong><span>O IFPlenus só <em>lê</em> dados no SUAP. Nunca altera nada lá.</span></div>
-        <div><i data-lucide="database"></i><strong>Guardamos o mínimo</strong><span>Nome, matrícula, curso, e-mail e o que você faz no portal (pontos, presenças, pedidos).</span></div>
-        <div><i data-lucide="user-cog"></i><strong>Você no controle</strong><span>Escolha como aparece no ranking e se quer receber e-mails.</span></div>
+        <div><i data-lucide="database"></i><strong>Guardamos o mínimo</strong><span>Nome, matrícula, curso, e-mail e o que você faz no portal. As chaves do SUAP ficam criptografadas.</span></div>
+        <div><i data-lucide="user-cog"></i><strong>Você no controle</strong><span>Escolha como aparece no ranking, se quer receber e-mails e exclua a sua conta quando quiser.</span></div>
       </div>
 
       <section class="pp-secao" id="o-que-e">
@@ -253,7 +254,7 @@
             <tr><td>Nome (o nome usual do SUAP)</td><td data-r="Por quê">Para mostrar no portal, no ranking e para os servidores que conferem presenças e pedidos.</td></tr>
             <tr><td>Curso</td><td data-r="Por quê">Para o ranking por curso e para os servidores saberem de que turma você é.</td></tr>
             <tr><td>E-mail (de preferência o acadêmico)</td><td data-r="Por quê">Só para os e-mails de aviso, e só se você deixar essa opção ligada.</td></tr>
-            <tr><td>Chaves de acesso do SUAP (tokens)</td><td data-r="Por quê">Para o portal continuar buscando seus dados no SUAP enquanto você usa, sem pedir a senha de novo. Elas expiram e são trocadas a cada login.</td></tr>
+            <tr><td>Chaves de acesso do SUAP (tokens)</td><td data-r="Por quê">Para o portal continuar buscando seus dados no SUAP enquanto você usa, sem pedir a senha de novo. Ficam <strong>criptografadas</strong> no banco, expiram e são trocadas a cada login.</td></tr>
             <tr><td>Pontos, nível e conquistas</td><td data-r="Por quê">É a parte da gamificação. Em conquistas de nota, guardamos também <strong>qual disciplina e qual nota</strong> deram a conquista (é o que aparece em “Pela nota em…”).</td></tr>
             <tr><td>Presenças em eventos</td><td data-r="Por quê">Evento, forma de validação, situação e, conforme o caso, o <strong>arquivo do certificado</strong> que você enviou ou o <strong>conteúdo lido do QR Code</strong> do e-mail de inscrição. É o que o professor confere e o que você vê em “Ver como validei”.</td></tr>
             <tr><td>Pedidos para entrar em projetos</td><td data-r="Por quê">Projeto, data do pedido e a resposta do professor.</td></tr>
@@ -351,6 +352,7 @@
           <li>Há <strong>limite de tentativas</strong> de login, para dificultar quem tenta adivinhar senhas.</li>
           <li>Os arquivos de certificado têm o <strong>tipo conferido</strong> (só PDF ou imagem) e tamanho máximo de 4 MB, e só podem ser abertos por você e pelos servidores com conta.</li>
           <li>As contas do painel são pessoais, com senha própria, e cada servidor só faz o que o seu cargo permite.</li>
+          <li>As <strong>chaves de acesso do SUAP ficam criptografadas</strong> no banco de dados (AES-256-GCM). Só o servidor do IFPlenus, com uma chave secreta que fica fora do banco, consegue abri-las — mesmo quem tivesse uma cópia do banco não conseguiria usá-las para entrar no SUAP em seu nome.</li>
           <li>O acesso ao banco de dados é protegido por credenciais que só o servidor do IFPlenus conhece — nenhuma pessoa ou site de fora acessa o banco diretamente.</li>
         </ul>
         <div class="pp-caixa alerta"><i data-lucide="shield-alert"></i><p>Nenhum sistema é 100% invulnerável. Se acontecer algum incidente de segurança que possa afetar você, vamos avisar e tomar as medidas necessárias, como a LGPD determina. E lembre: <strong>nunca passe a sua senha para ninguém</strong> — nem para quem disser que é do IFPlenus.</p></div>
@@ -379,26 +381,58 @@
 
       <section class="pp-secao" id="tempo">
         <h2><span class="n">14</span> Por quanto tempo os dados ficam guardados</h2>
-        <p>Os dados ficam guardados enquanto você usa o portal, para manter a sua trajetória (conquistas, pontos, presenças e projetos). As respostas do SUAP ficam só alguns minutos na memória temporária. Se você pedir a exclusão da sua conta, os seus dados pessoais são apagados, exceto o que a lei obrigar a manter.</p>
+        <p>Os dados ficam guardados <strong>enquanto a sua conta existir</strong>, para manter a sua trajetória (conquistas, pontos, presenças e projetos). As respostas do SUAP ficam só alguns minutos na memória temporária.</p>
+        <p>Quando você exclui a conta, os seus dados no IFPlenus são apagados na hora (veja a próxima seção).</p>
+      </section>
+
+      <section class="pp-secao" id="excluir">
+        <h2><span class="n">15</span> Como excluir a sua conta</h2>
+        <p>Você pode excluir a sua conta quando quiser, sozinho, sem precisar pedir a ninguém:</p>
+        <ol class="pp-passos">
+          <li><span>Abra as <strong>Configurações</strong> (o ícone de engrenagem no topo do portal).</span></li>
+          <li><span>Na parte <strong>Conta</strong>, toque em <strong>Excluir minha conta</strong>.</span></li>
+          <li><span>Leia o aviso <strong>“Excluir sua conta?”</strong>, que mostra tudo o que será apagado, e toque em <strong>Sim, quero excluir</strong>.</span></li>
+          <li><span>Para confirmar de vez, digite <strong>EXCLUIR</strong> e toque em <strong>Excluir definitivamente</strong>.</span></li>
+        </ol>
+        <div class="pp-sim-nao">
+          <div class="nao">
+            <h3><i data-lucide="trash-2"></i> É apagado</h3>
+            <ul>
+              <li>Sua conta no IFPlenus (nome, curso, e-mail e as chaves do SUAP)</li>
+              <li>Seus pontos, nível e conquistas</li>
+              <li>Suas presenças em eventos e os certificados ou QR Codes enviados</li>
+              <li>Seus pedidos para participar de projetos</li>
+              <li>Suas preferências (ranking, e-mails)</li>
+            </ul>
+          </div>
+          <div class="sim">
+            <h3><i data-lucide="info"></i> Não muda</h3>
+            <ul>
+              <li>Seus dados no <strong>SUAP</strong> — o IFPlenus nunca altera nada lá</li>
+              <li>O <strong>histórico de ações do painel</strong> (o registro de quem do campus fez o quê), que é mantido para prestação de contas e pode citar a sua matrícula</li>
+            </ul>
+          </div>
+        </div>
+        <div class="pp-caixa alerta"><i data-lucide="alert-triangle"></i><p>A exclusão <strong>não pode ser desfeita</strong>. Se você entrar de novo com a sua conta do SUAP depois, o IFPlenus cria uma conta nova, começando do zero (as conquistas de nota podem voltar sozinhas, porque são calculadas a partir do boletim).</p></div>
       </section>
 
       <section class="pp-secao" id="direitos">
-        <h2><span class="n">15</span> Seus direitos (LGPD, art. 18)</h2>
+        <h2><span class="n">16</span> Seus direitos (LGPD, art. 18)</h2>
         <p>Como titular dos dados, a LGPD garante que você pode pedir:</p>
         <ul>
           <li><strong>Confirmação</strong> de que tratamos dados seus, e <strong>acesso</strong> a eles;</li>
           <li><strong>Correção</strong> de dados incompletos, errados ou desatualizados — como os dados vêm do SUAP, a correção é feita na secretaria acadêmica e aparece no IFPlenus no próximo login;</li>
           <li><strong>Anonimização, bloqueio ou eliminação</strong> de dados desnecessários ou tratados em desacordo com a lei;</li>
-          <li><strong>Eliminação</strong> dos dados tratados com o seu consentimento;</li>
+          <li><strong>Eliminação</strong> dos dados tratados com o seu consentimento — você mesmo faz isso em <strong>Excluir minha conta</strong>;</li>
           <li><strong>Informação</strong> sobre com quem os dados são compartilhados (seção 12) e sobre a possibilidade de não consentir e suas consequências — sem o login com o SUAP, não é possível usar o portal;</li>
-          <li><strong>Revogação do consentimento</strong> a qualquer momento — basta deixar de usar o portal e pedir a exclusão da conta;</li>
+          <li><strong>Revogação do consentimento</strong> a qualquer momento — basta excluir a sua conta (seção 15) e deixar de usar o portal;</li>
           <li><strong>Portabilidade</strong> dos dados, nos termos da regulamentação.</li>
         </ul>
       </section>
 
       <section class="pp-secao" id="contato">
-        <h2><span class="n">16</span> Dúvidas e pedidos</h2>
-        <p>Para tirar dúvidas sobre esta política, pedir uma cópia dos seus dados ou a exclusão da sua conta, fale com a equipe responsável pelo IFPlenus no <strong>IFPR — Campus Assis Chateaubriand</strong>.</p>
+        <h2><span class="n">17</span> Dúvidas e pedidos</h2>
+        <p>Para tirar dúvidas sobre esta política ou pedir uma cópia dos seus dados, fale com a equipe responsável pelo IFPlenus no <strong>IFPR — Campus Assis Chateaubriand</strong>. A exclusão da conta você mesmo faz, a qualquer momento, pelo portal (seção 15).</p>
         <p>Se esta política mudar, a nova versão será publicada nesta página, com a data de atualização no topo.</p>
       </section>
     </main>

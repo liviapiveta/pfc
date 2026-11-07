@@ -2,6 +2,11 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const suapService = require('../services/suapService');
 const conquistaEngine = require('../services/conquistaEngine');
+const cofre = require('../services/cofre');
+const ConquistaUsuario = require('../models/ConquistaUsuario');
+const Presenca = require('../models/Presenca');
+const Comprovante = require('../models/Comprovante');
+const Solicitacao = require('../models/Solicitacao');
 
 let emSegundoPlano = () => {};
 try { ({ waitUntil: emSegundoPlano } = require('@vercel/functions')); } catch { /* fora da Vercel: a promessa segue sozinha */ }
@@ -100,8 +105,9 @@ const login = async (req, res) => {
       {
         $set: {
           matricula,
-          suapToken: accessToken,
-          suapRefreshToken: refreshToken,
+          // As chaves do SUAP ficam criptografadas no banco (ver services/cofre.js)
+          suapToken: cofre.fechar(accessToken),
+          suapRefreshToken: cofre.fechar(refreshToken || ''),
           nomeUsuario,
           curso,
           ...(emailAluno ? { email: emailAluno } : {}),
@@ -185,4 +191,36 @@ const me = async (req, res) => {
   }
 };
 
-module.exports = { login, logout, me };
+/**
+ * DELETE /api/auth/conta — o aluno exclui a própria conta e os dados dele no
+ * IFPlenus (LGPD, art. 18, VI). Exige a confirmação digitada ("EXCLUIR").
+ * Apaga: conta, conquistas/pontos, presenças (com os certificados enviados)
+ * e pedidos de participação. Os dados do SUAP não são afetados.
+ */
+const excluirConta = async (req, res) => {
+  try {
+    const confirmacao = String(req.body?.confirmacao || '').trim().toUpperCase();
+    if (confirmacao !== 'EXCLUIR') {
+      return res.status(400).json({ erro: 'Para excluir, digite EXCLUIR no campo de confirmação.' });
+    }
+    const { _id, matricula, suapToken } = req.user;
+    const presencas = await Presenca.find({ matricula }).select('_id').lean();
+    const ids = presencas.map((p) => p._id);
+    await Promise.all([
+      ids.length ? Comprovante.deleteMany({ presenca: { $in: ids } }) : null,
+      Presenca.deleteMany({ matricula }),
+      ConquistaUsuario.deleteMany({ matricula }),
+      Solicitacao.deleteMany({ matricula }),
+    ]);
+    await User.deleteOne({ _id });
+    try { if (suapToken) suapService.limparCache(suapToken); } catch { /* cache é só memória */ }
+    res.clearCookie('authToken');
+    console.log(`Conta de aluno excluída a pedido do próprio aluno (${ids.length} presença(s))`);
+    return res.json({ sucesso: true });
+  } catch (err) {
+    console.error('Erro ao excluir conta:', err.message);
+    return res.status(500).json({ erro: 'Não foi possível excluir a conta agora. Tente novamente.' });
+  }
+};
+
+module.exports = { login, logout, me, excluirConta };

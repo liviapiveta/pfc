@@ -529,6 +529,8 @@ const montarConfig = (d) => {
     <div class="config-secao">
       <div class="config-secao-titulo"><i data-lucide="log-out"></i> Conta</div>
       <button type="button" class="btn-sair-config" onclick="logout()"><i data-lucide="log-out"></i> Sair do IFPlenus</button>
+      <button type="button" class="btn-excluir-conta" onclick="abrirExcluirConta()"><i data-lucide="trash-2"></i> Excluir minha conta</button>
+      <p class="config-nota"><i data-lucide="info"></i> <span>Apaga seus pontos, conquistas, presenças e pedidos no IFPlenus. Seus dados no SUAP não mudam.</span></p>
     </div>`;
 };
 
@@ -576,7 +578,10 @@ const fecharConfig = () => {
 };
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { fecharComoValidei(); fecharValidacao(); fecharNiveis(); fecharConfig(); }
+  if (e.key === 'Escape') {
+    if (document.getElementById('excluirModal')?.classList.contains('open')) { fecharExcluirConta(); return; } // fecha só o aviso, não as Configurações
+    fecharComoValidei(); fecharValidacao(); fecharNiveis(); fecharConfig();
+  }
 });
 
 // ── PROJETOS (abas Pesquisa/Extensão; SUAP e campus numa lista só) ──
@@ -2222,6 +2227,96 @@ const renderTrajetoria = () => {
 };
 
 // ── Logout ─────────────────────────────────────────────────────
+// ── Excluir a conta (com duas confirmações) ────────────────────
+let _focoAntesExcluir = null;
+const abrirExcluirConta = () => {
+  _focoAntesExcluir = document.activeElement;
+  let m = document.getElementById('excluirModal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'excluirModal';
+    m.className = 'niveis-overlay excluir-overlay';
+    m.addEventListener('click', (e) => { if (e.target === m) fecharExcluirConta(); });
+    document.body.appendChild(m);
+  }
+  m.innerHTML = `
+    <div class="niveis-dialog excluir-dialog" role="alertdialog" aria-modal="true" aria-labelledby="excluirTitulo" aria-describedby="excluirTexto">
+      <div class="niveis-head">
+        <h2 id="excluirTitulo"><i data-lucide="alert-triangle"></i> Excluir sua conta?</h2>
+        <button type="button" class="config-fechar" onclick="fecharExcluirConta()" aria-label="Fechar"><i data-lucide="x"></i></button>
+      </div>
+      <div class="niveis-body" id="excluirCorpo">
+        <div id="excluirTexto">
+          <p>Isto apaga <strong>definitivamente</strong> tudo o que você tem no IFPlenus:</p>
+          <ul class="excluir-lista">
+            <li><i data-lucide="star"></i><span>seus <strong>pontos, nível e conquistas</strong></span></li>
+            <li><i data-lucide="ticket"></i><span>suas <strong>presenças</strong> em eventos e os <strong>certificados</strong> enviados</span></li>
+            <li><i data-lucide="folder"></i><span>seus <strong>pedidos</strong> para participar de projetos</span></li>
+            <li><i data-lucide="trending-up"></i><span>sua posição no <strong>ranking</strong></span></li>
+          </ul>
+          <p class="excluir-obs">Não dá para desfazer. Seus dados no <strong>SUAP não mudam</strong>. Se você entrar de novo depois, começa do zero.</p>
+        </div>
+        <div class="excluir-acoes">
+          <button type="button" class="btn-validar secundario" onclick="fecharExcluirConta()">Cancelar</button>
+          <button type="button" class="btn-perigo" onclick="excluirPasso2()"><i data-lucide="trash-2"></i> Sim, quero excluir</button>
+        </div>
+      </div>
+    </div>`;
+  m.classList.add('open');
+  document.body.classList.add('config-aberta');
+  m.querySelector('.btn-validar.secundario')?.focus(); // foco no "Cancelar" (a opção segura)
+};
+
+// 2ª confirmação: digitar EXCLUIR
+const excluirPasso2 = () => {
+  const corpo = document.getElementById('excluirCorpo');
+  if (!corpo) return;
+  corpo.innerHTML = `
+    <p><strong>Última confirmação.</strong> Para excluir sua conta, digite <strong>EXCLUIR</strong> no campo abaixo.</p>
+    <label class="excluir-campo">
+      <span class="sr-only">Digite EXCLUIR para confirmar</span>
+      <input type="text" id="excluirConfirma" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="EXCLUIR" oninput="document.getElementById('btnExcluirFinal').disabled = this.value.trim().toUpperCase() !== 'EXCLUIR'" />
+    </label>
+    <div class="erro-excluir" id="erroExcluir" role="alert"></div>
+    <div class="excluir-acoes">
+      <button type="button" class="btn-validar secundario" onclick="fecharExcluirConta()">Cancelar</button>
+      <button type="button" class="btn-perigo" id="btnExcluirFinal" disabled onclick="confirmarExclusao()"><i data-lucide="trash-2"></i> Excluir definitivamente</button>
+    </div>`;
+  document.getElementById('excluirConfirma')?.focus();
+  document.getElementById('excluirConfirma')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !document.getElementById('btnExcluirFinal').disabled) confirmarExclusao();
+  });
+};
+
+const confirmarExclusao = async () => {
+  const btn = document.getElementById('btnExcluirFinal');
+  const erro = document.getElementById('erroExcluir');
+  const valor = document.getElementById('excluirConfirma')?.value || '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i data-lucide="loader"></i> Excluindo…'; }
+  try {
+    const r = await fetch('/api/auth/conta', {
+      method: 'DELETE', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmacao: valor }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.erro || 'Não foi possível excluir a conta agora.');
+    try { localStorage.removeItem('ifplenus-info-ocultos'); localStorage.removeItem('ifplenus-ev-ordem'); } catch (e) { /* sem armazenamento */ }
+    window.location.href = '/login?conta=excluida';
+  } catch (e) {
+    if (erro) erro.textContent = e.message;
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="trash-2"></i> Excluir definitivamente'; }
+  }
+};
+
+const fecharExcluirConta = () => {
+  const m = document.getElementById('excluirModal');
+  if (!m || !m.classList.contains('open')) return;
+  m.classList.remove('open');
+  if (!document.getElementById('configDrawer')?.classList.contains('open')) document.body.classList.remove('config-aberta');
+  _focoAntesExcluir?.focus?.();
+};
+
 const logout = async () => {
   try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); }
   catch (e) { /* sai mesmo sem resposta */ }

@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const suapService = require('../services/suapService');
+const cofre = require('../services/cofre');
 
 /**
  * O access token do SUAP é um JWT: lemos o campo `exp` (sem validar a
@@ -37,6 +38,27 @@ const authMiddleware = async (req, res, next) => {
       return res.redirect('/login');
     }
 
+    // ── Abre as chaves do SUAP (ficam criptografadas no banco) ───
+    const salvoAccess = user.suapToken, salvoRefresh = user.suapRefreshToken;
+    const access = cofre.abrir(salvoAccess);
+    const refresh = cofre.abrir(salvoRefresh);
+    if (access === null) {
+      // Não deu para abrir (a chave de criptografia mudou): pede um novo login
+      res.clearCookie('authToken');
+      if (req.originalUrl.startsWith('/api/')) return res.status(401).json({ erro: 'Sua sessão expirou. Entre de novo.' });
+      return res.redirect('/login');
+    }
+    // Contas de antes da criptografia: regrava as chaves já protegidas
+    if (!cofre.estaFechado(salvoAccess) || (salvoRefresh && !cofre.estaFechado(salvoRefresh))) {
+      User.updateOne({ _id: user._id }, { $set: {
+        suapToken: cofre.fechar(access),
+        ...(refresh ? { suapRefreshToken: cofre.fechar(refresh) } : {}),
+      } }).catch((e) => console.warn('Aviso: não foi possível proteger os tokens antigos:', e.message));
+    }
+    // Daqui em diante só a memória desta requisição tem o token aberto (nada é salvo assim)
+    user.suapToken = access;
+    user.suapRefreshToken = refresh || '';
+
     // ── Renova o token SUAP só quando ele estiver expirando ──────
     // Antes isso rodava em TODA requisição: deixava tudo lento, gerava um
     // token novo a cada clique e invalidava o cache (que usa o token na chave).
@@ -50,7 +72,7 @@ const authMiddleware = async (req, res, next) => {
           suapService.limparCache(user.suapToken); // limpa cache do token ANTIGO
           user.suapToken = novoAccessToken;
           await User.findByIdAndUpdate(user._id, {
-            suapToken: novoAccessToken,
+            suapToken: cofre.fechar(novoAccessToken),
           });
         }
       } catch (refreshErr) {
