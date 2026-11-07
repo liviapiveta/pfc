@@ -174,6 +174,7 @@ const painelNotificacoesPrivacidade = () => {
         ${opcao('anonimo', 'Aparecer como anônimo', 'Sua posição continua no ranking, mas sem o seu nome.')}
         ${opcao('oculto', 'Não aparecer no ranking', 'Você some da lista. Seus pontos e níveis continuam valendo.')}
       </div>
+      <p class="config-nota"><i data-lucide="shield-check"></i> <span>Quer saber quais dados o IFPlenus usa e por quê? Leia a <a href="/privacidade">Política de Privacidade</a>.</span></p>
     </div>`;
 };
 
@@ -2242,6 +2243,7 @@ const _itensBusca = () => [
   { titulo: 'Acessibilidade', grupo: 'Configurações', icone: 'accessibility', termos: 'fonte texto tamanho espacamento links', acao: () => abrirConfig('acessibilidade') },
   { titulo: 'Notificações por e-mail', grupo: 'Configurações', icone: 'mail', termos: 'email avisos', acao: () => abrirConfig('notificacoes') },
   { titulo: 'Privacidade no ranking', grupo: 'Configurações', icone: 'eye', termos: 'anonimo oculto', acao: () => abrirConfig('privacidade') },
+  { titulo: 'Política de Privacidade', grupo: 'Ajuda', icone: 'shield-check', termos: 'lgpd dados pessoais suap seguranca termos', acao: () => { location.href = '/privacidade'; } },
   { titulo: 'Meus dados do SUAP', grupo: 'Configurações', icone: 'user', termos: 'perfil curso matricula', acao: () => abrirConfig('dados') },
   { titulo: 'Sair do IFPlenus', grupo: 'Conta', icone: 'log-out', termos: 'logout sair', acao: () => logout() },
 ];

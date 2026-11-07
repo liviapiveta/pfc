@@ -186,6 +186,7 @@
     .etapa.ativa { display: block; }
     @keyframes aparecer { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
+    .rodape a, .nota a { color: var(--verde); }
     .rodape {
       position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%);
       color: var(--cinza); font-size: 0.72rem; z-index: 5; white-space: nowrap;
@@ -289,7 +290,7 @@
         </div>
         <button class="btn" type="submit" id="btnAluno"><i data-lucide="log-in"></i> <span>Entrar no portal</span></button>
         <div class="erro-msg" id="erroAluno" role="alert"></div>
-        <p class="nota"><i data-lucide="shield-check"></i> Use a mesma matrícula e senha do SUAP IFPR.</p>
+        <p class="nota"><i data-lucide="shield-check"></i> <span>Use a mesma matrícula e senha do SUAP IFPR. Sua senha vai direto para o SUAP e não é guardada. Ao entrar, você autoriza o uso dos seus dados como explica a <a href="/privacidade">Política de Privacidade</a>.</span></p>
       </form>
 
       <div class="chips">
@@ -353,7 +354,7 @@
   </section>
 </main>
 
-<footer class="rodape">Instituto Federal do Paraná · Campus Assis Chateaubriand</footer>
+<footer class="rodape">Instituto Federal do Paraná · Campus Assis Chateaubriand · <a href="/privacidade">Política de Privacidade</a></footer>
 
 <script>
 

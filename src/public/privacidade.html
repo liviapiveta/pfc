@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Privacidade — IFPlenus</title>
+  <meta name="description" content="Como o IFPlenus usa os seus dados do SUAP: o que é buscado, o que é guardado, o que não é, por quê, quem vê e quais são os seus direitos pela LGPD." />
+  <link rel="icon" type="image/svg+xml" href="/images/logo.svg" />
+  <link rel="icon" type="image/png" href="/images/favicon.png" />
+  <meta name="theme-color" content="#1b1b1f" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <!-- Mesmo tema e acessibilidade escolhidos no portal (salvos neste navegador) -->
+  <script>
+    (function () {
+      var d = document.documentElement, p = {};
+      try { p = JSON.parse(localStorage.getItem('ifplenus-acess') || '{}') || {}; } catch (e) {}
+      var temas = ['dark', 'light', 'hc-escuro', 'hc-claro', 'daltonico'];
+      d.setAttribute('data-theme', temas.indexOf(p.tema) > -1 ? p.tema : 'dark');
+      if (p.texto === 'grande' || p.texto === 'muito-grande') d.setAttribute('data-texto', p.texto);
+      if (p.espaco) d.setAttribute('data-espaco', 'amplo');
+      if (p.links) d.setAttribute('data-links', 'destaque');
+    })();
+  </script>
+  <link rel="stylesheet" href="/portal.css" />
+  <style>
+    /* A página usa as cores e temas do portal, mas tem layout próprio (sem barra lateral) */
+    body { display: block; min-height: 100vh; background: var(--bg); color: var(--texto); }
+    .pular { position: absolute; left: 0.75rem; top: -60px; z-index: 50; padding: 0.6rem 1rem; border-radius: 10px; background: var(--verde); color: var(--sobre-verde); font-weight: 700; text-decoration: none; }
+    .pular:focus { top: 0.75rem; }
+    .pp-topo {
+      position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      padding: 0.75rem clamp(1rem, 4vw, 2.5rem); background: var(--sidebar); border-bottom: 1px solid var(--borda-2, var(--borda));
+    }
+    .pp-marca { display: inline-flex; align-items: center; gap: 0.6rem; text-decoration: none; color: #fff; }
+    .pp-marca img { width: 32px; height: 32px; }
+    .pp-marca strong { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.25rem; letter-spacing: -0.5px; }
+    .pp-marca strong span { color: #5fe39a; } /* a faixa do topo é sempre escura, em todos os temas */
+    .pp-voltar {
+      display: inline-flex; align-items: center; gap: 0.4rem; min-height: 40px; padding: 0.45rem 0.95rem; border-radius: 99px;
+      color: #fff; text-decoration: none; font-size: 0.88rem; font-weight: 600; border: 1px solid rgba(255,255,255,0.18);
+    }
+    .pp-voltar:hover, .pp-voltar:focus-visible { border-color: #5fe39a; color: #5fe39a; }
+    .pp-voltar svg { width: 17px; height: 17px; }
+
+    .pp-wrap { max-width: 1120px; margin: 0 auto; padding: 2rem clamp(1rem, 4vw, 2.5rem) 3rem; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 2.5rem; align-items: start; }
+    .pp-indice { position: sticky; top: 84px; background: var(--card); border: 1px solid var(--borda); border-radius: 16px; padding: 1rem 0.6rem 1rem 1rem; max-height: calc(100vh - 110px); overflow-y: auto; }
+    .pp-indice summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; cursor: default; }
+    .pp-indice summary::-webkit-details-marker { display: none; }
+    .pp-ind-qtd { display: none; }
+    .pp-indice h2 { font-family: 'Syne', sans-serif; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--cinza); margin: 0 0 0.6rem; }
+    .pp-indice ol { list-style: none; counter-reset: i; display: flex; flex-direction: column; gap: 0.1rem; }
+    .pp-indice li { counter-increment: i; }
+    .pp-indice a {
+      display: flex; gap: 0.5rem; padding: 0.42rem 0.5rem; border-radius: 8px; text-decoration: none;
+      color: var(--texto-2); font-size: 0.86rem; line-height: 1.35;
+    }
+    .pp-indice a::before { content: counter(i) "."; color: var(--verde); font-weight: 700; min-width: 1.3rem; }
+    .pp-indice a:hover, .pp-indice a:focus-visible { background: var(--neutro-bg); color: var(--texto); }
+
+    .pp-conteudo { min-width: 0; }
+    .pp-hero { background: var(--card); border: 1px solid var(--borda); border-radius: 20px; padding: 1.6rem 1.7rem; margin-bottom: 1.6rem; }
+    .pp-hero .selo { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--verde); background: var(--verde-claro); padding: 0.3rem 0.7rem; border-radius: 99px; }
+    .pp-hero .selo svg { width: 15px; height: 15px; }
+    .pp-hero h1 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(1.6rem, 4vw, 2.2rem); letter-spacing: -0.5px; margin: 0.8rem 0 0.5rem; line-height: 1.15; }
+    .pp-hero p { color: var(--texto-2); line-height: 1.7; font-size: 0.98rem; max-width: 70ch; }
+    .pp-hero .atualizado { margin-top: 0.8rem; font-size: 0.82rem; color: var(--cinza); }
+
+    .pp-resumo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; margin-bottom: 2rem; }
+    @media (max-width: 520px) { .pp-resumo { grid-template-columns: 1fr; } }
+    .pp-resumo div { background: var(--card); border: 1px solid var(--borda); border-radius: 14px; padding: 1rem 1.1rem; }
+    .pp-resumo svg { width: 22px; height: 22px; color: var(--verde); }
+    .pp-resumo strong { display: block; margin: 0.45rem 0 0.25rem; font-size: 0.95rem; }
+    .pp-resumo span { font-size: 0.86rem; color: var(--texto-2); line-height: 1.55; }
+
+    .pp-secao { scroll-margin-top: 90px; padding: 0 0 1.8rem; margin-bottom: 1.8rem; border-bottom: 1px solid var(--borda); }
+    .pp-secao:last-child { border-bottom: none; }
+    .pp-secao h2 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.3rem; display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.9rem; line-height: 1.3; }
+    .pp-secao h2 .n { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; background: var(--verde-claro); color: var(--verde); font-size: 0.95rem; }
+    .pp-secao h3 { font-size: 1rem; font-weight: 700; margin: 1.2rem 0 0.5rem; }
+    .pp-secao p, .pp-secao li { line-height: 1.75; color: var(--texto-2); font-size: 0.96rem; }
+    .pp-secao p + p { margin-top: 0.7rem; }
+    .pp-secao strong { color: var(--texto); }
+    .pp-secao ul { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.35rem; margin: 0.5rem 0; }
+    .pp-secao a { color: var(--verde); }
+    .pp-passos { list-style: none; counter-reset: p; display: flex; flex-direction: column; gap: 0.6rem; margin: 0.7rem 0; padding: 0; }
+    .pp-passos li { counter-increment: p; display: flex; gap: 0.75rem; align-items: flex-start; }
+    .pp-passos li::before { content: counter(p); flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--verde-claro); color: var(--verde); font-weight: 700; font-size: 0.85rem; margin-top: 0.1rem; }
+
+    .pp-tabela { width: 100%; border-collapse: separate; border-spacing: 0; margin: 0.8rem 0; border: 1px solid var(--borda); border-radius: 14px; overflow: hidden; font-size: 0.9rem; }
+    .pp-tabela th, .pp-tabela td { text-align: left; vertical-align: top; padding: 0.75rem 0.9rem; border-bottom: 1px solid var(--borda); line-height: 1.55; }
+    .pp-tabela tr:last-child td { border-bottom: none; }
+    .pp-tabela th { background: var(--bg-2); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.4px; color: var(--cinza); }
+    .pp-tabela td { color: var(--texto-2); background: var(--card); }
+    .pp-tabela td:first-child { color: var(--texto); font-weight: 600; }
+
+    .pp-caixa { display: flex; gap: 0.8rem; align-items: flex-start; padding: 1rem 1.1rem; margin: 1rem 0; border-radius: 14px; background: var(--card); border: 1px solid var(--borda); }
+    .pp-caixa > svg { width: 22px; height: 22px; flex-shrink: 0; margin-top: 0.15rem; color: var(--verde); }
+    .pp-caixa.alerta > svg { color: var(--pontos); }
+    .pp-caixa.lei { border-left: 4px solid var(--verde); }
+    .pp-caixa p { margin: 0; }
+    .pp-caixa .cit { font-style: italic; }
+
+    .pp-sim-nao { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin: 0.8rem 0; }
+    .pp-sim-nao > div { background: var(--card); border: 1px solid var(--borda); border-radius: 14px; padding: 1rem 1.1rem; }
+    .pp-sim-nao h3 { margin: 0 0 0.5rem; display: flex; align-items: center; gap: 0.45rem; }
+    .pp-sim-nao h3 svg { width: 19px; height: 19px; }
+    .pp-sim-nao .sim h3 svg { color: var(--verde); }
+    .pp-sim-nao .nao h3 svg { color: var(--err-text, #ff7b7b); }
+
+    .pp-rodape { border-top: 1px solid var(--borda); padding: 1.4rem clamp(1rem, 4vw, 2.5rem); text-align: center; color: rgba(255,255,255,0.75); font-size: 0.82rem; background: var(--sidebar); }
+    .pp-rodape a { color: rgba(255,255,255,0.75); }
+
+    .pp-topo-btn { position: fixed; right: 1rem; bottom: 1rem; width: 46px; height: 46px; border-radius: 50%; display: none; align-items: center; justify-content: center; background: var(--card); border: 1px solid var(--borda); color: var(--texto); cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .pp-topo-btn.ver { display: inline-flex; }
+    .pp-topo-btn:hover { border-color: var(--verde); color: var(--verde); }
+
+    @media (max-width: 900px) {
+      .pp-wrap { grid-template-columns: 1fr; gap: 1.2rem; padding-top: 1.2rem; }
+      .pp-indice { position: static; max-height: none; padding: 0.2rem 0.6rem 0.2rem 1rem; }
+      /* No celular/tablet o índice vira um "abre e fecha" para não empurrar o texto */
+      .pp-indice summary { cursor: pointer; min-height: 48px; }
+      .pp-indice summary h2 { margin: 0; }
+      .pp-indice summary::after { content: '▾'; color: var(--verde); font-size: 1rem; transition: transform .15s; }
+      .pp-indice details[open] summary::after { transform: rotate(180deg); }
+      .pp-indice details[open] ol { padding-bottom: 0.8rem; }
+      .pp-ind-qtd { display: inline; margin-left: auto; font-size: 0.8rem; color: var(--cinza); }
+      .pp-indice ol { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      .pp-hero { padding: 1.2rem 1.15rem; border-radius: 16px; }
+      .pp-sim-nao { grid-template-columns: 1fr; }
+      .pp-voltar span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+      .pp-voltar { width: 44px; height: 44px; padding: 0; justify-content: center; }
+      /* tabela vira lista no celular */
+      .pp-tabela, .pp-tabela tbody, .pp-tabela tr, .pp-tabela td { display: block; width: 100%; }
+      .pp-tabela thead { display: none; }
+      .pp-tabela tr { border-bottom: 1px solid var(--borda); }
+      .pp-tabela tr:last-child { border-bottom: none; }
+      .pp-tabela td { border: none; padding: 0.35rem 0.9rem; }
+      .pp-tabela td:first-child { padding-top: 0.8rem; }
+      .pp-tabela td:last-child { padding-bottom: 0.8rem; }
+      .pp-tabela td[data-r]::before { content: attr(data-r) ": "; font-weight: 700; color: var(--cinza); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.3px; }
+    }
+    :root[data-theme="light"] .pp-marca, :root[data-theme="light"] .pp-voltar { color: #fff; }
+    @media print { .pp-topo, .pp-indice, .pp-topo-btn { display: none !important; } .pp-wrap { display: block; } }
+  </style>
+</head>
+<body>
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="pp-topo">
+    <a class="pp-marca" href="/" aria-label="IFPlenus — voltar ao portal">
+      <img src="/images/logo.svg" alt="" width="32" height="32" />
+      <strong>IF<span>Plenus</span></strong>
+    </a>
+    <a class="pp-voltar" href="/" id="ppVoltar"><i data-lucide="arrow-left"></i><span>Voltar ao portal</span></a>
+  </header>
+
+  <div class="pp-wrap">
+    <nav class="pp-indice" aria-label="Nesta página">
+      <details id="ppIndice" open>
+      <summary><h2>Nesta página</h2><span class="pp-ind-qtd">16 tópicos</span></summary>
+      <ol>
+        <li><a href="#o-que-e">O que é o IFPlenus</a></li>
+        <li><a href="#lgpd">Palavras da LGPD</a></li>
+        <li><a href="#login">Como funciona o login</a></li>
+        <li><a href="#o-que-buscamos">O que buscamos no SUAP</a></li>
+        <li><a href="#guardamos">O que guardamos</a></li>
+        <li><a href="#nao-guardamos">O que NÃO guardamos</a></li>
+        <li><a href="#por-que">Para que usamos</a></li>
+        <li><a href="#quem-ve">Quem vê os seus dados</a></li>
+        <li><a href="#ranking">Privacidade no ranking</a></li>
+        <li><a href="#emails">E-mails de aviso</a></li>
+        <li><a href="#seguranca">Segurança</a></li>
+        <li><a href="#terceiros">Serviços que ajudam o site</a></li>
+        <li><a href="#navegador">O que fica no seu navegador</a></li>
+        <li><a href="#tempo">Por quanto tempo</a></li>
+        <li><a href="#direitos">Seus direitos</a></li>
+        <li><a href="#contato">Dúvidas e pedidos</a></li>
+      </ol>
+      </details>
+    </nav>
+
+    <main class="pp-conteudo" id="conteudo" tabindex="-1">
+      <section class="pp-hero">
+        <span class="selo"><i data-lucide="shield-check"></i> Política de Privacidade</span>
+        <h1>Como o IFPlenus cuida dos seus dados</h1>
+        <p>Aqui explicamos, em linguagem simples, como o IFPlenus usa as informações que vêm do <strong>SUAP</strong>: o que é buscado, o que fica guardado, o que nunca é guardado, por que, quem pode ver e o que você pode pedir. Os termos seguem a <strong>Lei Geral de Proteção de Dados</strong> (LGPD — Lei nº 13.709/2018).</p>
+        <p class="atualizado">Última atualização: 7 de novembro de 2026</p>
+      </section>
+
+      <div class="pp-resumo" aria-label="Resumo">
+        <div><i data-lucide="key-round"></i><strong>Sua senha não fica com a gente</strong><span>Ela vai direto para o SUAP conferir e não é guardada em lugar nenhum.</span></div>
+        <div><i data-lucide="eye"></i><strong>Só leitura</strong><span>O IFPlenus só <em>lê</em> dados no SUAP. Nunca altera nada lá.</span></div>
+        <div><i data-lucide="database"></i><strong>Guardamos o mínimo</strong><span>Nome, matrícula, curso, e-mail e o que você faz no portal (pontos, presenças, pedidos).</span></div>
+        <div><i data-lucide="user-cog"></i><strong>Você no controle</strong><span>Escolha como aparece no ranking e se quer receber e-mails.</span></div>
+      </div>
+
+      <section class="pp-secao" id="o-que-e">
+        <h2><span class="n">1</span> O que é o IFPlenus</h2>
+        <p>O IFPlenus é um portal de gamificação para estudantes do <strong>IFPR — Campus Assis Chateaubriand</strong>. Ele junta, num lugar só, seus <strong>projetos</strong> de pesquisa e extensão, os <strong>eventos</strong> do campus, as <strong>conquistas</strong> (com pontos e níveis) e o <strong>ranking</strong>.</p>
+        <p>Para isso, o portal se conecta ao <strong>SUAP</strong>, o sistema acadêmico oficial do IFPR, usando a mesma matrícula e senha que você já usa lá.</p>
+      </section>
+
+      <section class="pp-secao" id="lgpd">
+        <h2><span class="n">2</span> Algumas palavras da LGPD (art. 5º)</h2>
+        <p>A LGPD tem um artigo só para explicar os termos que ela usa: o <strong>art. 5º</strong>. Estes são os que importam aqui:</p>
+        <div class="pp-caixa lei"><i data-lucide="scale"></i><p><strong>Dado pessoal</strong> (art. 5º, I): <span class="cit">“informação relacionada a pessoa natural identificada ou identificável”</span>. Ou seja: qualquer informação que diga quem você é ou que leve até você — nome, matrícula, e-mail, nota.</p></div>
+        <div class="pp-caixa lei"><i data-lucide="scale"></i><p><strong>Dado pessoal sensível</strong> (art. 5º, II): informações como origem racial ou étnica, religião, opinião política, saúde, vida sexual, dados genéticos ou biométricos. <strong>O IFPlenus não pede nem guarda nenhum dado sensível.</strong></p></div>
+        <div class="pp-caixa lei"><i data-lucide="scale"></i><p><strong>Titular</strong> (art. 5º, V): a pessoa a quem os dados se referem — <strong>você</strong>.</p></div>
+        <div class="pp-caixa lei"><i data-lucide="scale"></i><p><strong>Tratamento</strong> (art. 5º, X): qualquer coisa feita com os dados — coletar, usar, guardar, mostrar, apagar etc.</p></div>
+        <div class="pp-caixa lei"><i data-lucide="scale"></i><p><strong>Consentimento</strong> (art. 5º, XII): quando você concorda, de forma livre, informada e clara, que seus dados sejam usados para uma finalidade específica. É o que acontece quando você decide entrar no IFPlenus com a sua conta do SUAP.</p></div>
+        <p>A LGPD também pede que o uso dos dados siga alguns princípios (art. 6º), como <strong>finalidade</strong> (usar só para o que foi dito), <strong>necessidade</strong> (usar só o mínimo), <strong>transparência</strong> (explicar tudo, como nesta página) e <strong>segurança</strong>.</p>
+      </section>
+
+      <section class="pp-secao" id="login">
+        <h2><span class="n">3</span> Como funciona o login (e por que é você quem libera os dados)</h2>
+        <p>Quando você digita sua matrícula e sua senha do SUAP na tela de entrada, acontece o seguinte:</p>
+        <ol class="pp-passos">
+          <li><span>O IFPlenus envia a matrícula e a senha <strong>direto para o SUAP</strong>, por conexão protegida (HTTPS), só para o SUAP conferir se estão certas.</span></li>
+          <li><span>Se estiverem certas, o SUAP devolve uma espécie de <strong>“chave de acesso temporária”</strong> (chamada <em>token</em>). É com ela que o portal pede ao SUAP as suas informações, em seu nome.</span></li>
+          <li><span>A sua <strong>senha é descartada</strong> na hora: ela não é guardada no banco de dados, não vai para arquivos de registro e ninguém do IFPlenus tem acesso a ela.</span></li>
+          <li><span>O portal cria a sua sessão (um <em>cookie</em> de login que vale por 24 horas) e você entra.</span></li>
+        </ol>
+        <div class="pp-caixa"><i data-lucide="hand"></i><p><strong>É você quem libera.</strong> O SUAP só entrega os seus dados porque <strong>você mesmo fez o login</strong> com a sua senha. O IFPlenus não tem nenhum acesso “especial” ao SUAP: ele só enxerga o que a sua própria conta enxerga, e só depois que você entra. Se você não fizer login, o portal não busca nada sobre você.</p></div>
+        <p>A chave de acesso tem <strong>prazo de validade</strong> definido pelo próprio SUAP. Quando ela vence, o portal usa a chave de renovação que o SUAP fornece (o <em>refresh token</em>) para continuar funcionando; se ela também vencer, basta entrar de novo.</p>
+      </section>
+
+      <section class="pp-secao" id="o-que-buscamos">
+        <h2><span class="n">4</span> O que o IFPlenus busca no SUAP</h2>
+        <p>O portal faz apenas <strong>consultas de leitura</strong> na API do SUAP (a “porta de acesso” que o SUAP oferece para outros sistemas). Ele <strong>nunca cria, altera ou apaga</strong> nada no SUAP. Estas são as consultas:</p>
+        <table class="pp-tabela">
+          <thead><tr><th>O que é consultado</th><th>O que vem</th><th>Para quê</th></tr></thead>
+          <tbody>
+            <tr><td>Seus dados (meus dados)</td><td data-r="O que vem">Nome, nome usual, matrícula, e-mails, vínculo (curso, campus, situação). A resposta do SUAP também traz outros campos, como CPF e data de nascimento.</td><td data-r="Para quê">Identificar você, mostrar seu nome e curso, e mostrar a você mesmo, nas Configurações, os dados que o SUAP tem.</td></tr>
+            <tr><td>Seus dados de aluno</td><td data-r="O que vem">Curso.</td><td data-r="Para quê">Montar o ranking “do meu curso”.</td></tr>
+            <tr><td>Períodos letivos e boletim</td><td data-r="O que vem">Seus anos/períodos, disciplinas, notas e faltas.</td><td data-r="Para quê">Ver se você ganhou conquistas de nota (por exemplo, “tirar 90 ou mais”).</td></tr>
+            <tr><td>Projetos de pesquisa e extensão</td><td data-r="O que vem">Projetos do campus: título, coordenador, período, situação.</td><td data-r="Para quê">Listar os projetos na aba Projetos.</td></tr>
+            <tr><td>Eventos do campus</td><td data-r="O que vem">Nome, datas, horário e local dos eventos.</td><td data-r="Para quê">Listar os eventos e permitir validar a sua presença.</td></tr>
+          </tbody>
+        </table>
+        <p>As respostas do SUAP ficam por <strong>alguns minutos</strong> numa memória temporária do servidor (o chamado <em>cache</em>), só para o site ficar mais rápido e não consultar o SUAP a cada clique. Depois disso, somem sozinhas. Ao sair do portal, esse cache é limpo.</p>
+      </section>
+
+      <section class="pp-secao" id="guardamos">
+        <h2><span class="n">5</span> O que o IFPlenus guarda</h2>
+        <p>Guardamos no nosso banco de dados <strong>só o necessário</strong> para o portal funcionar:</p>
+        <table class="pp-tabela">
+          <thead><tr><th>Dado</th><th>Por quê</th></tr></thead>
+          <tbody>
+            <tr><td>Matrícula</td><td data-r="Por quê">É o que identifica a sua conta no portal.</td></tr>
+            <tr><td>Nome (o nome usual do SUAP)</td><td data-r="Por quê">Para mostrar no portal, no ranking e para os servidores que conferem presenças e pedidos.</td></tr>
+            <tr><td>Curso</td><td data-r="Por quê">Para o ranking por curso e para os servidores saberem de que turma você é.</td></tr>
+            <tr><td>E-mail (de preferência o acadêmico)</td><td data-r="Por quê">Só para os e-mails de aviso, e só se você deixar essa opção ligada.</td></tr>
+            <tr><td>Chaves de acesso do SUAP (tokens)</td><td data-r="Por quê">Para o portal continuar buscando seus dados no SUAP enquanto você usa, sem pedir a senha de novo. Elas expiram e são trocadas a cada login.</td></tr>
+            <tr><td>Pontos, nível e conquistas</td><td data-r="Por quê">É a parte da gamificação. Em conquistas de nota, guardamos também <strong>qual disciplina e qual nota</strong> deram a conquista (é o que aparece em “Pela nota em…”).</td></tr>
+            <tr><td>Presenças em eventos</td><td data-r="Por quê">Evento, forma de validação, situação e, conforme o caso, o <strong>arquivo do certificado</strong> que você enviou ou o <strong>conteúdo lido do QR Code</strong> do e-mail de inscrição. É o que o professor confere e o que você vê em “Ver como validei”.</td></tr>
+            <tr><td>Pedidos para entrar em projetos</td><td data-r="Por quê">Projeto, data do pedido e a resposta do professor.</td></tr>
+            <tr><td>Suas preferências</td><td data-r="Por quê">Como aparecer no ranking, se quer e-mails e o que já viu de novidades.</td></tr>
+            <tr><td>Data do último acesso</td><td data-r="Por quê">Para o funcionamento e a segurança do portal.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="pp-secao" id="nao-guardamos">
+        <h2><span class="n">6</span> O que o IFPlenus NÃO guarda (e por quê)</h2>
+        <div class="pp-sim-nao">
+          <div class="nao">
+            <h3><i data-lucide="x-circle"></i> Nunca guardamos</h3>
+            <ul>
+              <li>Sua <strong>senha</strong> do SUAP</li>
+              <li>Seu <strong>CPF</strong></li>
+              <li>Sua <strong>data de nascimento</strong></li>
+              <li>Telefone, endereço ou documentos</li>
+              <li>Sua <strong>foto</strong> do SUAP</li>
+              <li>O boletim completo (todas as notas e faltas)</li>
+              <li>Dados sensíveis (saúde, religião, origem etc.)</li>
+            </ul>
+          </div>
+          <div class="sim">
+            <h3><i data-lucide="info"></i> Por quê?</h3>
+            <p>Porque o portal <strong>não precisa</strong> desses dados para funcionar. A LGPD manda usar só o mínimo necessário (princípio da necessidade). Menos dados guardados também quer dizer menos risco para você.</p>
+            <p>O CPF e a data de nascimento aparecem <strong>só para você</strong>, nas Configurações, buscados na hora no SUAP — e não ficam salvos no banco.</p>
+          </div>
+        </div>
+        <p>As notas e faltas são lidas do SUAP na hora, só para conferir as conquistas. Fica guardada apenas a nota que deu uma conquista (e a disciplina), como explicado acima.</p>
+      </section>
+
+      <section class="pp-secao" id="por-que">
+        <h2><span class="n">7</span> Para que usamos os seus dados</h2>
+        <ul>
+          <li>Deixar você entrar no portal com a sua conta do SUAP.</li>
+          <li>Mostrar seus projetos, eventos, conquistas, pontos, nível e trajetória.</li>
+          <li>Calcular as conquistas automáticas (por nota, projeto aceito, presença em evento).</li>
+          <li>Montar o ranking do campus e do seu curso, do jeito que você escolheu aparecer.</li>
+          <li>Permitir que os servidores confiram presenças e respondam aos seus pedidos de participação.</li>
+          <li>Mandar e-mails de aviso, se você quiser.</li>
+        </ul>
+        <div class="pp-caixa"><i data-lucide="ban"></i><p>Seus dados <strong>não são vendidos</strong>, não são usados para propaganda e não são passados para empresas para outros fins. O portal não usa ferramentas de anúncio nem de rastreamento.</p></div>
+      </section>
+
+      <section class="pp-secao" id="quem-ve">
+        <h2><span class="n">8</span> Quem vê os seus dados</h2>
+        <h3>Os outros alunos</h3>
+        <p>Veem apenas o que aparece no <strong>ranking</strong>: seu nome, sua posição, seus pontos e seu nível — e só se você deixar (veja o próximo tópico).</p>
+        <h3>Os servidores do campus com conta no painel</h3>
+        <p>Professores, técnicos administrativos e a equipe do IFPlenus que têm conta no painel administrativo podem ver o necessário para fazer o trabalho deles:</p>
+        <ul>
+          <li><strong>Presenças:</strong> seu nome, matrícula e curso, o evento, e o certificado ou o conteúdo do QR Code que você enviou — para conferir se a presença é válida.</li>
+          <li><strong>Pedidos de participação:</strong> seu nome e matrícula, para aceitar ou recusar.</li>
+          <li><strong>Conquistas e estatísticas:</strong> quem recebeu cada conquista e listas que podem ser baixadas em planilha (CSV).</li>
+        </ul>
+        <p>Toda ação feita no painel fica registrada num <strong>histórico</strong> (quem fez, o quê e quando), para que nada aconteça sem rastro.</p>
+        <div class="pp-caixa alerta"><i data-lucide="info"></i><p>A opção de privacidade do ranking vale para <strong>os outros alunos</strong> e para a planilha do ranking. Para validar presenças e responder pedidos, os servidores precisam saber quem é você, então nessas telas o seu nome continua aparecendo para eles.</p></div>
+      </section>
+
+      <section class="pp-secao" id="ranking">
+        <h2><span class="n">9</span> Privacidade no ranking: você escolhe</h2>
+        <p>Em <strong>Configurações → Privacidade no ranking</strong> você escolhe como aparece para os outros alunos, e pode mudar quando quiser:</p>
+        <table class="pp-tabela">
+          <thead><tr><th>Opção</th><th>O que os outros veem</th></tr></thead>
+          <tbody>
+            <tr><td>Com o meu nome</td><td data-r="O que os outros veem">Seu nome, posição, pontos e nível.</td></tr>
+            <tr><td>Anônimo</td><td data-r="O que os outros veem">“Aluno anônimo” no lugar do seu nome. Você continua ocupando a sua posição. Na planilha do ranking, sai sem nome e sem matrícula.</td></tr>
+            <tr><td>Oculto</td><td data-r="O que os outros veem">Você não aparece no ranking nem na planilha do ranking. Seus pontos e níveis continuam valendo para você.</td></tr>
+          </tbody>
+        </table>
+        <p>Quando você está anônimo ou oculto, o próprio ranking mostra um aviso para você lembrar disso.</p>
+      </section>
+
+      <section class="pp-secao" id="emails">
+        <h2><span class="n">10</span> E-mails de aviso</h2>
+        <p>Se a opção estiver ligada, o IFPlenus manda um e-mail para o seu endereço do SUAP quando algo importante acontece: uma conquista nova, quando você sobe de nível, quando um pedido de participação é respondido ou quando uma presença é validada ou recusada.</p>
+        <p>Você pode <strong>desligar</strong> esses e-mails quando quiser, em <strong>Configurações → Notificações por e-mail</strong>. Os e-mails nunca pedem a sua senha.</p>
+      </section>
+
+      <section class="pp-secao" id="seguranca">
+        <h2><span class="n">11</span> Segurança</h2>
+        <h3>Do lado do SUAP</h3>
+        <ul>
+          <li>A API do SUAP só responde a quem apresenta uma <strong>chave de acesso válida</strong>, que só existe depois de um login com matrícula e senha certas.</li>
+          <li>Cada chave dá acesso <strong>só aos dados da própria conta</strong> — com a sua chave, ninguém consegue ver dados de outro aluno.</li>
+          <li>As chaves <strong>expiram</strong>, conforme as regras do SUAP.</li>
+          <li>Toda a comunicação com o SUAP usa <strong>HTTPS</strong> (conexão criptografada).</li>
+        </ul>
+        <h3>Do lado do IFPlenus</h3>
+        <ul>
+          <li>O site funciona só por <strong>HTTPS</strong>.</li>
+          <li>O cookie de login é protegido (<em>HttpOnly</em>): códigos de outros sites não conseguem lê-lo. Ele vale por 24 horas e é apagado quando você sai.</li>
+          <li>Há <strong>limite de tentativas</strong> de login, para dificultar quem tenta adivinhar senhas.</li>
+          <li>Os arquivos de certificado têm o <strong>tipo conferido</strong> (só PDF ou imagem) e tamanho máximo de 4 MB, e só podem ser abertos por você e pelos servidores com conta.</li>
+          <li>As contas do painel são pessoais, com senha própria, e cada servidor só faz o que o seu cargo permite.</li>
+          <li>O acesso ao banco de dados é protegido por credenciais que só o servidor do IFPlenus conhece — nenhuma pessoa ou site de fora acessa o banco diretamente.</li>
+        </ul>
+        <div class="pp-caixa alerta"><i data-lucide="shield-alert"></i><p>Nenhum sistema é 100% invulnerável. Se acontecer algum incidente de segurança que possa afetar você, vamos avisar e tomar as medidas necessárias, como a LGPD determina. E lembre: <strong>nunca passe a sua senha para ninguém</strong> — nem para quem disser que é do IFPlenus.</p></div>
+      </section>
+
+      <section class="pp-secao" id="terceiros">
+        <h2><span class="n">12</span> Serviços que ajudam o site a funcionar</h2>
+        <p>Como quase todo site, o IFPlenus usa alguns serviços de infraestrutura. Eles só guardam ou transportam os dados para o portal funcionar:</p>
+        <ul>
+          <li><strong>SUAP (IFPR):</strong> a fonte oficial dos seus dados acadêmicos.</li>
+          <li><strong>Vercel:</strong> hospedagem do site, com servidor no Brasil (São Paulo).</li>
+          <li><strong>MongoDB:</strong> o banco de dados em nuvem onde fica o que é guardado (seção 5).</li>
+          <li><strong>Gmail (Google):</strong> envio dos e-mails de aviso.</li>
+          <li><strong>Google Fonts:</strong> as fontes (tipos de letra) do site. Ao carregar a página, o seu navegador baixa as fontes do Google.</li>
+        </ul>
+      </section>
+
+      <section class="pp-secao" id="navegador">
+        <h2><span class="n">13</span> O que fica no seu navegador</h2>
+        <ul>
+          <li><strong>Cookie de login</strong> — mantém você conectado por até 24 horas. É apagado ao sair.</li>
+          <li><strong>Preferências deste aparelho</strong> (no armazenamento do navegador) — tema, tamanho do texto, cartões informativos que você já fechou e a ordem escolhida para os eventos. Ficam só no seu aparelho; você pode apagar limpando os dados do site no navegador.</li>
+        </ul>
+        <p>Não usamos cookies de propaganda nem de rastreamento.</p>
+      </section>
+
+      <section class="pp-secao" id="tempo">
+        <h2><span class="n">14</span> Por quanto tempo os dados ficam guardados</h2>
+        <p>Os dados ficam guardados enquanto você usa o portal, para manter a sua trajetória (conquistas, pontos, presenças e projetos). As respostas do SUAP ficam só alguns minutos na memória temporária. Se você pedir a exclusão da sua conta, os seus dados pessoais são apagados, exceto o que a lei obrigar a manter.</p>
+      </section>
+
+      <section class="pp-secao" id="direitos">
+        <h2><span class="n">15</span> Seus direitos (LGPD, art. 18)</h2>
+        <p>Como titular dos dados, a LGPD garante que você pode pedir:</p>
+        <ul>
+          <li><strong>Confirmação</strong> de que tratamos dados seus, e <strong>acesso</strong> a eles;</li>
+          <li><strong>Correção</strong> de dados incompletos, errados ou desatualizados — como os dados vêm do SUAP, a correção é feita na secretaria acadêmica e aparece no IFPlenus no próximo login;</li>
+          <li><strong>Anonimização, bloqueio ou eliminação</strong> de dados desnecessários ou tratados em desacordo com a lei;</li>
+          <li><strong>Eliminação</strong> dos dados tratados com o seu consentimento;</li>
+          <li><strong>Informação</strong> sobre com quem os dados são compartilhados (seção 12) e sobre a possibilidade de não consentir e suas consequências — sem o login com o SUAP, não é possível usar o portal;</li>
+          <li><strong>Revogação do consentimento</strong> a qualquer momento — basta deixar de usar o portal e pedir a exclusão da conta;</li>
+          <li><strong>Portabilidade</strong> dos dados, nos termos da regulamentação.</li>
+        </ul>
+      </section>
+
+      <section class="pp-secao" id="contato">
+        <h2><span class="n">16</span> Dúvidas e pedidos</h2>
+        <p>Para tirar dúvidas sobre esta política, pedir uma cópia dos seus dados ou a exclusão da sua conta, fale com a equipe responsável pelo IFPlenus no <strong>IFPR — Campus Assis Chateaubriand</strong>.</p>
+        <p>Se esta política mudar, a nova versão será publicada nesta página, com a data de atualização no topo.</p>
+      </section>
+    </main>
+  </div>
+
+  <footer class="pp-rodape">
+    © <span id="ano"></span> IFPlenus · IFPR — Instituto Federal do Paraná · Campus Assis Chateaubriand
+  </footer>
+
+  <button type="button" class="pp-topo-btn" id="ppTopo" aria-label="Voltar ao topo"><i data-lucide="arrow-up"></i></button>
+
+  <script src="/lucide.min.js"></script>
+  <script>
+    document.getElementById('ano').textContent = new Date().getFullYear();
+    // Índice: aberto no computador; fechado (abre ao tocar) em telas menores; no PC não fecha
+    var ind = document.getElementById('ppIndice'), largo = matchMedia('(min-width: 901px)');
+    var ajustarIndice = function () { ind.open = largo.matches; };
+    ajustarIndice(); largo.addEventListener ? largo.addEventListener('change', ajustarIndice) : largo.addListener(ajustarIndice);
+    ind.querySelector('summary').addEventListener('click', function (e) { if (largo.matches) e.preventDefault(); });
+    ind.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', function () { if (!largo.matches) ind.open = false; }); });
+    try { lucide.createIcons(); } catch (e) { /* ícones são só enfeite */ }
+    // "Voltar": se veio de outra página do site (ex.: tela de login), volta para ela
+    try {
+      var ref = document.referrer ? new URL(document.referrer) : null;
+      if (ref && ref.origin === location.origin && /^\/(login)?/.test(ref.pathname) && ref.pathname.indexOf('/privacidade') !== 0) {
+        var v = document.getElementById('ppVoltar');
+        v.href = ref.pathname + ref.search;
+        if (ref.pathname.indexOf('/login') === 0) v.querySelector('span').textContent = 'Voltar para o login';
+      }
+    } catch (e) { /* sem referência: volta ao portal */ }
+    var topo = document.getElementById('ppTopo');
+    addEventListener('scroll', function () { topo.classList.toggle('ver', scrollY > 600); }, { passive: true });
+    topo.addEventListener('click', function () { scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); document.getElementById('conteudo').focus({ preventScroll: true }); });
+  </script>
+</body>
+</html>
