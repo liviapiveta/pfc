@@ -556,6 +556,15 @@ const getRanking = async (req, res) => {
       ? visiveis.slice(Math.max(TOP, meu.posicao - 3), meu.posicao + 2).map(linha)
       : [];
 
+    // "Perto de você": 2 acima e 2 abaixo, e quantos pontos faltam para passar o de cima
+    const idx = meu ? visiveis.indexOf(meu) : -1;
+    const perto = idx >= 0 ? visiveis.slice(Math.max(0, idx - 2), idx + 3).map(linha) : [];
+    const acima = idx > 0 ? visiveis[idx - 1] : null;
+    // Empate: fica na frente quem chegou primeiro àquele total — por isso +1
+    const proximo = acima
+      ? { nome: nomeExibido(acima), posicao: acima.posicao, faltam: Math.max(1, (acima.pontosReais || 0) - meusPontos + 1) }
+      : null;
+
     return res.json({
       escopo,
       curso: escopo === 'curso' ? me.curso : null,
@@ -570,6 +579,8 @@ const getRanking = async (req, res) => {
       total: visiveis.length,
       ranking,
       vizinhos,
+      perto,
+      proximo,
     });
   } catch (err) {
     console.error('Erro ao montar ranking:', err.message);
