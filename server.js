@@ -78,6 +78,10 @@ app.use(express.static(path.join(__dirname, 'src', 'public'), { index: false }))
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'public', 'login.html'));
 });
+// Política de Privacidade: pública (dá para ler antes de entrar)
+app.get(['/privacidade', '/politica-de-privacidade'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'public', 'privacidade.html'));
+});
 app.get('/admin/login', (req, res) => res.redirect('/login?admin'));
 app.get('/admin/definir-senha', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'public', 'admin-definir-senha.html'));
