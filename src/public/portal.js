@@ -897,8 +897,8 @@ const cartaoEvento = (ev) => {
     <div class="evc-corpo">
       <h4>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${nome}</a>` : nome}</h4>
       <p class="evc-meta">${meta}${ev.origem === 'suap' ? '<span class="evc-fonte">SUAP</span>' : ''}</p>
-      ${acao || premio ? `<div class="evc-acao">${acao}${premio}</div>` : ''}
     </div>
+    ${acao || premio ? `<div class="evc-acao">${premio}${acao}</div>` : ''}
   </article>`;
 };
 
@@ -927,16 +927,16 @@ const renderEventos = () => {
   const conta = (k) => base.filter(filtros[k]).length;
   const aba = (k, rot, ic) => `<button type="button" role="tab" class="ev-filtro ${state.evFiltro === k ? 'ativo' : ''}" aria-selected="${state.evFiltro === k}" onclick="filtrarEventos('${k}')">${ic ? `<i data-lucide="${ic}"></i>` : ''}${rot}<span>${conta(k)}</span></button>`;
 
-  // Ordem cronológica, um embaixo do outro (do começo do ano para o fim)
+  // Um embaixo do outro, do último (mais recente/futuro) para o primeiro do ano
   const lista = base.filter(filtros[state.evFiltro])
-    .sort((a, b) => ((_dataEv(a) || 0) - (_dataEv(b) || 0)) || String(a.hora_inicio || '').localeCompare(String(b.hora_inicio || '')));
+    .sort((a, b) => ((_dataEv(b) || 0) - (_dataEv(a) || 0)) || String(b.hora_inicio || '').localeCompare(String(a.hora_inicio || '')));
 
   el.innerHTML = `
     ${cardInfo('eventos')}
-    <div class="ev-filtros" role="tablist" aria-label="Filtrar eventos">
+    <div class="ev-filtros ev-filtros-3" role="tablist" aria-label="Filtrar eventos">
       ${aba('todos', 'Todos', '')}${aba('validar', 'Para validar', 'badge-check')}${aba('validados', 'Validados', 'check-check')}
     </div>
-    <p class="evc-ano"><i data-lucide="calendar-range"></i> Eventos de ${anoAtual} · em ordem de data</p>
+    <p class="evc-ano"><i data-lucide="calendar-range"></i> Eventos de ${anoAtual} · do mais recente para o mais antigo</p>
     ${lista.length
       ? `<div class="evc-lista">${lista.map(cartaoEvento).join('')}</div>`
       : `<div class="empty-state"><div class="icon"><i data-lucide="${state.evFiltro === 'validar' ? 'party-popper' : 'calendar'}"></i></div><p>${
@@ -2123,7 +2123,11 @@ const abrirBusca = () => {
     box.id = 'buscaRapida';
     box.className = 'busca-overlay';
     box.innerHTML = `
-      <div class="busca-dialog" role="dialog" aria-modal="true" aria-label="Busca rápida">
+      <div class="busca-dialog" role="dialog" aria-modal="true" aria-labelledby="buscaTitulo">
+        <div class="busca-head">
+          <h2 id="buscaTitulo"><i data-lucide="search"></i> Buscar</h2>
+          <button type="button" class="busca-fechar" aria-label="Fechar busca"><i data-lucide="x"></i></button>
+        </div>
         <div class="busca-campo">
           <i data-lucide="search"></i>
           <input type="text" id="buscaInput" role="combobox" aria-expanded="true" aria-controls="buscaResultados" aria-autocomplete="list"
@@ -2134,6 +2138,14 @@ const abrirBusca = () => {
         <div class="busca-rodape"><span><kbd>↑</kbd><kbd>↓</kbd> navegar</span><span><kbd>Enter</kbd> abrir</span><span><kbd>Ctrl</kbd>+<kbd>K</kbd> abre de qualquer lugar</span></div>
       </div>`;
     box.addEventListener('click', (e) => { if (e.target === box) fecharBusca(); });
+    box.querySelector('.busca-fechar').addEventListener('click', () => fecharBusca());
+    // Tab alterna entre o campo e o X (o foco não sai do pop-up)
+    box.querySelector('.busca-dialog').addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+      e.preventDefault();
+      const campo = box.querySelector('#buscaInput'), x = box.querySelector('.busca-fechar');
+      (document.activeElement === campo ? x : campo).focus();
+    });
     document.body.appendChild(box);
     const inp = box.querySelector('#buscaInput');
     inp.addEventListener('input', () => { _buscaSel = 0; desenharBusca(inp.value); });
@@ -2142,7 +2154,6 @@ const abrirBusca = () => {
       else if (e.key === 'ArrowUp') { e.preventDefault(); _buscaSel = Math.max(0, _buscaSel - 1); desenharBusca(inp.value, true); }
       else if (e.key === 'Enter') { e.preventDefault(); executarBusca(_buscaSel); }
       else if (e.key === 'Escape') { e.preventDefault(); fecharBusca(); }
-      else if (e.key === 'Tab') { e.preventDefault(); } // mantém o foco dentro da caixa
     });
   }
   _buscaFoco = document.activeElement;
