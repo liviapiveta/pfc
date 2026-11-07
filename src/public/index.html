@@ -335,7 +335,7 @@
         margin:1.4rem 0 0.8rem; display:flex; align-items:center; gap:0.5rem;
       }
       .conq-grid {
-        display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:0.9rem;
+        display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:0.9rem;
       }
       .conq-card {
         background: var(--card, #26262b);
@@ -356,7 +356,8 @@
       .conq-card .nome { font-weight:600; color:var(--texto,#f4f5f7); font-size:0.95rem; }
       .conq-card .como { margin-top:0.45rem; font-size:0.76rem; color:var(--texto-2); line-height:1.4; }
       .conq-card .desc { color:var(--cinza,#8b909b); font-size:0.8rem; margin-top:0.2rem; line-height:1.45; }
-      .conq-card .pts { color:var(--pontos); font-weight:700; font-size:0.82rem; margin-top:0.45rem; }
+      .conq-card > div:last-child { min-width:0; flex:1; }
+      .conq-card .pts { display:inline-flex; align-items:center; gap:0.25rem; color:var(--pontos); font-weight:700; font-size:0.82rem; margin-top:0.45rem; }
       .conq-card .auto {
         display:inline-block; margin-top:0.45rem; margin-left:0.4rem; padding:0.1rem 0.5rem;
         border-radius:99px; font-size:0.68rem; font-weight:600;
@@ -366,11 +367,11 @@
 
       /* Mobile */
       @media (max-width: 768px) {
-        .conq-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+        .conq-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
         .conq-resumo { flex-wrap: wrap; }
       }
-      @media (max-width: 480px) {
-        .conq-grid { grid-template-columns: 1fr 1fr; }
+      @media (max-width: 560px) {
+        .conq-grid { grid-template-columns: 1fr; }
       }
       @media (max-width: 420px) {
         .conq-grid { grid-template-columns: 1fr; }
