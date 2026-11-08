@@ -2172,11 +2172,13 @@ const filtrarTrajetoria = (t) => { state.trajFiltro = t; renderTrajetoria(); };
 let _relOcupado = false, _focoAntesRel = null;
 const REL_PREF = 'ifplenus-relatorio';
 
+const ANO_INICIAL_IFPLENUS = 2026;
 const _opcoesPeriodo = () => {
   const ano = new Date().getFullYear();
   const sem = new Date().getMonth() < 6 ? 1 : 2;
   const ops = [['tudo', 'Todo o período']];
-  for (let a = ano; a >= ano - 3; a--) {
+  // O IFPlenus começou em 2026: não há registros antes disso
+  for (let a = ano; a >= ANO_INICIAL_IFPLENUS; a--) {
     ops.push([`ano-${a}`, `Ano de ${a}`]);
     if (a < ano || sem === 2) ops.push([`${a}-2`, `${a} · 2º semestre`]);
     ops.push([`${a}-1`, `${a} · 1º semestre`]);

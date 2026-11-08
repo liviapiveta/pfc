@@ -122,7 +122,7 @@
         return t.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) + ' às ' +
           t.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
       };
-      var horas = function (h) { h = Number(h || 0); return (Number.isInteger(h) ? String(h) : h.toFixed(1).replace('.', ',')) + 'h'; };
+      var horas = function (h) { h = Number(h || 0); return h ? (Number.isInteger(h) ? String(h) : h.toFixed(1).replace('.', ',')) + 'h' : 'Nenhuma'; };
 
       var mostrarInvalido = function (codigo) {
         caixa.innerHTML = '<div class="vf-res ruim">' +
@@ -167,7 +167,7 @@
                   '<div><b>' + Number(r.pontos || 0).toLocaleString('pt-BR') + '</b><span>pontos</span></div>' +
                   '<div><b>' + Number(r.conquistas || 0) + '</b><span>conquistas</span></div>' +
                   '<div><b>' + Number(r.eventos || 0) + '</b><span>eventos</span></div>' +
-                  '<div><b>' + horas(r.horas) + '</b><span>em eventos</span></div>' +
+                  '<div><b>' + horas(r.horas) + '</b><span>' + (Number(r.horas) ? 'em eventos' : 'hora em eventos') + '</span></div>' +
                   '<div><b>' + Number(r.projetos || 0) + '</b><span>projetos</span></div>' +
                 '</div>' +
                 '<p class="vf-nota">Compare estes números com os do PDF. Se forem iguais, o relatório não foi alterado. O IFPlenus organiza a participação do estudante no IFPR — Campus Assis Chateaubriand e não substitui documentos oficiais do SUAP. <a href="/sobre">Saiba mais</a>.</p>' +
