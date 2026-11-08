@@ -597,7 +597,8 @@
     .qr-obs { display:block; font-size:0.72rem; color:#f5c469; margin-top:0.25rem; }
     .padrao-linha { display:flex; gap:0.5rem; flex-wrap:wrap; }
     .padrao-linha input { flex:1; min-width:180px; }
-    .ajuda { color:var(--cinza); font-size:0.74rem; margin-top:0.35rem; line-height:1.45; text-transform:none; letter-spacing:0; font-weight:400; }
+  .ajuda { color:var(--cinza); font-size:0.74rem; margin-top:0.35rem; line-height:1.45; text-transform:none; letter-spacing:0; font-weight:400; }
+  .ajuda.ajuda-aviso { color:var(--vermelho); font-weight:600; }
     .est-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:1rem; }
     .est-grid .card { margin-bottom:0; }
     .est-barras { display:flex; flex-direction:column; gap:0.55rem; }
@@ -2131,8 +2132,10 @@ const formsEvento = (dados = {}) => `
 // Validação de presença + conquista — o MESMO bloco serve para evento do painel e do SUAP
 const camposValidacao = (dados = {}) => {
   const v = dados.validacao || {};
+  // Chave do evento (se já existe): o servidor confere se o padrão é exclusivo DESTE evento
+  const chave = dados.suapId ? `suap-${dados.suapId}` : dados._id ? `local-${dados._id}` : '';
   return `
-    <fieldset class="field full val-fieldset">
+    <fieldset class="field full val-fieldset" id="f_val_box" data-chave="${esc(chave)}">
       <legend>Como o aluno valida a presença</legend>
       <label class="check-linha"><input type="checkbox" id="f_val_cert" ${v.certificado !== false ? 'checked' : ''} />
         <span><strong>Enviando o certificado</strong><small>PDF ou foto. Fica pendente até um professor aprovar em Presenças.</small></span></label>
@@ -2142,11 +2145,11 @@ const camposValidacao = (dados = {}) => {
         <div style="width:100%">
           <label for="f_qr_padrao" style="display:block;margin-bottom:0.3rem">Padrão do QR deste evento (opcional)</label>
           <div class="padrao-linha">
-            <input type="text" id="f_qr_padrao" maxlength="300" value="${esc(v.qrPadrao || '')}" placeholder="Ex.: https://suap.ifpr.edu.br/eventos/inscricao/" />
+            <input type="text" id="f_qr_padrao" maxlength="300" value="${esc(v.qrPadrao || '')}" placeholder="Começo do conteúdo que só o QR deste evento tem" />
             <button type="button" class="btn-edit" onclick="document.getElementById('f_qr_exemplo').click()"><i data-lucide="scan-line"></i> Ler QR de exemplo</button>
             <input type="file" id="f_qr_exemplo" hidden accept="image/*" onchange="lerQrExemplo(this.files[0])" />
           </div>
-          <p class="ajuda" id="f_qr_ajuda">Com padrão: QR que começa assim valida na hora e qualquer outro é recusado. Sem padrão: QR com link do IFPR valida na hora; os outros vão para um professor conferir. Use "Ler QR de exemplo" com o print do QR de uma inscrição de teste.</p>
+          <p class="ajuda" id="f_qr_ajuda">Com um padrão que só este evento tem, o QR valida na hora e qualquer outro é recusado. Sem padrão, ou com um padrão que aparece em QR de outro evento, todo QR vai para um professor conferir em Presenças (um link do SUAP sozinho não prova que é deste evento). Use "Ler QR de exemplo" com o print do QR de uma inscrição deste evento.</p>
         </div>
         <label class="check-linha"><input type="checkbox" id="f_qr_conferir" ${v.qrConferir ? 'checked' : ''} />
           <span><strong>Conferir todo QR deste evento</strong><small>Nenhum QR valida sozinho: todos esperam um professor em Presenças.</small></span></label>
@@ -2191,9 +2194,14 @@ const lerQrExemplo = async (arquivo) => {
       if (lido) break;
     }
     if (!lido) { mostrarToast('Não achamos um QR Code nessa imagem.', 'erro'); return; }
-    const r = await apiJSON('/api/admin/padrao-qr', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ exemplo: lido }) });
+    const r = await apiJSON('/api/admin/padrao-qr', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ exemplo: lido, chave: document.getElementById('f_val_box')?.dataset.chave || '' }) });
     document.getElementById('f_qr_padrao').value = r.padrao;
-    ajuda.textContent = `QR lido: "${lido.length > 90 ? lido.slice(0, 90) + '…' : lido}". Padrão sugerido preenchido — confira se a parte que muda de aluno para aluno ficou de fora.`;
+    const lidoCurto = lido.length > 90 ? lido.slice(0, 90) + '…' : lido;
+    ajuda.textContent = r.generico
+      ? `QR lido: "${lidoCurto}". ${r.aviso}`
+      : `QR lido: "${lidoCurto}". Padrão sugerido preenchido — confira se a parte que muda de aluno para aluno ficou de fora e se ele não serve para outros eventos.`;
+    ajuda.classList.toggle('ajuda-aviso', !!r.generico);
+    if (r.generico) mostrarToast('Esse padrão não identifica só este evento: os QRs vão para conferência.', 'erro');
   } catch (e) {
     mostrarToast(e.message || 'Não foi possível ler o QR.', 'erro');
   } finally {
