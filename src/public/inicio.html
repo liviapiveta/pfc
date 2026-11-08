@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IFPlenus — Sua participação no IFPR vira conquista</title>
+  <meta name="description" content="IFPlenus é o portal de gamificação dos estudantes do IFPR Campus Assis Chateaubriand: eventos, projetos, conquistas, níveis e ranking, integrados ao SUAP." />
+  <meta property="og:title" content="IFPlenus — Sua participação no IFPR vira conquista" />
+  <meta property="og:description" content="Eventos, projetos, conquistas, níveis e ranking dos estudantes do IFPR Campus Assis Chateaubriand, integrados ao SUAP." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/icon-512.png" />
+  <link rel="icon" type="image/svg+xml" href="/images/logo.svg" />
+  <link rel="icon" type="image/png" href="/images/favicon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+  <meta name="theme-color" content="#121214" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <!-- Mesmo tema e acessibilidade escolhidos no portal (salvos neste navegador) -->
+  <script>
+    (function () {
+      var d = document.documentElement, p = {};
+      try { p = JSON.parse(localStorage.getItem('ifplenus-acess') || '{}') || {}; } catch (e) {}
+      var temas = ['dark', 'light', 'hc-escuro', 'hc-claro', 'daltonico'];
+      d.setAttribute('data-theme', temas.indexOf(p.tema) > -1 ? p.tema : 'dark');
+      if (p.texto === 'grande' || p.texto === 'muito-grande') d.setAttribute('data-texto', p.texto);
+      if (p.espaco) d.setAttribute('data-espaco', 'amplo');
+      if (p.links) d.setAttribute('data-links', 'destaque');
+    })();
+  </script>
+  <link rel="stylesheet" href="/portal.css" />
+  <style>
+    /* Página própria: usa as cores/temas do portal, sem a barra lateral */
+    body { display: block; min-height: 100vh; background: var(--bg); color: var(--texto); }
+    .pular { position: absolute; left: 0.75rem; top: -60px; z-index: 60; padding: 0.6rem 1rem; border-radius: 10px; background: var(--verde-fill); color: var(--sobre-verde); font-weight: 700; text-decoration: none; }
+    .pular:focus { top: 0.75rem; }
+    .in-largura { max-width: 1160px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2.5rem); }
+
+    /* ── Topo ─────────────────────────────────────────── */
+    .in-topo { position: sticky; top: 0; z-index: 40; background: var(--sidebar); border-bottom: 1px solid var(--borda-2, var(--borda)); }
+    .in-topo .in-largura { display: flex; align-items: center; gap: 1rem; min-height: 64px; }
+    .in-marca { display: inline-flex; align-items: center; gap: 0.6rem; text-decoration: none; color: #fff; margin-right: auto; }
+    .in-marca img { width: 32px; height: 32px; }
+    .in-marca strong { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.25rem; letter-spacing: -0.5px; }
+    .in-marca strong span { color: #5fe39a; } /* a faixa do topo é sempre escura */
+    .in-nav { display: flex; gap: 0.2rem; }
+    .in-nav a { color: rgba(255,255,255,0.78); text-decoration: none; font-size: 0.9rem; font-weight: 500; padding: 0.5rem 0.75rem; border-radius: 8px; min-height: 40px; display: inline-flex; align-items: center; }
+    .in-nav a:hover, .in-nav a:focus-visible { color: #fff; background: rgba(255,255,255,0.08); }
+    .btn-entrar {
+      display: inline-flex; align-items: center; gap: 0.45rem; min-height: 42px; padding: 0.55rem 1.15rem; border-radius: 99px;
+      background: #44d883; color: #06281a; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; text-decoration: none;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn-entrar:hover, .btn-entrar:focus-visible { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(68,216,131,0.3); }
+    .btn-entrar svg { width: 18px; height: 18px; }
+    :root[data-theme="hc-escuro"] .btn-entrar { background: #ffe500; color: #000; }
+    :root[data-theme="hc-claro"] .btn-entrar { background: #fff; color: #000; }
+    :root[data-theme="hc-claro"] main .btn-entrar { background: #000; color: #fff; }
+    :root[data-theme^="hc-"] .in-hero::before, :root[data-theme^="hc-"] .in-hero::after, :root[data-theme^="hc-"] .in-cta::before { display: none; }
+    @media (max-width: 860px) { .in-nav { display: none; } }
+
+    /* ── Abertura ─────────────────────────────────────── */
+    .in-hero { position: relative; overflow: hidden; padding: clamp(2.5rem, 7vw, 5rem) 0 clamp(2.5rem, 6vw, 4.5rem); }
+    .in-hero::before {
+      content: ''; position: absolute; width: 760px; height: 760px; border-radius: 50%; top: -340px; left: -260px; pointer-events: none;
+      background: radial-gradient(circle, var(--verde-glow) 0%, transparent 65%); opacity: 0.55;
+    }
+    .in-hero::after {
+      content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+      background-image: linear-gradient(var(--borda-2) 1px, transparent 1px), linear-gradient(90deg, var(--borda-2) 1px, transparent 1px);
+      background-size: 44px 44px; mask-image: radial-gradient(ellipse at 30% 30%, #000 10%, transparent 70%);
+    }
+    .in-hero .in-largura { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: clamp(2rem, 5vw, 4rem); align-items: center; }
+    .selo { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--verde); background: var(--verde-claro); border: 1px solid var(--borda); padding: 0.35rem 0.8rem; border-radius: 99px; }
+    .selo svg { width: 15px; height: 15px; }
+    .in-hero h1 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(2.1rem, 5.4vw, 3.6rem); line-height: 1.04; letter-spacing: -1.5px; margin: 1.1rem 0 1rem; }
+    .in-hero h1 em { font-style: normal; color: var(--verde); }
+    .in-hero .lead { font-size: clamp(1rem, 1.6vw, 1.12rem); line-height: 1.7; color: var(--texto-2); max-width: 54ch; }
+    .in-acoes { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 1.8rem; }
+    .btn-g { min-height: 50px; padding: 0.75rem 1.5rem; font-size: 1rem; }
+    .btn-sec {
+      display: inline-flex; align-items: center; gap: 0.45rem; min-height: 50px; padding: 0.75rem 1.4rem; border-radius: 99px;
+      border: 1px solid var(--borda); color: var(--texto); text-decoration: none; font-weight: 600; background: var(--card);
+    }
+    .btn-sec:hover, .btn-sec:focus-visible { border-color: var(--verde); color: var(--verde); }
+    .btn-sec svg { width: 18px; height: 18px; }
+    .in-nota { margin-top: 1rem; font-size: 0.85rem; color: var(--cinza); display: flex; align-items: center; gap: 0.4rem; }
+    .in-nota svg { width: 16px; height: 16px; color: var(--verde); flex-shrink: 0; }
+
+    /* Cartão ilustrativo do portal */
+    .demo { position: relative; background: var(--card); border: 1px solid var(--borda); border-radius: 22px; padding: 1.3rem; box-shadow: var(--sombra); }
+    .demo-tag { position: absolute; top: -12px; right: 18px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; background: var(--elev); border: 1px solid var(--borda); color: var(--cinza); padding: 0.25rem 0.65rem; border-radius: 99px; }
+    .demo-topo { display: flex; align-items: center; gap: 0.8rem; }
+    .demo-av { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: var(--verde-claro); color: var(--verde); font-family: 'Syne', sans-serif; font-weight: 800; }
+    .demo-topo strong { display: block; font-size: 1rem; }
+    .demo-topo span { font-size: 0.83rem; color: var(--cinza); }
+    .demo-pts { margin-left: auto; text-align: right; }
+    .demo-pts b { display: block; font-family: 'Syne', sans-serif; font-size: 1.5rem; color: var(--pontos); line-height: 1; }
+    .demo-pts small { font-size: 0.75rem; color: var(--cinza); }
+    .demo-barra { margin: 1.1rem 0 0.4rem; height: 10px; border-radius: 99px; background: var(--bg-2); overflow: hidden; }
+    .demo-barra i { display: block; height: 100%; width: 70%; border-radius: inherit; background: linear-gradient(90deg, var(--verde-escuro), var(--verde)); }
+    .demo-barra-txt { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--cinza); }
+    .demo-conq { display: flex; align-items: center; gap: 0.75rem; margin-top: 1.1rem; padding: 0.8rem 0.9rem; border-radius: 14px; background: var(--bg-2); border: 1px solid var(--borda); }
+    .demo-conq .ic { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: var(--warn-bg); color: var(--pontos); flex-shrink: 0; }
+    .demo-conq .ic svg { width: 20px; height: 20px; }
+    .demo-conq strong { display: block; font-size: 0.9rem; }
+    .demo-conq span { font-size: 0.8rem; color: var(--cinza); }
+    .demo-conq em { margin-left: auto; font-style: normal; font-weight: 700; color: var(--pontos); font-size: 0.9rem; white-space: nowrap; }
+    .demo-rank { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.3rem; }
+    .demo-rank h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--cinza); margin-bottom: 0.2rem; }
+    .demo-rank div { display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.7rem; border-radius: 10px; font-size: 0.88rem; color: var(--texto-2); }
+    .demo-rank div b { width: 2.2rem; color: var(--cinza); font-weight: 600; }
+    .demo-rank div span:last-child { margin-left: auto; font-weight: 600; }
+    .demo-rank .eu { background: var(--verde-claro); color: var(--texto); font-weight: 600; border: 1px solid var(--borda); }
+
+    /* ── Seções ───────────────────────────────────────── */
+    .in-secao { padding: clamp(3rem, 7vw, 5rem) 0; scroll-margin-top: 64px; }
+    .in-secao.alt { background: var(--bg-2); border-top: 1px solid var(--borda-2); border-bottom: 1px solid var(--borda-2); }
+    .in-cab { max-width: 640px; margin-bottom: 2.2rem; }
+    .in-cab .sobre { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: var(--verde); }
+    .in-cab h2 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(1.6rem, 3.6vw, 2.3rem); letter-spacing: -0.8px; line-height: 1.12; margin: 0.5rem 0 0.7rem; }
+    .in-cab p { color: var(--texto-2); line-height: 1.7; font-size: 1rem; }
+
+    /* Números do campus */
+    .in-numeros { display: grid; grid-template-columns: repeat(var(--qtd, 4), minmax(0, 1fr)); gap: 0.8rem; }
+    .in-numeros div[hidden] { display: none; }
+    .in-numeros div { background: var(--card); border: 1px solid var(--borda); border-radius: 16px; padding: 1.1rem 1.2rem; }
+    .in-numeros b { display: block; font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(1.6rem, 3.4vw, 2.2rem); color: var(--verde); line-height: 1.1; }
+    .in-numeros span { font-size: 0.88rem; color: var(--texto-2); }
+    .in-faixa-num { padding: 0 0 clamp(2.5rem, 5vw, 3.5rem); margin-top: -0.5rem; }
+
+    /* Como funciona */
+    .in-passos { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; counter-reset: p; }
+    .in-passos li { counter-increment: p; position: relative; background: var(--card); border: 1px solid var(--borda); border-radius: 18px; padding: 1.4rem 1.3rem 1.3rem; }
+    .in-passos li::before { content: counter(p); position: absolute; top: 1.1rem; right: 1.2rem; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2.6rem; line-height: 1; color: var(--borda); }
+    :root[data-theme^="hc-"] .in-passos li::before { color: var(--cinza); }
+    .in-passos .ic { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; background: var(--verde-claro); color: var(--verde); margin-bottom: 1rem; }
+    .in-passos .ic svg { width: 23px; height: 23px; }
+    .in-passos h3 { font-size: 1.08rem; margin-bottom: 0.4rem; }
+    .in-passos p { color: var(--texto-2); line-height: 1.65; font-size: 0.93rem; }
+
+    /* Benefícios */
+    .in-beneficios { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    .in-bloco { background: var(--card); border: 1px solid var(--borda); border-radius: 20px; padding: 1.5rem 1.5rem 1.3rem; }
+    .in-bloco > h3 { display: flex; align-items: center; gap: 0.6rem; font-family: 'Syne', sans-serif; font-size: 1.25rem; margin-bottom: 1rem; }
+    .in-bloco > h3 svg { width: 24px; height: 24px; color: var(--verde); }
+    .in-bloco ul { list-style: none; display: flex; flex-direction: column; gap: 0.85rem; }
+    .in-bloco li { display: flex; gap: 0.7rem; align-items: flex-start; line-height: 1.6; color: var(--texto-2); font-size: 0.95rem; }
+    .in-bloco li svg { width: 19px; height: 19px; color: var(--verde); flex-shrink: 0; margin-top: 0.2rem; }
+    .in-bloco li strong { color: var(--texto); }
+
+    /* Funções */
+    .in-funcoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.9rem; }
+    .in-func {
+      text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%;
+      display: flex; flex-direction: column; gap: 0.5rem; background: var(--card); border: 1px solid var(--borda); border-radius: 18px; padding: 1.2rem 1.2rem 1rem;
+      transition: border-color .15s, transform .15s, background .15s;
+    }
+    .in-func:hover, .in-func:focus-visible { border-color: var(--verde); transform: translateY(-2px); background: var(--card-2); }
+    .in-func .ic { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: var(--verde-claro); color: var(--verde); }
+    .in-func .ic svg { width: 21px; height: 21px; }
+    .in-func strong { font-size: 1.02rem; }
+    .in-func span { color: var(--texto-2); font-size: 0.9rem; line-height: 1.55; flex: 1; }
+    .in-func small { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--verde); font-weight: 600; font-size: 0.85rem; margin-top: 0.2rem; }
+    .in-func small svg { width: 15px; height: 15px; }
+
+    /* Níveis */
+    .in-niveis-wrap { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 1.5rem; align-items: start; }
+    .in-ganhar { list-style: none; display: flex; flex-direction: column; gap: 0.7rem; }
+    .in-ganhar li { display: flex; gap: 0.8rem; align-items: flex-start; background: var(--card); border: 1px solid var(--borda); border-radius: 14px; padding: 0.9rem 1rem; }
+    .in-ganhar .ic { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: var(--warn-bg); color: var(--pontos); flex-shrink: 0; }
+    .in-ganhar .ic svg { width: 19px; height: 19px; }
+    .in-ganhar strong { display: block; font-size: 0.95rem; margin-bottom: 0.15rem; }
+    .in-ganhar span { font-size: 0.88rem; color: var(--texto-2); line-height: 1.55; }
+    .in-niveis { list-style: none; display: flex; flex-direction: column; gap: 0.45rem; }
+    .in-niveis li { display: grid; grid-template-columns: 2.4rem minmax(0, 1fr) auto; align-items: center; gap: 0.8rem; background: var(--card); border: 1px solid var(--borda); border-radius: 12px; padding: 0.6rem 0.9rem; }
+    .in-niveis .n { width: 2.1rem; height: 2.1rem; border-radius: 9px; display: grid; place-items: center; font-family: 'Syne', sans-serif; font-weight: 800; background: var(--verde-claro); color: var(--verde); }
+    .in-niveis strong { font-size: 0.96rem; }
+    .in-niveis .min { font-size: 0.85rem; color: var(--pontos); font-weight: 600; white-space: nowrap; }
+    .in-niveis .barra { grid-column: 2 / -1; height: 4px; border-radius: 99px; background: var(--bg-2); overflow: hidden; margin-top: -0.2rem; }
+    .in-niveis .barra i { display: block; height: 100%; background: var(--verde); border-radius: inherit; }
+
+    /* Privacidade */
+    .in-priv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.9rem; }
+    .in-priv div { background: var(--card); border: 1px solid var(--borda); border-radius: 16px; padding: 1.1rem 1.2rem; }
+    .in-priv svg { width: 22px; height: 22px; color: var(--verde); }
+    .in-priv strong { display: block; margin: 0.5rem 0 0.3rem; font-size: 0.98rem; }
+    .in-priv span { color: var(--texto-2); font-size: 0.9rem; line-height: 1.6; }
+    .in-link { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 1.2rem; color: var(--verde); font-weight: 600; text-decoration: none; min-height: 40px; }
+    .in-link:hover, .in-link:focus-visible { text-decoration: underline; }
+    .in-link svg { width: 17px; height: 17px; }
+
+    /* Perguntas */
+    .in-faq { display: flex; flex-direction: column; gap: 0.6rem; max-width: 860px; }
+    .in-faq details { background: var(--card); border: 1px solid var(--borda); border-radius: 14px; }
+    .in-faq summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.2rem; min-height: 54px; font-weight: 600; font-size: 0.98rem; }
+    .in-faq summary::-webkit-details-marker { display: none; }
+    .in-faq summary::after { content: '+'; font-size: 1.4rem; line-height: 1; color: var(--verde); flex-shrink: 0; transition: transform .15s; }
+    .in-faq details[open] summary::after { transform: rotate(45deg); }
+    .in-faq summary:focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; border-radius: 14px; }
+    .in-faq details > div { padding: 0 1.2rem 1.1rem; color: var(--texto-2); line-height: 1.7; font-size: 0.94rem; }
+    .in-faq details > div a { color: var(--verde); }
+
+    /* Chamada final */
+    .in-cta { position: relative; overflow: hidden; text-align: center; background: var(--card); border: 1px solid var(--borda); border-radius: 24px; padding: clamp(2rem, 5vw, 3.2rem) 1.5rem; }
+    .in-cta::before { content: ''; position: absolute; width: 520px; height: 520px; border-radius: 50%; left: 50%; top: -300px; transform: translateX(-50%); background: radial-gradient(circle, var(--verde-glow) 0%, transparent 65%); opacity: 0.5; pointer-events: none; }
+    .in-cta > * { position: relative; }
+    .in-cta h2 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(1.6rem, 3.6vw, 2.3rem); letter-spacing: -0.8px; margin-bottom: 0.6rem; }
+    .in-cta p { color: var(--texto-2); margin: 0 auto 1.5rem; max-width: 52ch; line-height: 1.65; }
+    .in-cta .in-acoes { justify-content: center; margin-top: 0; }
+
+    /* Detalhe de cada função (pop-up) */
+    .in-modal { border: 1px solid var(--borda); border-radius: 20px; padding: 0; width: min(560px, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); background: var(--elev); color: var(--texto); box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+    .in-modal::backdrop { background: rgba(0,0,0,0.6); }
+    .in-modal-corpo { padding: 1.5rem 1.5rem 1.3rem; overflow-y: auto; }
+    .in-modal-topo { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.9rem; padding-right: 2.6rem; }
+    .in-modal-topo .ic { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; background: var(--verde-claro); color: var(--verde); flex-shrink: 0; }
+    .in-modal-topo .ic svg { width: 23px; height: 23px; }
+    .in-modal h2 { font-family: 'Syne', sans-serif; font-size: 1.35rem; }
+    .in-modal p { color: var(--texto-2); line-height: 1.65; margin-bottom: 0.9rem; }
+    .in-modal ul { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.45rem; color: var(--texto-2); line-height: 1.6; }
+    .in-modal-fechar { position: absolute; top: 0.9rem; right: 0.9rem; width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--borda); background: var(--card); color: var(--texto); display: grid; place-items: center; cursor: pointer; }
+    .in-modal-fechar:hover, .in-modal-fechar:focus-visible { border-color: var(--verde); color: var(--verde); }
+    .in-modal-fechar svg { width: 20px; height: 20px; }
+
+    /* Rodapé (mesmo do portal) */
+    .site-footer { margin-top: clamp(3rem, 6vw, 4.5rem); }
+
+    @media (max-width: 960px) {
+      .in-hero .in-largura { grid-template-columns: 1fr; }
+      .demo { max-width: 520px; }
+      .in-niveis-wrap { grid-template-columns: 1fr; }
+      .in-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+      .in-numeros .ultimo-impar { grid-column: 1 / -1; }
+    }
+    @media (max-width: 760px) {
+      .in-passos, .in-beneficios, .in-priv { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 520px) {
+      .btn-entrar-txt-longo { display: none; }
+      .in-acoes > * { flex: 1 1 100%; justify-content: center; }
+      .demo { padding: 1.1rem; }
+      .demo-conq em { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto !important; }
+      .in-func, .btn-entrar { transition: none; }
+      .in-func:hover, .btn-entrar:hover { transform: none; }
+    }
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body>
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="in-topo">
+    <div class="in-largura">
+      <a class="in-marca" href="#topo" aria-label="IFPlenus — início da página">
+        <img src="/images/logo.svg" alt="" width="32" height="32" />
+        <strong>IF<span>Plenus</span></strong>
+      </a>
+      <nav class="in-nav" aria-label="Seções da página">
+        <a href="#como-funciona">Como funciona</a>
+        <a href="#beneficios">Benefícios</a>
+        <a href="#funcoes">Funções</a>
+        <a href="#perguntas">Perguntas</a>
+      </nav>
+      <a class="btn-entrar" href="/login" data-entrar><i data-lucide="log-in"></i><span data-entrar-txt>Entrar</span></a>
+    </div>
+  </header>
+
+  <main id="conteudo" tabindex="-1">
+    <!-- ── Abertura ── -->
+    <section class="in-hero" id="topo" aria-labelledby="titulo">
+      <div class="in-largura">
+        <div>
+          <span class="selo"><i data-lucide="map-pin"></i> IFPR · Campus Assis Chateaubriand</span>
+          <h1 id="titulo">Sua participação no IFPR <em>vira conquista.</em></h1>
+          <p class="lead">O IFPlenus reúne eventos, projetos e o seu desempenho em um só lugar. Cada presença validada, projeto aceito e boa nota rende pontos, conquistas e níveis, e fica registrado na sua trajetória.</p>
+          <div class="in-acoes">
+            <a class="btn-entrar btn-g" href="/login" data-entrar><i data-lucide="log-in"></i><span data-entrar-txt>Entrar com o SUAP</span></a>
+            <a class="btn-sec" href="#como-funciona"><i data-lucide="play-circle"></i>Como funciona</a>
+          </div>
+          <p class="in-nota"><i data-lucide="shield-check"></i>Use a mesma matrícula e senha do SUAP. Sem cadastro novo.</p>
+        </div>
+
+        <div class="demo" role="img" aria-label="Exemplo ilustrativo do painel do aluno: nível Amador com 240 pontos, uma conquista recente e a posição no ranking">
+          <span class="demo-tag" aria-hidden="true">Exemplo</span>
+          <div aria-hidden="true">
+            <div class="demo-topo">
+              <div class="demo-av">EU</div>
+              <div><strong>Nível 2 · Amador</strong><span>Técnico em Informática</span></div>
+              <div class="demo-pts"><b>240</b><small>pontos</small></div>
+            </div>
+            <div class="demo-barra"><i></i></div>
+            <div class="demo-barra-txt"><span>Amador</span><span>faltam 60 para Intermediário</span></div>
+            <div class="demo-conq">
+              <div class="ic"><i data-lucide="trophy"></i></div>
+              <div><strong>Presença em 3 eventos</strong><span>Conquista desbloqueada</span></div>
+              <em>+30 pts</em>
+            </div>
+            <div class="demo-rank">
+              <h3>Perto de você no ranking</h3>
+              <div><b>#11</b><span>Colega</span><span>262</span></div>
+              <div class="eu"><b>#12</b><span>Você</span><span>240</span></div>
+              <div><b>#13</b><span>Colega</span><span>215</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Números do campus (só aparece quando há dados suficientes) ── -->
+    <section class="in-faixa-num" id="numeros" aria-label="O IFPlenus em números" hidden>
+      <div class="in-largura">
+        <div class="in-numeros">
+          <div><b data-num="alunos">0</b><span>estudantes no IFPlenus</span></div>
+          <div><b data-num="eventos">0</b><span>eventos em <span data-ano></span></span></div>
+          <div><b data-num="presencas">0</b><span>presenças validadas</span></div>
+          <div><b data-num="conquistas">0</b><span>conquistas desbloqueadas</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Como funciona ── -->
+    <section class="in-secao alt" id="como-funciona" aria-labelledby="t-como">
+      <div class="in-largura">
+        <div class="in-cab">
+          <span class="sobre">Como funciona</span>
+          <h2 id="t-como">Três passos, e o resto acontece sozinho</h2>
+          <p>O IFPlenus lê os seus dados do SUAP e transforma o que você já faz no campus em progresso visível.</p>
+        </div>
+        <ol class="in-passos">
+          <li>
+            <div class="ic"><i data-lucide="key-round"></i></div>
+            <h3>Entre com o SUAP</h3>
+            <p>Use sua matrícula e senha do SUAP. Seu curso, projetos e boletim aparecem sem você digitar nada.</p>
+          </li>
+          <li>
+            <div class="ic"><i data-lucide="calendar-check"></i></div>
+            <h3>Participe e valide</h3>
+            <p>Vá aos eventos e valide a presença com o QR Code da inscrição ou com o certificado. Peça para fazer parte de projetos.</p>
+          </li>
+          <li>
+            <div class="ic"><i data-lucide="trophy"></i></div>
+            <h3>Ganhe e acompanhe</h3>
+            <p>Presenças, projetos e notas viram conquistas e pontos. Você sobe de nível e vê sua evolução na trajetória.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ── Benefícios ── -->
+    <section class="in-secao" id="beneficios" aria-labelledby="t-benef">
+      <div class="in-largura">
+        <div class="in-cab">
+          <span class="sobre">Benefícios</span>
+          <h2 id="t-benef">Bom para quem estuda, bom para o campus</h2>
+          <p>A ideia é simples: tornar visível o esforço que muitas vezes passa despercebido.</p>
+        </div>
+        <div class="in-beneficios">
+          <div class="in-bloco">
+            <h3><i data-lucide="graduation-cap"></i>Para o estudante</h3>
+            <ul>
+              <li><i data-lucide="check"></i><span><strong>Tudo num lugar só:</strong> eventos do campus, projetos de pesquisa e extensão, notas e conquistas.</span></li>
+              <li><i data-lucide="check"></i><span><strong>Trajetória organizada:</strong> cada presença e conquista fica registrada com data, pronta para lembrar no currículo.</span></li>
+              <li><i data-lucide="check"></i><span><strong>Motivação de verdade:</strong> metas claras, níveis e um ranking que mostra quem está perto de você, não só o topo.</span></li>
+              <li><i data-lucide="check"></i><span><strong>Mais oportunidades:</strong> descubra projetos com vagas e eventos que você nem sabia que existiam.</span></li>
+              <li><i data-lucide="check"></i><span><strong>Você no controle:</strong> escolha aparecer com nome, anônimo ou fora do ranking, e exclua sua conta quando quiser.</span></li>
+            </ul>
+          </div>
+          <div class="in-bloco">
+            <h3><i data-lucide="landmark"></i>Para o IFPR</h3>
+            <ul>
+              <li><i data-lucide="check"></i><span><strong>Mais participação</strong> em eventos, pesquisa e extensão, com um incentivo que os estudantes entendem.</span></li>
+              <li><i data-lucide="check"></i><span><strong>Presença conferida:</strong> QR Code da inscrição ou certificado, com conferência pelos servidores.</span></li>
+              <li><i data-lucide="check"></i><span><strong>Menos papel:</strong> pedidos de participação em projetos e comprovantes chegam pelo painel.</span></li>
+              <li><i data-lucide="check"></i><span><strong>Dados para decidir:</strong> estatísticas e exportação em CSV de presenças, ranking e pedidos.</span></li>
+              <li><i data-lucide="check"></i><span><strong>Integrado ao SUAP:</strong> usa o login e os dados oficiais, sem cadastro paralelo.</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Funções ── -->
+    <section class="in-secao alt" id="funcoes" aria-labelledby="t-func">
+      <div class="in-largura">
+        <div class="in-cab">
+          <span class="sobre">Funções</span>
+          <h2 id="t-func">O que tem dentro do portal</h2>
+          <p>Toque em uma função para ver os detalhes.</p>
+        </div>
+        <div class="in-funcoes" id="listaFuncoes"></div>
+      </div>
+    </section>
+
+    <!-- ── Pontos e níveis ── -->
+    <section class="in-secao" id="niveis" aria-labelledby="t-niveis">
+      <div class="in-largura">
+        <div class="in-cab">
+          <span class="sobre">Pontos e níveis</span>
+          <h2 id="t-niveis">De Iniciante a Lenda</h2>
+          <p>Os pontos vêm das conquistas. Quanto mais você participa, mais alto chega.</p>
+        </div>
+        <div class="in-niveis-wrap">
+          <ul class="in-ganhar">
+            <li><div class="ic"><i data-lucide="calendar-check"></i></div><div><strong>Presença em eventos</strong><span>Palestras, semanas acadêmicas, feiras e oficinas com presença validada.</span></div></li>
+            <li><div class="ic"><i data-lucide="flask-conical"></i></div><div><strong>Projetos aceitos</strong><span>Participação aceita em projetos de pesquisa ou extensão.</span></div></li>
+            <li><div class="ic"><i data-lucide="book-open-check"></i></div><div><strong>Desempenho no boletim</strong><span>Boas notas e conceitos lidos do SUAP.</span></div></li>
+            <li><div class="ic"><i data-lucide="sparkles"></i></div><div><strong>Conquistas especiais</strong><span>Reconhecimentos dados pelos servidores, como monitoria ou destaque em competições.</span></div></li>
+          </ul>
+          <ol class="in-niveis" id="listaNiveis" aria-label="Níveis e pontos necessários"></ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Privacidade ── -->
+    <section class="in-secao alt" id="privacidade" aria-labelledby="t-priv">
+      <div class="in-largura">
+        <div class="in-cab">
+          <span class="sobre">Privacidade</span>
+          <h2 id="t-priv">Seus dados, suas regras</h2>
+          <p>O IFPlenus segue a LGPD e só usa o necessário para funcionar.</p>
+        </div>
+        <div class="in-priv">
+          <div><i data-lucide="lock"></i><strong>Senha nunca guardada</strong><span>Sua senha vai direto para o SUAP. O IFPlenus guarda só uma chave de acesso, criptografada.</span></div>
+          <div><i data-lucide="eye-off"></i><strong>Você decide como aparece</strong><span>No ranking com seu nome, como anônimo ou oculto. Dá para mudar a qualquer momento.</span></div>
+          <div><i data-lucide="trash-2"></i><strong>Exclusão quando quiser</strong><span>Nas Configurações, “Excluir minha conta” apaga seus dados do IFPlenus.</span></div>
+        </div>
+        <a class="in-link" href="/privacidade">Ler a Política de Privacidade completa <i data-lucide="arrow-right"></i></a>
+      </div>
+    </section>
+
+    <!-- ── Perguntas ── -->
+    <section class="in-secao" id="perguntas" aria-labelledby="t-faq">
+      <div class="in-largura">
+        <div class="in-cab">
+          <span class="sobre">Perguntas frequentes</span>
+          <h2 id="t-faq">Ficou alguma dúvida?</h2>
+        </div>
+        <div class="in-faq">
+          <details>
+            <summary>Quem pode usar o IFPlenus?</summary>
+            <div>Estudantes do IFPR Campus Assis Chateaubriand com acesso ao SUAP. Servidores (professores e equipe) usam a Área Administrativa, com conta própria.</div>
+          </details>
+          <details>
+            <summary>Preciso criar uma conta?</summary>
+            <div>Não. Você entra com a mesma matrícula e senha do SUAP. No primeiro acesso, o IFPlenus cria seu perfil com os dados do SUAP.</div>
+          </details>
+          <details>
+            <summary>O IFPlenus vê ou guarda a minha senha?</summary>
+            <div>Não guarda. A senha é enviada ao SUAP só para confirmar que é você, e o SUAP devolve uma chave de acesso temporária, que fica criptografada. Os detalhes estão na <a href="/privacidade">Política de Privacidade</a>.</div>
+          </details>
+          <details>
+            <summary>Como valido a presença em um evento?</summary>
+            <div>Na aba Eventos, escolha o evento e envie o QR Code que chegou no e-mail de inscrição ou o certificado (PDF ou foto). Alguns QR Codes são validados na hora; os demais são conferidos por um servidor.</div>
+          </details>
+          <details>
+            <summary>Quem vê os meus pontos e a minha posição?</summary>
+            <div>Os outros estudantes veem o ranking. Você escolhe nas Configurações se aparece com seu nome, como anônimo ou se fica fora do ranking. Os certificados e QR Codes que você envia só você e os servidores que conferem veem.</div>
+          </details>
+          <details>
+            <summary>Dá para usar no celular?</summary>
+            <div>Sim. O site funciona em qualquer tela e pode ser instalado como aplicativo: no navegador do celular, use “Adicionar à tela inicial”.</div>
+          </details>
+          <details>
+            <summary>O IFPlenus substitui o SUAP?</summary>
+            <div>Não. O SUAP continua sendo o sistema oficial. O IFPlenus usa os dados dele para mostrar sua participação de um jeito mais claro e motivador.</div>
+          </details>
+          <details>
+            <summary>Como saio ou excluo minha conta?</summary>
+            <div>Em Configurações, “Excluir minha conta” apaga seu perfil, pontos, conquistas, presenças e pedidos do IFPlenus. Seus dados no SUAP não são afetados.</div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Chamada final ── -->
+    <section class="in-secao" style="padding-top:0" aria-labelledby="t-cta">
+      <div class="in-largura">
+        <div class="in-cta">
+          <h2 id="t-cta">Comece a contar o que você já faz</h2>
+          <p>Entre com o SUAP e veja seus projetos, eventos e o seu nível agora mesmo.</p>
+          <div class="in-acoes">
+            <a class="btn-entrar btn-g" href="/login" data-entrar><i data-lucide="log-in"></i><span data-entrar-txt>Entrar com o SUAP</span></a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-cols">
+      <div class="footer-col footer-about">
+        <h2 class="footer-logo"><img src="/images/logo.svg" alt="" width="28" height="28" class="footer-logo-img" /><span class="footer-nome">IF<span>Plenus</span></span></h2>
+        <p>Portal do Aluno do IFPR — Campus Assis Chateaubriand: projetos, eventos, conquistas e ranking, integrados ao SUAP.</p>
+      </div>
+      <div class="footer-col">
+        <h3>IFPlenus</h3>
+        <ul>
+          <li><a href="#como-funciona">Como funciona</a></li>
+          <li><a href="#funcoes">Funções</a></li>
+          <li><a href="/login" data-entrar>Entrar</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3>Institucional</h3>
+        <ul>
+          <li><a href="https://www.ifpr.edu.br" target="_blank" rel="noopener">Site do IFPR</a></li>
+          <li><a href="https://suap.ifpr.edu.br" target="_blank" rel="noopener">SUAP IFPR</a></li>
+          <li><a href="/privacidade">Política de Privacidade</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© <span id="footerYear"></span> IFPlenus · IFPR — Instituto Federal do Paraná</span>
+      <a class="footer-priv" href="/privacidade"><i data-lucide="shield-check"></i> Política de Privacidade</a>
+    </div>
+  </footer>
+
+  <dialog class="in-modal" id="modalFuncao" aria-labelledby="mfTitulo">
+    <div class="in-modal-corpo">
+      <button type="button" class="in-modal-fechar" id="mfFechar" aria-label="Fechar"><i data-lucide="x"></i></button>
+      <div class="in-modal-topo"><div class="ic" id="mfIcone"></div><h2 id="mfTitulo"></h2></div>
+      <p id="mfTexto"></p>
+      <ul id="mfLista"></ul>
+    </div>
+  </dialog>
+
+  <script src="/lucide.min.js"></script>
+  <script>
+    (function () {
+      var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+      var icones = function () { try { lucide.createIcons(); } catch (e) { /* ícones são só enfeite */ } };
+      document.getElementById('footerYear').textContent = new Date().getFullYear();
+
+      // ── Funções do portal (cada card abre um detalhe) ──
+      var FUNCOES = [
+        { id: 'dashboard', icone: 'layout-dashboard', nome: 'Dashboard', resumo: 'Seu resumo: pontos, nível, próximos eventos e o ranking.',
+          texto: 'A primeira tela depois de entrar. Mostra de relance como você está e o que vem pela frente.',
+          itens: ['Pontos, nível atual e quanto falta para o próximo', 'Linha do tempo com os eventos anteriores, o próximo e os seguintes', 'Os primeiros colocados do ranking e sua posição', 'Atalhos para cada evento e para o ranking completo'] },
+        { id: 'eventos', icone: 'calendar-days', nome: 'Eventos', resumo: 'Eventos do campus no ano, com validação de presença.',
+          texto: 'Todos os eventos do ano, do SUAP e os cadastrados pelos servidores, com busca e ordem por data.',
+          itens: ['Validação por QR Code do e-mail de inscrição ou por certificado', 'Situação da presença: pendente, aprovada ou recusada', '“Ver como validei” para conferir o que você enviou', 'Conquistas ligadas a eventos específicos'] },
+        { id: 'projetos', icone: 'flask-conical', nome: 'Projetos', resumo: 'Pesquisa e extensão do campus, com pedido para participar.',
+          texto: 'Os projetos de pesquisa e extensão em uma lista só, com busca.',
+          itens: ['Projetos do SUAP e os cadastrados no painel', 'Botão “Fazer parte” para pedir participação ao coordenador', 'Acompanhamento do pedido: enviado, aceito ou recusado', 'Projeto aceito rende conquista e pontos'] },
+        { id: 'conquistas', icone: 'trophy', nome: 'Conquistas', resumo: 'Tudo o que você já desbloqueou e o que ainda falta.',
+          texto: 'As conquistas acadêmicas, de projetos, de eventos e especiais, com os pontos de cada uma.',
+          itens: ['Desbloqueadas e bloqueadas, com a regra de cada uma', 'Conquistas automáticas por presença, projeto e boletim', 'Conquistas especiais dadas pelos servidores', 'Aviso por e-mail quando você ganha uma (se ativar)'] },
+        { id: 'ranking', icone: 'medal', nome: 'Ranking', resumo: 'Sua posição no campus e quem está perto de você.',
+          texto: 'O ranking por pontos, com foco em quem está perto de você para a meta parecer alcançável.',
+          itens: ['Ranking geral do campus ou só do seu curso', '“Perto de você”: os colegas logo acima e logo abaixo', 'Quantos pontos faltam para passar o próximo', 'Você escolhe aparecer com nome, anônimo ou oculto'] },
+        { id: 'trajetoria', icone: 'route', nome: 'Minha Trajetória', resumo: 'Sua linha do tempo de conquistas e participações.',
+          texto: 'O histórico de conquistas, projetos e eventos, agrupado por mês, com data e hora.',
+          itens: ['Totais de pontos, conquistas, projetos e eventos', 'Filtro por tipo: conquistas, projetos ou eventos', 'Cada item com data, horário e pontos ganhos', 'Base para lembrar suas atividades no currículo'] },
+        { id: 'configuracoes', icone: 'settings', nome: 'Configurações', resumo: 'Privacidade no ranking, e-mails e sua conta.',
+          texto: 'Você decide como o IFPlenus te mostra e te avisa.',
+          itens: ['Aparecer no ranking com nome, anônimo ou oculto', 'Ligar ou desligar os avisos por e-mail', 'Excluir sua conta, com dupla confirmação', 'Acesso à Política de Privacidade'] },
+        { id: 'acessibilidade', icone: 'accessibility', nome: 'Acessibilidade', resumo: 'Temas, alto contraste e texto maior.',
+          texto: 'O portal se adapta a você nas Configurações.',
+          itens: ['Tema escuro, claro, alto contraste e para daltonismo', 'Texto maior e mais espaçamento', 'Links em destaque', 'Navegação por teclado e leitor de tela'] },
+      ];
+      var lista = document.getElementById('listaFuncoes');
+      lista.innerHTML = FUNCOES.map(function (f) {
+        return '<button type="button" class="in-func" data-funcao="' + f.id + '" aria-haspopup="dialog">' +
+          '<div class="ic"><i data-lucide="' + f.icone + '"></i></div>' +
+          '<strong>' + esc(f.nome) + '</strong><span>' + esc(f.resumo) + '</span>' +
+          '<small>Ver detalhes <i data-lucide="arrow-right"></i></small></button>';
+      }).join('');
+
+      var modal = document.getElementById('modalFuncao'), origem = null;
+      var abrirFuncao = function (id, botao) {
+        var f = FUNCOES.filter(function (x) { return x.id === id; })[0];
+        if (!f) return;
+        origem = botao;
+        document.getElementById('mfIcone').innerHTML = '<i data-lucide="' + f.icone + '"></i>';
+        document.getElementById('mfTitulo').textContent = f.nome;
+        document.getElementById('mfTexto').textContent = f.texto;
+        document.getElementById('mfLista').innerHTML = f.itens.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('');
+        icones();
+        if (modal.showModal) modal.showModal(); else modal.setAttribute('open', '');
+      };
+      var fecharFuncao = function () {
+        if (modal.close) modal.close(); else modal.removeAttribute('open');
+      };
+      modal.addEventListener('close', function () { if (origem) origem.focus(); });
+      lista.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-funcao]');
+        if (b) abrirFuncao(b.getAttribute('data-funcao'), b);
+      });
+      document.getElementById('mfFechar').addEventListener('click', fecharFuncao);
+      modal.addEventListener('click', function (e) { if (e.target === modal) fecharFuncao(); }); // clique fora fecha
+
+      // ── Níveis (padrão; o servidor manda a tabela oficial se mudar) ──
+      var desenharNiveis = function (niveis) {
+        var max = niveis[niveis.length - 1].min || 1;
+        document.getElementById('listaNiveis').innerHTML = niveis.map(function (n) {
+          var pct = Math.max(4, Math.round((n.min / max) * 100));
+          return '<li><span class="n" aria-hidden="true">' + Number(n.nivel) + '</span><strong>' + esc(n.nome) + '</strong>' +
+            '<span class="min">' + (n.min ? 'a partir de ' + Number(n.min).toLocaleString('pt-BR') + ' pts' : 'para começar') + '</span>' +
+            '<span class="barra" aria-hidden="true"><i style="width:' + pct + '%"></i></span></li>';
+        }).join('');
+      };
+      desenharNiveis([
+        { nivel: 1, nome: 'Iniciante', min: 0 }, { nivel: 2, nome: 'Amador', min: 100 },
+        { nivel: 3, nome: 'Intermediário', min: 300 }, { nivel: 4, nome: 'Avançado', min: 600 },
+        { nivel: 5, nome: 'Veterano', min: 1000 }, { nivel: 6, nome: 'Mestre', min: 1500 },
+        { nivel: 7, nome: 'Lenda', min: 2200 },
+      ]);
+      icones();
+
+      var faixaCards = function () { return Array.prototype.slice.call(document.querySelectorAll('.in-numeros > div:not([hidden])')); };
+      // ── Números do campus + níveis oficiais ──
+      fetch('/api/publico/inicio', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d) return;
+          if (Array.isArray(d.niveis) && d.niveis.length) desenharNiveis(d.niveis);
+          if (d.numeros) {
+            // Número zerado não ajuda ninguém: some o card; com menos de 2 cards, some a faixa
+            var visiveis = 0;
+            Object.keys(d.numeros).forEach(function (k) {
+              var el = document.querySelector('[data-num="' + k + '"]');
+              if (!el) return;
+              var v = Number(d.numeros[k] || 0);
+              el.textContent = v.toLocaleString('pt-BR');
+              el.parentNode.hidden = !v;
+              if (v) visiveis++;
+            });
+            var cards = faixaCards();
+            cards.forEach(function (c, i) { c.classList.toggle('ultimo-impar', cards.length % 2 === 1 && i === cards.length - 1); });
+            document.querySelector('[data-ano]').textContent = d.ano;
+            var faixa = document.getElementById('numeros');
+            faixa.hidden = visiveis < 2;
+            faixa.querySelector('.in-numeros').style.setProperty('--qtd', visiveis);
+          }
+        })
+        .catch(function () { /* sem números: a página continua completa */ });
+
+      // ── Já entrou? Os botões levam direto ao portal ──
+      fetch('/api/auth/me', { credentials: 'same-origin' })
+        .then(function (r) {
+          if (!r.ok) return;
+          document.querySelectorAll('[data-entrar]').forEach(function (a) {
+            a.href = '/';
+            var t = a.querySelector('[data-entrar-txt]');
+            if (t) t.textContent = 'Ir para o portal';
+            else a.textContent = 'Ir para o portal';
+            var ic = a.querySelector('[data-lucide], svg');
+            if (ic) { ic.outerHTML = '<i data-lucide="arrow-right"></i>'; }
+          });
+          icones();
+        })
+        .catch(function () {});
+    })();
+  </script>
+</body>
+</html>

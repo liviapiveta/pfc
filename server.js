@@ -62,11 +62,16 @@ const voltaSegura = (v) => {
   const s = String(v || '');
   return /^\/(?![\/\\])[^\s]*$/.test(s) && s.length < 500 ? s : '/';
 };
+const paginaInicial = path.join(__dirname, 'src', 'public', 'inicio.html');
 app.get(['/', '/index.html'], (req, res, next) => {
   if (tokenValido(req.cookies?.authToken, 'userId')) return next();
-  const temQuery = req.originalUrl.includes('?');
-  return res.redirect(temQuery ? `/login?volta=${encodeURIComponent(voltaSegura(req.originalUrl))}` : '/login');
+  // Atalhos do app instalado (/?secao=...) continuam indo para o login e voltam ao lugar pedido
+  if (req.originalUrl.includes('?')) return res.redirect(`/login?volta=${encodeURIComponent(voltaSegura(req.originalUrl))}`);
+  // Visitante sem login: página de apresentação do IFPlenus
+  return res.sendFile(paginaInicial);
 });
+// A apresentação também fica acessível para quem já entrou
+app.get(['/sobre', '/inicio'], (req, res) => res.sendFile(paginaInicial));
 app.get('/login', (req, res, next) =>
   (!('admin' in req.query) && tokenValido(req.cookies?.authToken, 'userId')) ? res.redirect(voltaSegura(req.query.volta)) : next());
 

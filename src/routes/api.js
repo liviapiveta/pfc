@@ -20,6 +20,9 @@ const limiteLogin = limiteTaxa({ max: 10 });
 const limiteAdmin = limiteTaxa({ max: 20 });
 const limiteEmail = limiteTaxa({ max: 5, mensagem: 'Muitos pedidos de e-mail. Aguarde alguns minutos.' });
 
+// ── Página inicial (pública): só contagens do campus e a tabela de níveis ──
+router.get('/publico/inicio', require('../controllers/publicoController').inicio);
+
 router.post('/auth/login', limiteLogin, authController.login);
 router.post('/auth/logout', auth, authController.logout);
 router.get('/auth/me', auth, authController.me);

@@ -49,6 +49,8 @@
       border: 1px solid var(--borda); border-radius: 999px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.35);
     }
+    a.marca { color: var(--texto); text-decoration: none; }
+    a.marca:hover, a.marca:focus-visible { border-color: var(--verde); }
     .marca img { width: 28px; height: 28px; object-fit: contain; }
     .marca .nome { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.15rem; letter-spacing: -0.5px; }
     .marca .nome span { color: var(--verde); }
@@ -259,9 +261,11 @@
 </head>
 <body data-lado="aluno">
 
-<header class="marca">
-  <img src="/images/logo.svg" alt="Logo do IFPlenus" />
-  <div class="nome">IF<span>Plenus</span></div>
+<header>
+  <a class="marca" href="/" aria-label="IFPlenus — conhecer o site">
+    <img src="/images/logo.svg" alt="" />
+    <div class="nome">IF<span>Plenus</span></div>
+  </a>
 </header>
 
 <nav class="abas" role="tablist" aria-label="Tipo de acesso">
@@ -356,7 +360,7 @@
   </section>
 </main>
 
-<footer class="rodape">Instituto Federal do Paraná · Campus Assis Chateaubriand · <a href="/privacidade">Política de Privacidade</a></footer>
+<footer class="rodape">Instituto Federal do Paraná · Campus Assis Chateaubriand · <a href="/sobre">Conheça o IFPlenus</a> · <a href="/privacidade">Política de Privacidade</a></footer>
 
 <script>
 
