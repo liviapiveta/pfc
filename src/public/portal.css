@@ -1744,6 +1744,30 @@ button.rodape-link { font: inherit; background: none; border: none; border-top: 
 .tn.destaque { background: linear-gradient(135deg, color-mix(in srgb, var(--pontos) 16%, var(--card)), var(--card)); border-color: color-mix(in srgb, var(--pontos) 40%, var(--borda)); }
 .tn.destaque svg, .tn.destaque strong { color: var(--pontos); }
 @media (max-width: 560px) { .traj-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Relatório em PDF (card do Dashboard e botão da Trajetória) */
+.rel-card {
+  display: flex; align-items: center; gap: 1rem 1.2rem; flex-wrap: wrap;
+  background: var(--card); border: 1px solid var(--borda); border-radius: 18px;
+  padding: 1.1rem 1.4rem; margin-bottom: 1.1rem;
+  background-image: linear-gradient(110deg, color-mix(in srgb, var(--verde) 9%, transparent), transparent 55%);
+}
+.rel-ic { width: 48px; height: 48px; flex-shrink: 0; border-radius: 14px; display: grid; place-items: center; background: var(--verde-claro); color: var(--verde); }
+.rel-ic svg { width: 24px; height: 24px; }
+.rel-txt { flex: 1 1 280px; min-width: 0; }
+.rel-txt h2 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.05rem; color: var(--texto); margin-bottom: 0.2rem; }
+.rel-txt p { color: var(--texto-2); font-size: 0.86rem; line-height: 1.55; }
+.rel-acoes { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.rel-acoes .btn-validar { min-height: 42px; padding: 0.55rem 1.1rem; font-size: 0.88rem; }
+.traj-pdf { min-height: 40px; }
+.girando { animation: girar 0.9s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+@media (max-width: 640px) {
+  .rel-card { padding: 1rem 1.1rem; }
+  .rel-acoes { width: 100%; }
+  .rel-acoes .btn-validar { flex: 1 1 140px; }
+  .traj-pdf { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .girando { animation: none; } }
 .traj-barra { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem; margin-bottom: 0.4rem; }
 .traj-mes { margin-top: 1.2rem; }
 .traj-mes h3 { font-family: 'Syne', sans-serif; font-size: 0.82rem; letter-spacing: 0.5px; text-transform: uppercase; color: var(--cinza); margin-bottom: 0.6rem; }
