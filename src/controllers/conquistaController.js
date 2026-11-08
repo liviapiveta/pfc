@@ -762,7 +762,83 @@ const getTrajetoria = async (req, res) => {
   }
 };
 
+
+// ── Relatório em PDF (aluno logado) ─────────────────────────────
+
+/**
+ * GET /api/relatorio.pdf — relatório de desempenho do PRÓPRIO aluno:
+ * resumo (pontos, nível, ranking), pontos por mês, conquistas, eventos e projetos.
+ * Só usa registros já confirmados/aprovados/aceitos.
+ */
+const getRelatorio = async (req, res) => {
+  try {
+    const me = req.user;
+    const meuId = String(me._id);
+    const { gerarRelatorio, pontosPorMes } = require('../services/relatorioPdf');
+
+    const [todos, conquistas, participacoes, presencas] = await Promise.all([
+      _rankearAlunos({}),
+      ConquistaUsuario.find({ matricula: me.matricula, status: 'confirmada' })
+        .populate('conquista', 'categoria').sort({ createdAt: -1 }).lean(),
+      Solicitacao.find({ matricula: me.matricula, status: 'aceito' }).sort({ decididoEm: -1, updatedAt: -1 }).lean(),
+      Presenca.find({ matricula: me.matricula, status: 'aprovada' }).sort({ eventoData: -1, decididoEm: -1 }).lean(),
+    ]);
+    const { visiveis } = _rankingVisivel(todos, meuId);
+    const meu = visiveis.find((u) => String(u._id) === meuId);
+    const pontos = conquistas.reduce((t, c) => t + (Number(c.pontos) || 0), 0);
+
+    const listaConquistas = conquistas.map((c) => ({
+      nome: c.nomeConquista || 'Conquista',
+      categoria: c.conquista?.categoria || 'especial',
+      motivo: c.origem === 'admin' ? 'Concedida por um servidor'
+        : c.contexto?.evento ? `Presença em "${c.contexto.evento}"`
+        : c.contexto?.gatilho === 'projeto_aceito' ? 'Participação em projeto'
+        : c.contexto?.disciplina ? `Nota em ${c.contexto.disciplina}${c.contexto.nota != null ? ` (${c.contexto.nota})` : ''}`
+        : 'Conquista desbloqueada',
+      data: c.createdAt,
+      pontos: c.pontos || 0,
+    }));
+
+    const pdf = await gerarRelatorio({
+      emitidoEm: new Date(),
+      aluno: { nome: me.nomeUsuario || 'Estudante', curso: me.curso || '', matricula: me.matricula },
+      resumo: {
+        pontos,
+        nivel: calcularNivel(pontos),
+        posicao: meu ? meu.posicao : null, // null = escolheu ficar fora do ranking
+        totalAlunos: visiveis.length,
+        conquistas: conquistas.length,
+        eventos: presencas.length,
+        projetos: participacoes.length,
+      },
+      pontosPorMes: pontosPorMes(listaConquistas),
+      conquistas: listaConquistas,
+      eventos: presencas.map((p) => ({
+        nome: p.eventoNome || '(evento)', data: p.eventoData || '', metodo: p.metodo, validadaEm: p.decididoEm || p.updatedAt,
+      })),
+      projetos: participacoes.map((s) => ({ titulo: s.projetoTitulo || '(projeto)', tipo: s.tipo, data: s.decididoEm || s.updatedAt })),
+    });
+
+    // Nome do arquivo só com letras simples (alguns navegadores estragam acentos)
+    const primeiro = String(me.nomeUsuario || 'estudante').split(/\s+/)[0]
+      .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]/g, '').toLowerCase() || 'estudante';
+    const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+    const baixar = req.query.ver !== '1';
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Length': pdf.length,
+      'Content-Disposition': `${baixar ? 'attachment' : 'inline'}; filename="relatorio-ifplenus-${primeiro}-${hoje}.pdf"`,
+      'Cache-Control': 'private, no-store',
+    });
+    return res.send(pdf);
+  } catch (err) {
+    console.error('Erro ao gerar relatório PDF:', err.message);
+    return res.status(500).json({ erro: 'Não foi possível gerar o relatório agora. Tente de novo em instantes.' });
+  }
+};
+
 module.exports = {
+  getRelatorio,
   recalcularPontosAluno, // exportado p/ reuso na Fase 2 (concessões automáticas)
   getConquistas,
   getConquista,

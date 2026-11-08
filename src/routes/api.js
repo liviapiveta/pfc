@@ -53,6 +53,8 @@ const corpoArquivo = (req, res, next) =>
   });
 // Por ALUNO (não por IP: no campus todos usam o mesmo Wi-Fi) — barra quem fica testando QR
 const limiteQr = limiteTaxa({ max: 15, chave: (req) => `${req.user?.matricula}|${req.params.chave}` });
+// Gerar PDF custa CPU: até 20 relatórios por aluno a cada 15 minutos
+const limiteRelatorio = limiteTaxa({ max: 20, chave: (req) => `relatorio|${req.user?.matricula}` });
 router.get('/eventos', auth, presencaController.listarEventos);
 router.post('/eventos/:chave/qrcode', auth, limiteQr, presencaController.validarPorQr);
 router.post('/eventos/:chave/certificado', auth, corpoArquivo, presencaController.enviarCertificado);
@@ -152,6 +154,9 @@ router.get('/dashboard', auth, conquistaController.getDashboard);
 
 // ── Minha Trajetória (aluno) ──────────────────────────────────
 router.get('/trajetoria', auth, conquistaController.getTrajetoria);
+
+// Relatório de desempenho em PDF (?ver=1 abre no navegador em vez de baixar)
+router.get('/relatorio.pdf', auth, limiteRelatorio, conquistaController.getRelatorio);
 
 // Novidades (aviso com confetes de conquista nova / subiu de nível)
 router.get('/novidades', auth, conquistaController.getNovidades);

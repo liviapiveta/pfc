@@ -1653,6 +1653,18 @@ const carregarDashboard = async () => {
         </div>
       </div>
 
+      <section class="rel-card" aria-labelledby="relTitulo">
+        <div class="rel-ic" aria-hidden="true"><i data-lucide="file-text"></i></div>
+        <div class="rel-txt">
+          <h2 id="relTitulo">Meu relatório de desempenho</h2>
+          <p>Pontos, nível, conquistas, eventos e projetos em um PDF para guardar ou mostrar em estágio, currículo e processos seletivos.</p>
+        </div>
+        <div class="rel-acoes">
+          <button type="button" class="btn-validar" data-rel="baixar" onclick="baixarRelatorio()"><i data-lucide="download"></i> Baixar PDF</button>
+          <button type="button" class="btn-validar secundario" data-rel="ver" onclick="baixarRelatorio(true)"><i data-lucide="eye"></i> Visualizar</button>
+        </div>
+      </section>
+
       <div class="dash-grid">
         <div class="dash-col">
           <div class="dash-mini-row">
@@ -2148,6 +2160,49 @@ const carregarTrajetoria = async () => {
 
 const filtrarTrajetoria = (t) => { state.trajFiltro = t; renderTrajetoria(); };
 
+/**
+ * Relatório de desempenho em PDF (gerado no servidor).
+ * Baixar: usa fetch (mostra "Gerando…" e erros claros) e entrega o arquivo.
+ * Visualizar: abre o PDF numa aba nova (o navegador mostra com o leitor dele).
+ */
+let _relGerando = false;
+const baixarRelatorio = async (ver = false) => {
+  if (ver) {
+    const aba = window.open('/api/relatorio.pdf?ver=1', '_blank');
+    if (aba) aba.opener = null; else location.href = '/api/relatorio.pdf?ver=1'; // pop-up bloqueado: abre aqui mesmo
+    return;
+  }
+  if (_relGerando) return;
+  _relGerando = true;
+  const botoes = [...document.querySelectorAll('[data-rel="baixar"]')];
+  const antes = botoes.map(b => b.innerHTML);
+  botoes.forEach(b => { b.disabled = true; b.setAttribute('aria-busy', 'true'); b.innerHTML = '<i data-lucide="loader-circle" class="girando"></i> Gerando…'; });
+  if (window.lucide) lucide.createIcons();
+  try {
+    const r = await fetch('/api/relatorio.pdf', { credentials: 'same-origin' });
+    if (r.status === 401) { location.href = '/login?volta=' + encodeURIComponent('/?secao=dashboard'); return; }
+    if (!r.ok) {
+      let msg = 'Não foi possível gerar o relatório agora. Tente de novo em instantes.';
+      try { msg = (await r.json()).erro || msg; } catch (e) { /* resposta sem JSON */ }
+      throw new Error(msg);
+    }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const nome = (/filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '') || [])[1] || 'relatorio-ifplenus.pdf';
+    const a = document.createElement('a');
+    a.href = url; a.download = nome; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    aviso('Relatório baixado! Confira a pasta de downloads.', 'ok');
+  } catch (e) {
+    aviso(e.message || 'Não foi possível gerar o relatório.', 'erro');
+  } finally {
+    _relGerando = false;
+    botoes.forEach((b, i) => { if (!b.isConnected) return; b.disabled = false; b.removeAttribute('aria-busy'); b.innerHTML = antes[i]; });
+    if (window.lucide) lucide.createIcons();
+  }
+};
+
 const renderTrajetoria = () => {
   const el = document.getElementById('trajetoriaContent');
   const dados = state.trajetoria || {};
@@ -2218,6 +2273,7 @@ const renderTrajetoria = () => {
       <div class="ev-filtros" role="tablist" aria-label="Filtrar trajetória">
         ${aba('', 'Tudo', itens.length)}${aba('conquista', 'Conquistas', r.conquistas)}${aba('projeto', 'Projetos', r.projetos)}${aba('evento', 'Eventos', r.eventos)}
       </div>
+      <button type="button" class="btn-validar secundario traj-pdf" data-rel="baixar" onclick="baixarRelatorio()"><i data-lucide="download"></i> Baixar relatório (PDF)</button>
     </div>
     ${lista.length ? grupos.map(g => `
       <section class="traj-mes">
@@ -2331,6 +2387,7 @@ const _itensBusca = () => [
     acao: () => irParaSecao(n.dataset.section),
   })),
   { titulo: 'Validar presença em um evento', grupo: 'Ações', icone: 'badge-check', termos: 'certificado qr code check-in', acao: () => { state.evFiltro = 'validar'; irParaSecao('eventos'); if (state.eventos) renderEventos(); } },
+  { titulo: 'Baixar meu relatório (PDF)', grupo: 'Ações', icone: 'file-down', termos: 'pdf curriculo desempenho imprimir historico exportar', acao: () => baixarRelatorio() },
   { titulo: 'Ver níveis e como subir', grupo: 'Ações', icone: 'award', termos: 'pontos nivel', acao: () => state.dash ? abrirNiveis() : irParaSecao('dashboard') },
   { titulo: 'Minha posição no ranking', grupo: 'Ações', icone: 'trending-up', termos: 'onde estou', acao: () => irParaSecao('ranking') },
   { titulo: 'Configurações', grupo: 'Configurações', icone: 'settings', acao: () => abrirConfig() },

@@ -1,0 +1,6 @@
+Fontes usadas no relatório em PDF (as mesmas do site):
+
+- DM Sans (Colophon Foundry) e Syne (Bonjour Monde)
+- Licença: SIL Open Font License 1.1 — uso, inclusão e redistribuição livres.
+  https://openfontlicense.org
+- Arquivos .ttf obtidos dos pacotes @expo-google-fonts/dm-sans e @expo-google-fonts/syne (Google Fonts).
