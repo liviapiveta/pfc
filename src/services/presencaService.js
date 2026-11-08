@@ -25,20 +25,37 @@ const linkInstitucional = (conteudo) => {
 };
 
 /**
- * Decide o que fazer com o QR do aluno, conforme a configuração do evento:
- *  - evento com padrão definido: QR começa com o padrão → 'aprovada';
- *    não começa → 'recusar' (não é o QR deste evento)
- *  - sem padrão: link do IFPR → 'aprovada'; qualquer outro → 'pendente'
- *    (um professor confere — QR "qualquer" seria fácil de forjar)
+ * Decide o que fazer com o QR do aluno, conforme a configuração do evento.
+ *
+ * Só valida NA HORA quando o QR identifica ESTE evento: o evento tem um padrão
+ * e esse padrão é exclusivo dele (não aparece em QR nem em configuração de outro
+ * evento). Um link do SUAP sozinho NÃO basta: o QR de inscrição de qualquer
+ * evento antigo também é um link do IFPR.
+ *
+ *  - padrão definido e o QR não começa com ele      → 'recusar'
+ *  - "conferir todo QR" marcado                     → 'pendente'
+ *  - padrão definido, mas genérico (outro evento)   → 'pendente'
+ *  - padrão definido e exclusivo                    → 'aprovada'
+ *  - sem padrão                                     → 'pendente' (professor confere)
+ *
+ * `padraoGenerico` é calculado pelo controller (consulta o banco).
  */
-const avaliarQr = (conteudo, validacao = {}) => {
+const avaliarQr = (conteudo, validacao = {}, { padraoGenerico = false } = {}) => {
   const padrao = String(validacao.qrPadrao || '').trim();
   if (padrao && !conteudo.toLowerCase().startsWith(padrao.toLowerCase())) return { status: 'recusar' };
   if (validacao.qrConferir) return { status: 'pendente', observacao: 'Evento configurado para conferir todo QR' };
-  if (padrao) return { status: 'aprovada', observacao: 'QR confere com o padrão do evento' };
-  if (linkInstitucional(conteudo)) return { status: 'aprovada', observacao: 'QR com link do IFPR' };
+  if (padrao && padraoGenerico) {
+    return { status: 'pendente', observacao: 'O padrão deste evento também aparece em QR de outro evento — confira se o QR é deste evento' };
+  }
+  if (padrao) return { status: 'aprovada', observacao: 'QR confere com o padrão exclusivo do evento' };
+  if (linkInstitucional(conteudo)) {
+    return { status: 'pendente', observacao: 'Link do IFPR, mas o evento não tem padrão — confira se o QR é da inscrição DESTE evento' };
+  }
   return { status: 'pendente', observacao: 'QR fora do padrão do IFPR — confira o conteúdo' };
 };
+
+/** Escapa um texto para usar dentro de uma expressão regular (busca por "começa com"). */
+const escaparRegex = (t) => String(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** Sugere o "padrão" a partir de um QR de exemplo: o link sem a última parte (que muda por aluno). */
 const sugerirPadrao = (exemplo) => {
@@ -137,7 +154,7 @@ const conquistaServeParaEvento = (c) => !!c && c.categoria === 'evento' && (
 
 module.exports = {
   conquistaServeParaEvento,
-  PRAZO_QR_DIAS, limparQr, hashQr, linkInstitucional, avaliarQr, sugerirPadrao,
+  PRAZO_QR_DIAS, limparQr, hashQr, linkInstitucional, avaliarQr, sugerirPadrao, escaparRegex,
   hojeSP, diaDe, jaComecou, acontecendo, qrNoPrazo,
   lerChave, chaveDe,
   TAM_MAX_ARQUIVO, TIPOS_ARQUIVO, tipoReal, nomeArquivoSeguro,

@@ -159,6 +159,30 @@ const acharEvento = async (chave) => {
   return ev && !ev.oculto ? { origem: k.origem, id: k.id, ev, validacao: validacaoDe(ev.validacao) } : null;
 };
 
+/**
+ * O padrão do QR identifica SÓ este evento? É "genérico" se:
+ *  - outro evento tem um padrão que começa igual (os QRs dele passariam aqui), ou
+ *  - algum QR já usado em OUTRO evento começa com este padrão.
+ * Ex.: "https://suap.ifpr.edu.br/eventos/inscricao/" serve para qualquer evento.
+ */
+const padraoEhGenerico = async (padrao, alvo = null) => {
+  const p = String(padrao || '').trim();
+  if (!p) return false;
+  const re = { $regex: `^${P.escaparRegex(p)}`, $options: 'i' };
+  const outroLocal = alvo?.origem === 'local' ? { _id: { $ne: alvo.ev._id } } : {};
+  const outroSuap = alvo?.origem === 'suap' ? { suapId: { $ne: alvo.id } } : {};
+  const outraPresenca = !alvo ? {}
+    : alvo.origem === 'local'
+      ? { $or: [{ origem: 'suap' }, { evento: { $ne: alvo.ev._id } }] }
+      : { $or: [{ origem: 'local' }, { eventoSuapId: { $ne: alvo.id } }] };
+  const [ev, evSuap, pres] = await Promise.all([
+    Evento.exists({ ...outroLocal, 'validacao.qrPadrao': re }),
+    EventoSuap.exists({ ...outroSuap, 'validacao.qrPadrao': re }),
+    Presenca.exists({ ...outraPresenca, metodo: 'qrcode', qrConteudo: re }),
+  ]);
+  return !!(ev || evSuap || pres);
+};
+
 const filtroDoEvento = (alvo, matricula) => (alvo.origem === 'local'
   ? { origem: 'local', evento: alvo.ev._id, matricula }
   : { origem: 'suap', eventoSuapId: alvo.id, matricula });
@@ -196,7 +220,8 @@ const validarPorQr = async (req, res) => {
     const conteudo = P.limparQr(req.body?.conteudo);
     if (!conteudo) return res.status(400).json({ erro: 'Não conseguimos ler esse QR Code. Tente outra foto.' });
 
-    const avaliacao = P.avaliarQr(conteudo, alvo.validacao);
+    const padraoGenerico = alvo.validacao.qrPadrao ? await padraoEhGenerico(alvo.validacao.qrPadrao, alvo) : false;
+    const avaliacao = P.avaliarQr(conteudo, alvo.validacao, { padraoGenerico });
     if (avaliacao.status === 'recusar') {
       return res.status(400).json({ erro: 'Esse QR Code não é da inscrição deste evento. Confira se enviou o QR certo.' });
     }
@@ -502,10 +527,23 @@ const configurarEventoSuap = async (req, res) => {
 };
 
 /** POST /api/admin/eventos/padrao-qr  body: { exemplo } — sugere o padrão a partir de um QR de exemplo */
-const sugerirPadraoQr = (req, res) => {
+const sugerirPadraoQr = async (req, res) => {
   const padrao = P.sugerirPadrao(req.body?.exemplo);
   if (!padrao) return res.status(400).json({ erro: 'Não deu para tirar um padrão desse QR. Digite o começo do conteúdo à mão.' });
-  return res.json({ padrao });
+  try {
+    const alvo = req.body?.chave ? await acharEvento(req.body.chave) : null;
+    const generico = await padraoEhGenerico(padrao, alvo);
+    return res.json({
+      padrao,
+      generico,
+      aviso: generico
+        ? 'Atenção: esse começo também aparece em QR de outro evento, então ele não identifica este evento. Os QRs vão para conferência manual.'
+        : '',
+    });
+  } catch (err) {
+    console.error('Erro ao conferir o padrão do QR:', err.message);
+    return res.json({ padrao, generico: false, aviso: '' });
+  }
 };
 
 module.exports = {
