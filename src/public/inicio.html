@@ -211,7 +211,20 @@
 
     /* Detalhe de cada função (pop-up) */
     .in-modal { border: 1px solid var(--borda); border-radius: 20px; padding: 0; width: min(560px, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); background: var(--elev); color: var(--texto); box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+    /* O reset do portal zera a margem; sem "margin: auto" o <dialog> gruda no canto */
+    .in-modal { position: fixed; inset: 0; margin: auto; height: fit-content; }
     .in-modal::backdrop { background: rgba(0,0,0,0.6); }
+    /* Animação: surge do centro; ao fechar, faz o caminho inverso */
+    .in-modal[open] { animation: inModalEntra .26s cubic-bezier(.2,.9,.3,1.15) both; }
+    .in-modal[open]::backdrop { animation: inFundoEntra .26s ease both; }
+    .in-modal.fechando { animation: inModalSai .18s ease-in both; }
+    .in-modal.fechando::backdrop { animation: inFundoSai .18s ease-in both; }
+    @keyframes inModalEntra { from { opacity: 0; transform: translateY(14px) scale(.94); } to { opacity: 1; transform: none; } }
+    @keyframes inModalSai { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(10px) scale(.96); } }
+    @keyframes inFundoEntra { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes inFundoSai { from { opacity: 1; } to { opacity: 0; } }
+    .in-modal[open] .in-modal-topo .ic { animation: inIcone .4s .08s cubic-bezier(.2,.9,.3,1.4) both; }
+    @keyframes inIcone { from { transform: scale(.5) rotate(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }
     .in-modal-corpo { padding: 1.5rem 1.5rem 1.3rem; overflow-y: auto; }
     .in-modal-topo { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.9rem; padding-right: 2.6rem; }
     .in-modal-topo .ic { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; background: var(--verde-claro); color: var(--verde); flex-shrink: 0; }
@@ -243,6 +256,7 @@
       .demo-conq em { display: none; }
     }
     @media (prefers-reduced-motion: reduce) {
+      .in-modal[open], .in-modal[open]::backdrop, .in-modal.fechando, .in-modal.fechando::backdrop, .in-modal[open] .in-modal-topo .ic { animation: none; }
       html { scroll-behavior: auto !important; }
       .in-func, .btn-entrar { transition: none; }
       .in-func:hover, .btn-entrar:hover { transform: none; }
@@ -582,9 +596,21 @@
         icones();
         if (modal.showModal) modal.showModal(); else modal.setAttribute('open', '');
       };
+      var semMovimento = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
       var fecharFuncao = function () {
-        if (modal.close) modal.close(); else modal.removeAttribute('open');
+        if (!modal.open || modal.classList.contains('fechando')) return;
+        var fim = function () {
+          modal.classList.remove('fechando');
+          if (modal.close) modal.close(); else modal.removeAttribute('open');
+        };
+        if (semMovimento) return fim();
+        modal.classList.add('fechando');
+        var feito = false, uma = function () { if (!feito) { feito = true; fim(); } };
+        modal.addEventListener('animationend', function f(e) { if (e.target === modal) { modal.removeEventListener('animationend', f); uma(); } });
+        setTimeout(uma, 260); // garantia, caso a animação não dispare
       };
+      // Esc também fecha com a animação
+      modal.addEventListener('cancel', function (e) { e.preventDefault(); fecharFuncao(); });
       modal.addEventListener('close', function () { if (origem) origem.focus(); });
       lista.addEventListener('click', function (e) {
         var b = e.target.closest('[data-funcao]');
