@@ -7,6 +7,7 @@ const ConquistaUsuario = require('../models/ConquistaUsuario');
 const Presenca = require('../models/Presenca');
 const Comprovante = require('../models/Comprovante');
 const Solicitacao = require('../models/Solicitacao');
+const Relatorio = require('../models/Relatorio');
 
 let emSegundoPlano = () => {};
 try { ({ waitUntil: emSegundoPlano } = require('@vercel/functions')); } catch { /* fora da Vercel: a promessa segue sozinha */ }
@@ -211,6 +212,7 @@ const excluirConta = async (req, res) => {
       Presenca.deleteMany({ matricula }),
       ConquistaUsuario.deleteMany({ matricula }),
       Solicitacao.deleteMany({ matricula }),
+      Relatorio.deleteMany({ matricula }),
     ]);
     await User.deleteOne({ _id });
     try { if (suapToken) suapService.limparCache(suapToken); } catch { /* cache é só memória */ }

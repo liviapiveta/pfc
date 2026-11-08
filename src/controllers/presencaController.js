@@ -119,6 +119,7 @@ const itemEvento = (origem, ev, minha, hoje) => {
     local: ev.local || '',
     campus: ev.campus || '',
     link_suap: ev.link_suap || null,
+    cargaHoraria: ev.cargaHoraria || null,
     validacao: chave ? { certificado: v.certificado, qrcode: v.qrcode } : { certificado: false, qrcode: false },
     conquista: conquistaPublica(ev.conquista),
     jaComecou: P.jaComecou(ev, hoje),
@@ -450,6 +451,15 @@ const lerConfigEvento = async (body = {}) => {
     dados.validacao = { certificado: v.certificado !== false, qrcode: v.qrcode !== false, qrPadrao: padrao, qrConferir: v.qrConferir === true };
     if (!dados.validacao.certificado && !dados.validacao.qrcode) {
       return { erro: 'Deixe pelo menos uma forma de validar a presença (certificado ou QR Code).' };
+    }
+  }
+  if (body.cargaHoraria !== undefined) {
+    const bruto = body.cargaHoraria;
+    if (bruto === null || bruto === '') dados.cargaHoraria = null;
+    else {
+      const h = Number(String(bruto).replace(',', '.'));
+      if (!Number.isFinite(h) || h < 0 || h > 500) return { erro: 'Carga horária inválida (use horas entre 0 e 500).' };
+      dados.cargaHoraria = Math.round(h * 2) / 2 || null; // meia em meia hora; 0 = sem carga
     }
   }
   if (body.conquista !== undefined) {

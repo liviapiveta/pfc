@@ -379,6 +379,7 @@
               <li><i data-lucide="check"></i><span><strong>Tudo num lugar só:</strong> eventos do campus, projetos de pesquisa e extensão, notas e conquistas.</span></li>
               <li><i data-lucide="check"></i><span><strong>Trajetória organizada:</strong> cada presença e conquista fica registrada com data, pronta para lembrar no currículo.</span></li>
               <li><i data-lucide="check"></i><span><strong>Motivação de verdade:</strong> metas claras, níveis e um ranking que mostra quem está perto de você, não só o topo.</span></li>
+              <li><i data-lucide="check"></i><span><strong>Relatório para o currículo:</strong> um PDF com sua participação e horas, em português ou inglês, com QR Code de verificação.</span></li>
               <li><i data-lucide="check"></i><span><strong>Mais oportunidades:</strong> descubra projetos com vagas e eventos que você nem sabia que existiam.</span></li>
               <li><i data-lucide="check"></i><span><strong>Você no controle:</strong> escolha aparecer com nome, anônimo ou fora do ranking, e exclua sua conta quando quiser.</span></li>
             </ul>
@@ -389,6 +390,7 @@
               <li><i data-lucide="check"></i><span><strong>Mais participação</strong> em eventos, pesquisa e extensão, com um incentivo que os estudantes entendem.</span></li>
               <li><i data-lucide="check"></i><span><strong>Presença conferida:</strong> QR Code da inscrição ou certificado, com conferência pelos servidores.</span></li>
               <li><i data-lucide="check"></i><span><strong>Menos papel:</strong> pedidos de participação em projetos e comprovantes chegam pelo painel.</span></li>
+              <li><i data-lucide="check"></i><span><strong>Horas organizadas:</strong> a carga horária de cada evento entra no relatório de cada estudante.</span></li>
               <li><i data-lucide="check"></i><span><strong>Dados para decidir:</strong> estatísticas e exportação em CSV de presenças, ranking e pedidos.</span></li>
               <li><i data-lucide="check"></i><span><strong>Integrado ao SUAP:</strong> usa o login e os dados oficiais, sem cadastro paralelo.</span></li>
             </ul>
@@ -479,6 +481,14 @@
             <div>Sim. O site funciona em qualquer tela e pode ser instalado como aplicativo: no navegador do celular, use “Adicionar à tela inicial”.</div>
           </details>
           <details>
+            <summary>Posso baixar um relatório com a minha participação?</summary>
+            <div>Sim. No Dashboard (ou na Trajetória), clique em “Gerar relatório”. Escolha o período e o idioma (português ou inglês) e baixe o PDF, abra no navegador ou receba no seu e-mail. Ele traz pontos, nível, conquistas, eventos com as horas e projetos.</div>
+          </details>
+          <details>
+            <summary>Como alguém confere se o meu relatório é verdadeiro?</summary>
+            <div>Todo relatório tem um QR Code e um código. Basta apontar a câmera para o QR ou digitar o código em <a href="/verificar">Verificar relatório</a>: a página mostra o nome e os números registrados na emissão, sem a sua matrícula.</div>
+          </details>
+          <details>
             <summary>O IFPlenus substitui o SUAP?</summary>
             <div>Não. O SUAP continua sendo o sistema oficial. O IFPlenus usa os dados dele para mostrar sua participação de um jeito mais claro e motivador.</div>
           </details>
@@ -515,6 +525,7 @@
         <ul>
           <li><a href="#como-funciona">Como funciona</a></li>
           <li><a href="#funcoes">Funções</a></li>
+          <li><a href="/verificar">Verificar relatório</a></li>
           <li><a href="/login" data-entrar>Entrar</a></li>
         </ul>
       </div>
@@ -569,12 +580,12 @@
         { id: 'trajetoria', icone: 'route', nome: 'Minha Trajetória', resumo: 'Sua linha do tempo de conquistas e participações.',
           texto: 'O histórico de conquistas, projetos e eventos, agrupado por mês, com data e hora.',
           itens: ['Totais de pontos, conquistas, projetos e eventos', 'Filtro por tipo: conquistas, projetos ou eventos', 'Cada item com data, horário e pontos ganhos', 'Base para lembrar suas atividades no currículo'] },
-        { id: 'configuracoes', icone: 'settings', nome: 'Configurações', resumo: 'Privacidade no ranking, e-mails e sua conta.',
-          texto: 'Você decide como o IFPlenus te mostra e te avisa.',
-          itens: ['Aparecer no ranking com nome, anônimo ou oculto', 'Ligar ou desligar os avisos por e-mail', 'Excluir sua conta, com dupla confirmação', 'Acesso à Política de Privacidade'] },
-        { id: 'acessibilidade', icone: 'accessibility', nome: 'Acessibilidade', resumo: 'Temas, alto contraste e texto maior.',
-          texto: 'O portal se adapta a você nas Configurações.',
-          itens: ['Tema escuro, claro, alto contraste e para daltonismo', 'Texto maior e mais espaçamento', 'Links em destaque', 'Navegação por teclado e leitor de tela'] },
+        { id: 'relatorio', icone: 'file-text', nome: 'Relatório em PDF', resumo: 'Seu desempenho em um PDF verificável, em português ou inglês.',
+          texto: 'Um relatório para guardar ou mostrar em estágio, currículo e processos seletivos, gerado com um clique.',
+          itens: ['Pontos, nível, ranking, conquistas, eventos e projetos', 'Horas de cada evento (carga horária)', 'Escolha o período (ano ou semestre) e o idioma', 'QR Code para qualquer pessoa conferir que é verdadeiro', 'Baixar, abrir no navegador ou receber por e-mail'] },
+        { id: 'configuracoes', icone: 'settings', nome: 'Configurações', resumo: 'Privacidade, e-mails, temas e acessibilidade.',
+          texto: 'Você decide como o IFPlenus te mostra, te avisa e aparece na sua tela.',
+          itens: ['Aparecer no ranking com nome, anônimo ou oculto', 'Ligar ou desligar os avisos por e-mail', 'Tema escuro, claro, alto contraste e para daltonismo', 'Texto maior, mais espaçamento e links em destaque', 'Excluir sua conta, com dupla confirmação'] },
       ];
       var lista = document.getElementById('listaFuncoes');
       lista.innerHTML = FUNCOES.map(function (f) {

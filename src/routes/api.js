@@ -22,6 +22,9 @@ const limiteEmail = limiteTaxa({ max: 5, mensagem: 'Muitos pedidos de e-mail. Ag
 
 // ── Página inicial (pública): só contagens do campus e a tabela de níveis ──
 router.get('/publico/inicio', require('../controllers/publicoController').inicio);
+// Verificação pública de um relatório em PDF (o código vem no QR do relatório)
+const limiteVerificar = limiteTaxa({ max: 60, chave: (req) => `verificar|${req.ip}` });
+router.get('/publico/verificar/:codigo', limiteVerificar, (req, res) => require('../controllers/relatorioController').verificar(req, res));
 
 router.post('/auth/login', limiteLogin, authController.login);
 router.post('/auth/logout', auth, authController.logout);
@@ -155,8 +158,11 @@ router.get('/dashboard', auth, conquistaController.getDashboard);
 // ── Minha Trajetória (aluno) ──────────────────────────────────
 router.get('/trajetoria', auth, conquistaController.getTrajetoria);
 
-// Relatório de desempenho em PDF (?ver=1 abre no navegador em vez de baixar)
-router.get('/relatorio.pdf', auth, limiteRelatorio, conquistaController.getRelatorio);
+// Relatório de desempenho em PDF (?periodo=&idioma=; ?ver=1 abre no navegador em vez de baixar)
+const relatorioController = require('../controllers/relatorioController');
+const limiteRelatorioEmail = limiteTaxa({ max: 3, chave: (req) => `relatorio-email|${req.user?.matricula}`, mensagem: 'Você já pediu vários e-mails. Aguarde alguns minutos ou baixe o PDF.' });
+router.get('/relatorio.pdf', auth, limiteRelatorio, relatorioController.baixar);
+router.post('/relatorio/email', auth, limiteRelatorio, limiteRelatorioEmail, relatorioController.enviarPorEmail);
 
 // Novidades (aviso com confetes de conquista nova / subiu de nível)
 router.get('/novidades', auth, conquistaController.getNovidades);

@@ -72,6 +72,8 @@ app.get(['/', '/index.html'], (req, res, next) => {
   // Visitante sem login: página de apresentação do IFPlenus
   return res.sendFile(paginaInicial);
 });
+// Verificação pública de relatório (o QR do PDF aponta para cá)
+app.get(['/verificar', '/verificar/:codigo'], (req, res) => res.sendFile(path.join(__dirname, 'src', 'public', 'verificar.html')));
 // A apresentação também fica acessível para quem já entrou
 app.get(['/sobre', '/inicio'], (req, res) => res.sendFile(paginaInicial));
 app.get('/login', (req, res, next) =>
