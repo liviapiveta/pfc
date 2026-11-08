@@ -12,15 +12,33 @@ const getTransporter = () => {
     transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-      // Reaproveita a conexão entre e-mails seguidos e não deixa um Gmail lento
-      // segurar a requisição até a Vercel derrubar a função (limite ~10 s)
-      pool: true,
+      // Sem "pool": na Vercel a função congela entre os acessos e uma conexão
+      // guardada morre — o envio seguinte falhava. Cada envio abre a sua.
+      // Os limites de tempo evitam que um Gmail lento segure a função (~10 s).
+      pool: false,
       connectionTimeout: 6000,
       greetingTimeout: 5000,
-      socketTimeout: 8000,
+      socketTimeout: 12000,
     });
   }
   return transporter;
+};
+
+// Falhas de rede/conexão: vale tentar de novo uma vez, com um transporte novo
+const ERROS_DE_CONEXAO = ['ECONNECTION', 'ESOCKET', 'ETIMEDOUT', 'ECONNRESET', 'EPIPE', 'EDNS'];
+const ehErroDeConexao = (e) => ERROS_DE_CONEXAO.includes(e?.code) || /connection closed|socket|timeout|ECONNRESET/i.test(e?.message || '');
+
+/** Envia com uma nova tentativa em caso de falha de conexão. */
+const enviar = async (mensagem) => {
+  try {
+    return await getTransporter().sendMail(mensagem);
+  } catch (e) {
+    if (!ehErroDeConexao(e)) throw e;
+    console.warn('E-mail: falha de conexão, tentando de novo:', e.code || e.message);
+    try { transporter?.close?.(); } catch { /* já fechado */ }
+    transporter = null;
+    return getTransporter().sendMail(mensagem);
+  }
 };
 
 const esc = (s) =>
@@ -60,7 +78,7 @@ const enviarLinkSenha = async ({ nome, email, link, redefinir = false }) => {
 
   const texto = `Olá, ${primeiroNome}!\n\n${intro}\n\n${titulo}: ${link}\n\nO link vale por 48 horas e só pode ser usado uma vez.\nSe você não pediu isso, ignore este e-mail.`;
 
-  await getTransporter().sendMail({
+  await enviar({
     from: `"IFPlenus" <${process.env.SMTP_USER}>`,
     to: email,
     subject: `IFPlenus — ${titulo}`,
@@ -106,7 +124,7 @@ const enviarNotificacao = async ({ email, nome, assunto, titulo, mensagem, botao
 
   const texto = `Olá, ${primeiroNome}!\n\n${titulo}\n${mensagem}\n\n${site ? site + '\n\n' : ''}Para desligar estes e-mails: Configurações → Notificações por e-mail.`;
 
-  await getTransporter().sendMail({
+  await enviar({
     from: `"IFPlenus" <${process.env.SMTP_USER}>`,
     to: email,
     subject: `IFPlenus — ${assunto}`,
@@ -142,7 +160,7 @@ const enviarRelatorio = async ({ email, nome, pdf, nomeArquivo, idioma = 'pt', p
     </div>
     <p style="text-align:center;font-size:11px;color:#9da2ad;margin-top:16px;">${en ? 'Automatic e-mail — please do not reply.' : 'E-mail automático — não responda.'}</p>
   </div>`;
-  await getTransporter().sendMail({
+  await enviar({
     from: `"IFPlenus" <${process.env.SMTP_USER}>`,
     to: email,
     subject: `IFPlenus — ${titulo}`,
@@ -152,4 +170,4 @@ const enviarRelatorio = async ({ email, nome, pdf, nomeArquivo, idioma = 'pt', p
   });
 };
 
-module.exports = { enviarLinkSenha, enviarNotificacao, enviarRelatorio, urlDoSite };
+module.exports = { enviarLinkSenha, enviarNotificacao, enviarRelatorio, urlDoSite, ehErroDeConexao };

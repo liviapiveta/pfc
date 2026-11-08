@@ -193,16 +193,34 @@ const enviarPorEmail = async (req, res) => {
   if (op.erro) return res.status(400).json({ erro: op.erro });
   const email = String(req.user.email || '').trim();
   if (!email) return res.status(400).json({ erro: 'Não encontramos um e-mail no seu cadastro do SUAP.' });
+  let pdf, nomeArquivo;
   try {
-    const { pdf, nomeArquivo } = await montar(req, op);
+    ({ pdf, nomeArquivo } = await montar(req, op));
+  } catch (err) {
+    console.error('Erro ao gerar relatório para e-mail:', err.message);
+    return res.status(500).json({ erro: 'Não foi possível gerar o relatório agora. Tente de novo em instantes.' });
+  }
+  try {
     await enviarRelatorio({ email, nome: req.user.nomeUsuario, pdf, nomeArquivo, idioma: op.idioma, periodoRotulo: op.per.rotulo[op.idioma] });
     // Mostra o e-mail só parcialmente (ex.: an***@estudantes.ifpr.edu.br)
     const [u, d] = email.split('@');
     return res.json({ sucesso: true, email: `${u.slice(0, 2)}***@${d || ''}` });
   } catch (err) {
-    console.error('Erro ao enviar relatório por e-mail:', err.message);
-    return res.status(502).json({ erro: 'Não foi possível enviar o e-mail agora. Baixe o PDF ou tente mais tarde.' });
+    // O motivo vai para o log da Vercel e, de forma simples, para a tela
+    console.error('Erro ao enviar relatório por e-mail:', err.code || '', err.responseCode || '', err.message);
+    return res.status(502).json({ erro: motivoEmail(err), codigo: err.code || err.responseCode || 'ERRO' });
   }
+};
+
+/** Explica em palavras simples por que o e-mail não saiu. */
+const motivoEmail = (err = {}) => {
+  const msg = String(err.message || '');
+  if (/não configurados/.test(msg)) return 'O envio de e-mails não está configurado no servidor. Avise a equipe do IFPlenus e, por enquanto, baixe o PDF.';
+  if (err.code === 'EAUTH' || err.responseCode === 535) return 'O servidor de e-mail recusou o acesso (senha de app do Gmail). Avise a equipe do IFPlenus e, por enquanto, baixe o PDF.';
+  if (err.code === 'EENVELOPE' || err.responseCode === 550 || err.responseCode === 553) return 'O seu e-mail do SUAP não aceitou a mensagem. Baixe o PDF.';
+  if (err.responseCode === 552 || err.responseCode === 554) return 'O e-mail foi recusado pelo servidor (limite ou anexo). Baixe o PDF.';
+  if (err.responseCode === 421 || err.responseCode === 454) return 'O Gmail está limitando envios agora. Tente de novo em alguns minutos ou baixe o PDF.';
+  return 'Não foi possível conectar ao servidor de e-mail agora. Tente de novo em instantes ou baixe o PDF.';
 };
 
 /** GET /api/publico/verificar/:codigo — dados públicos de um relatório (sem matrícula). */

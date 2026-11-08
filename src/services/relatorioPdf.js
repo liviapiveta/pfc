@@ -44,6 +44,7 @@ const T = {
     periodo: 'Período',
     cards: { pontos: 'Pontos', pontosPer: 'Pontos no período', nivel: 'Nível atual', ranking: 'Ranking do campus', conquistas: 'Conquistas', eventos: 'Eventos', horas: 'Horas em eventos', projetos: 'Projetos' },
     oculto: 'Oculto',
+    semHoras: 'Nenhuma', // "0h" na fonte parecia "oh"
     posicao: (p, n) => `${p}º de ${n}`,
     progresso: 'Progresso de nível',
     faltam: (n, prox, nome) => `Faltam ${n} pontos para o nível ${prox} · ${nome}`,
@@ -84,6 +85,7 @@ const T = {
     periodo: 'Period',
     cards: { pontos: 'Points', pontosPer: 'Points in period', nivel: 'Current level', ranking: 'Campus ranking', conquistas: 'Achievements', eventos: 'Events', horas: 'Event hours', projetos: 'Projects' },
     oculto: 'Hidden',
+    semHoras: 'None',
     posicao: (p, n) => `#${p} of ${n}`,
     progresso: 'Level progress',
     faltam: (n, prox, nome) => `${n} points to level ${prox} · ${nome}`,
@@ -227,7 +229,7 @@ const gerarRelatorio = (dados) => new Promise((resolve, reject) => {
       ],
       [
         [t.cards.eventos, num(r.eventos, idioma), COR.verdeEscuro],
-        [t.cards.horas, horasFmt(r.horas, idioma) || '0h', COR.verdeEscuro],
+        [t.cards.horas, horasFmt(r.horas, idioma) || t.semHoras, COR.verdeEscuro],
         [t.cards.projetos, num(r.projetos, idioma), COR.verdeEscuro],
       ],
     ];
@@ -397,6 +399,8 @@ const gerarRelatorio = (dados) => new Promise((resolve, reject) => {
 });
 
 // ── Períodos ────────────────────────────────────────────────────
+// O IFPlenus começou em 2026: períodos anteriores não existem
+const ANO_INICIAL = 2026;
 /**
  * Lê o período pedido: 'tudo' | 'ano-AAAA' | 'AAAA-1' (jan–jun) | 'AAAA-2' (jul–dez).
  * Devolve { chave, inicio, fim (exclusivo), rotulo: { pt, en } } ou null se inválido.
@@ -409,13 +413,13 @@ const lerPeriodo = (valor, agora = new Date()) => {
   let m = v.match(/^ano-(\d{4})$/);
   if (m) {
     const a = Number(m[1]);
-    if (a < 2015 || a > anoAtual) return null;
+    if (a < ANO_INICIAL || a > anoAtual) return null;
     return { chave: v, inicio: data(a, 1), fim: data(a + 1, 1), rotulo: { pt: `Ano de ${a}`, en: `Year ${a}` } };
   }
   m = v.match(/^(\d{4})-([12])$/);
   if (m) {
     const a = Number(m[1]), s = Number(m[2]);
-    if (a < 2015 || a > anoAtual) return null;
+    if (a < ANO_INICIAL || a > anoAtual) return null;
     return {
       chave: v,
       inicio: data(a, s === 1 ? 1 : 7),

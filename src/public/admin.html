@@ -596,6 +596,9 @@
     .qr-cont { display:inline-block; max-width:min(260px, 100%); font-family:monospace; font-size:0.74rem; color:var(--texto-2); background:rgba(255,255,255,0.05); padding:0.2rem 0.45rem; border-radius:6px; overflow-wrap:anywhere; margin-top:0.3rem; }
     .qr-obs { display:block; font-size:0.72rem; color:#f5c469; margin-top:0.25rem; }
     .padrao-linha { display:flex; gap:0.5rem; flex-wrap:wrap; }
+    .campo-carga .carga-linha { display:flex; align-items:center; gap:0.6rem; width:100%; }
+    .campo-carga .carga-linha input { flex:1; min-width:0; width:100%; }
+    .carga-un { color:var(--cinza); font-size:0.9rem; flex-shrink:0; }
     .padrao-linha input { flex:1; min-width:180px; }
   .ajuda { color:var(--cinza); font-size:0.74rem; margin-top:0.35rem; line-height:1.45; text-transform:none; letter-spacing:0; font-weight:400; }
   .ajuda.ajuda-aviso { color:var(--vermelho); font-weight:600; }
@@ -1724,7 +1727,7 @@ const renderTabelaEventos = (todos) => {
     const selos = metodos ? `<span class="selos">${metodos}</span>` : '<span class="sub-cel">Sem validação</span>';
     return `
     <tr>
-      <td data-label="Nome">${esc(ev.nome)}${ev.conquista ? `<br><span class="sub-cel">${esc(ev.conquista.icone || '🏆')} ${esc(ev.conquista.nome)} · +${Number(ev.conquista.pontos) || 0}</span>` : ''}</td>
+      <td data-label="Nome">${esc(ev.nome)}${ev.cargaHoraria ? `<br><span class="sub-cel">${String(ev.cargaHoraria).replace('.', ',')}h de carga horária</span>` : ''}</td>
       <td data-label="Data" style="font-size:0.8rem">${esc(dataBR(ev.data_inicio))}${ev.data_fim && ev.data_fim !== ev.data_inicio ? ` – ${esc(dataBR(ev.data_fim))}` : ''}</td>
       <td data-label="Local" class="col-opc td-full" style="font-size:0.8rem;color:var(--cinza)">${esc(ev.local || '—')}</td>
       <td data-label="Validação" class="td-full">${selos}</td>
@@ -1771,7 +1774,7 @@ const carregarEventosSuap = async () => {
     const rows = dados.map(ev => {
       const p = ev.presencas || {};
       return `<tr>
-        <td data-label="Nome">${esc(ev.nome)}${ev.oculto ? ' <span class="pres-badge pres-rec" title="Os alunos não veem este evento">Oculto</span>' : ''}${ev.conquista ? `<br><span class="sub-cel">${esc(ev.conquista.icone || '🏆')} ${esc(ev.conquista.nome)} · +${Number(ev.conquista.pontos) || 0}</span>` : ''}</td>
+        <td data-label="Nome">${esc(ev.nome)}${ev.oculto ? ' <span class="pres-badge pres-rec" title="Os alunos não veem este evento">Oculto</span>' : ''}${ev.cargaHoraria ? `<br><span class="sub-cel">${String(ev.cargaHoraria).replace('.', ',')}h de carga horária</span>` : ''}</td>
         <td data-label="Data" style="font-size:0.8rem">${esc(dataBR(ev.data_inicio))}${ev.data_fim && ev.data_fim !== ev.data_inicio ? ` – ${esc(dataBR(ev.data_fim))}` : ''}</td>
         <td data-label="Validação" class="td-full"><span class="selos">${metodosValidacao(ev.validacao).filter(Boolean).join(' ') || '—'}</span></td>
         <td data-label="Presenças" style="font-size:0.8rem">${p.aprovada || 0} validada(s)${p.pendente ? `<br><button class="link-pend" onclick="irParaPresencas()">${p.pendente} para analisar</button>` : ''}</td>
@@ -2129,7 +2132,7 @@ const formsEvento = (dados = {}) => `
     ${camposValidacao(dados)}
   </div>`;
 
-// Validação de presença + conquista — o MESMO bloco serve para evento do painel e do SUAP
+// Validação de presença + carga horária — o MESMO bloco serve para evento do painel e do SUAP
 const camposValidacao = (dados = {}) => {
   const v = dados.validacao || {};
   // Chave do evento (se já existe): o servidor confere se o padrão é exclusivo DESTE evento
@@ -2155,15 +2158,13 @@ const camposValidacao = (dados = {}) => {
           <span><strong>Conferir todo QR deste evento</strong><small>Nenhum QR valida sozinho: todos esperam um professor em Presenças.</small></span></label>
       </div>
     </fieldset>
-    <div class="field">
+    <div class="field full campo-carga">
       <label for="f_carga">Carga horária (horas)</label>
-      <input type="number" id="f_carga" min="0" max="500" step="0.5" inputmode="decimal" value="${dados.cargaHoraria ?? ''}" placeholder="Ex.: 4" />
-      <p class="ajuda">Entra no relatório do aluno como horas de atividades complementares. Deixe em branco se não houver.</p>
-    </div>
-    <div class="field full">
-      <label for="f_conquista_ev">Conquista ganha por este evento (além das regras gerais)</label>
-      <select id="f_conquista_ev"><option value="">Carregando…</option></select>
-      <p class="ajuda">Regras que valem para todos os eventos (ex.: "a cada evento" ou "ao completar 5 eventos") ficam em Conquistas.</p>
+      <div class="carga-linha">
+        <input type="number" id="f_carga" min="0" max="500" step="0.5" inputmode="decimal" value="${dados.cargaHoraria ?? ''}" placeholder="Ex.: 4" aria-describedby="f_carga_dica" />
+        <span class="carga-un" aria-hidden="true">horas</span>
+      </div>
+      <p class="ajuda" id="f_carga_dica">Entra no relatório do aluno como horas de atividades complementares. Aceita meia hora (ex.: 1,5). Deixe em branco se não houver.</p>
     </div>`;
 };
 
@@ -2174,7 +2175,6 @@ const lerCamposValidacao = () => ({
     qrPadrao: document.getElementById('f_qr_padrao').value.trim(),
     qrConferir: document.getElementById('f_qr_conferir').checked,
   },
-  conquista: document.getElementById('f_conquista_ev').value || null,
   cargaHoraria: document.getElementById('f_carga').value === '' ? null : document.getElementById('f_carga').value,
 });
 
@@ -2261,7 +2261,6 @@ const abrirModal = (tipo, dados = {}) => {
   document.getElementById('modalBody').innerHTML = corpo;
   ligarRotulos(document.getElementById('modalBody'));
   document.getElementById('modalOverlay').classList.add('open');
-  if (tipo === 'evento' || tipo === 'evento-suap') carregarConquistasParaEvento(dados.conquista?._id || dados.conquista);
   if (tipo === 'conquista') toggleRegraConquista();
   // Editando um evento: botão "Excluir evento" no próprio formulário
   // (antes só existia na tabela, e em telas médias ficava escondido)
@@ -2520,7 +2519,6 @@ const deletarItem = async (tipo, id) => {
     if (tipo === 'conquista') {
       const r = await apiJSON(`/api/admin/conquistas/${id}`, { method: 'DELETE' });
       mostrarToast(r?.alunosAfetados ? `Conquista excluída (${r.alunosAfetados} aluno(s) tiveram os pontos recalculados).` : 'Conquista excluída.', 'sucesso');
-      _conquistasParaEvento = null;
       await carregarConquistas();
       return;
     }
@@ -2899,7 +2897,6 @@ const formsConquista = (dados = {}) => `
         <option value="especial"  ${(dados.categoria||'especial')==='especial'?'selected':''}>Especial</option>
       </select>
       <p class="ajuda" id="f_categoria_dica" hidden>Definida pela regra automática.</p>
-      <p class="ajuda">Só conquistas da categoria <strong>Evento</strong> podem ser escolhidas dentro de um evento.</p>
     </div>
     <div class="field">
       <label>Como é concedida</label>
@@ -3266,33 +3263,12 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// Conquistas (ativas) para o formulário de evento — carrega uma vez
-let _conquistasParaEvento = null;
-const carregarConquistasParaEvento = async (selecionada) => {
-  const sel = document.getElementById('f_conquista_ev');
-  if (!sel) return;
-  try {
-    // Só conquistas de EVENTO (antes apareciam até "Participar de projeto" e "Primeiro conceito A")
-    _conquistasParaEvento = ((await apiJSON('/api/admin/conquistas?ativa=true')) || []).filter(c => c.paraEvento); // sempre atual (pode ter criado uma agora)
-    const atual = selecionada ? String(selecionada) : '';
-    const ajuda = sel.parentElement.querySelector('.ajuda');
-    if (!_conquistasParaEvento.length && ajuda) {
-      ajuda.innerHTML = 'Nenhuma conquista da categoria <strong>Evento</strong> cadastrada ainda. Crie uma em <strong>Conquistas</strong> (categoria Evento) para poder escolher aqui.';
-    }
-    sel.innerHTML = '<option value="">Nenhuma (só registra a presença)</option>' +
-      _conquistasParaEvento.map(c => `<option value="${esc(c._id)}" ${String(c._id) === atual ? 'selected' : ''}>${esc(c.icone || '🏆')} ${esc(c.nome)} · +${Number(c.pontos) || 0} pts</option>`).join('');
-  } catch (e) {
-    sel.innerHTML = '<option value="">Não foi possível carregar as conquistas</option>';
-  }
-};
-
-
 // Pendências na barra lateral (atualiza ao abrir o painel)
 // ── Card "Como funciona" no topo de cada aba ───────────────
 const INFO_ADMIN = {
   overview: ['layout-dashboard', 'Bem-vindo ao Painel Administrativo', 'Aqui você cuida do que os alunos veem no portal: cadastra <strong>projetos</strong> e <strong>eventos</strong>, valida a <strong>presença</strong> nos eventos (QR Code ou certificado), responde às <strong>solicitações</strong> e entrega <strong>conquistas</strong>. Tudo complementa o que já vem do SUAP. Os cartões abaixo levam direto para o que precisa da sua atenção.'],
   projetos: ['folder-open', 'Projetos', 'Cadastre projetos de <strong>pesquisa</strong> e <strong>extensão</strong> do campus. Os do SUAP aparecem sozinhos (somente leitura). Os alunos pedem para participar e os pedidos chegam em <strong>Solicitações</strong>.'],
-  eventos: ['ticket', 'Eventos', 'Cadastre os eventos do campus ou configure os que vêm do SUAP: escolha se o aluno valida a presença pelo <strong>certificado</strong> e/ou pelo <strong>QR Code do e-mail de inscrição</strong>, e qual <strong>conquista</strong> ele ganha.'],
+  eventos: ['ticket', 'Eventos', 'Cadastre os eventos do campus ou configure os que vêm do SUAP: escolha se o aluno valida a presença pelo <strong>certificado</strong> e/ou pelo <strong>QR Code do e-mail de inscrição</strong>, e a <strong>carga horária</strong> que entra no relatório do aluno. As conquistas por evento seguem as regras gerais de <strong>Conquistas</strong>.'],
   presencas: ['badge-check', 'Presenças', 'Aqui chegam as validações de presença dos alunos. <strong>Certificados</strong> sempre esperam sua aprovação; <strong>QR Codes</strong> que batem com o padrão do evento entram validados. Qualquer servidor pode aprovar, recusar ou desfazer.'],
   solicitacoes: ['mail', 'Solicitações', 'Alunos que pediram para entrar nos seus projetos. <strong>Aceite</strong> para confirmar a participação (o aluno ganha os pontos) ou <strong>recuse</strong>. O aluno é avisado por e-mail.'],
   conquistas: ['trophy', 'Conquistas', 'O catálogo de conquistas e quantos <strong>pontos</strong> cada uma vale. <strong>Automáticas</strong> o sistema dá sozinho (notas, projetos, eventos); as <strong>manuais</strong> você entrega com <strong>Conceder</strong>. O que não serve mais, exclua.'],
