@@ -604,6 +604,7 @@ const dadosEvento = async (body = {}, parcial = false) => {
   const cfg = await lerConfigEvento({
     validacao: body.validacao !== undefined || !parcial ? (body.validacao || {}) : undefined,
     conquista: body.conquista,
+    cargaHoraria: body.cargaHoraria,
   });
   if (cfg.erro) return { erro: cfg.erro };
   return { dados: { ...dados, ...cfg.dados } };

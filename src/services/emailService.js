@@ -115,4 +115,41 @@ const enviarNotificacao = async ({ email, nome, assunto, titulo, mensagem, botao
   });
 };
 
-module.exports = { enviarLinkSenha, enviarNotificacao, urlDoSite };
+/**
+ * Envia o relatório em PDF para o e-mail do próprio aluno (anexo).
+ * @param {{ email, nome, pdf: Buffer, nomeArquivo, idioma: 'pt'|'en', periodoRotulo }} dados
+ */
+const enviarRelatorio = async ({ email, nome, pdf, nomeArquivo, idioma = 'pt', periodoRotulo = '' }) => {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    throw new Error('SMTP_USER / SMTP_PASS não configurados');
+  }
+  const primeiroNome = String(nome || '').split(' ')[0] || 'aluno(a)';
+  const en = idioma === 'en';
+  const titulo = en ? 'Your performance report' : 'Seu relatório de desempenho';
+  const msg = en
+    ? `Attached is your IFPlenus report (${periodoRotulo}). It includes a QR code that anyone can use to check it is genuine.`
+    : `Segue em anexo o seu relatório do IFPlenus (${periodoRotulo}). Ele tem um QR Code que qualquer pessoa pode usar para conferir que é verdadeiro.`;
+  const html = `
+  <div style="background:#1b1b1f;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;">
+    <div style="max-width:480px;margin:0 auto;background:#26262b;border-radius:16px;padding:32px;color:#f4f5f7;">
+      <div style="font-size:22px;font-weight:800;margin-bottom:24px;">IF<span style="color:#44d883">Plenus</span></div>
+      <p style="font-size:16px;margin:0 0 8px;">${en ? 'Hi' : 'Olá'}, ${esc(primeiroNome)}!</p>
+      <p style="font-size:19px;font-weight:700;margin:0 0 12px;color:#ffffff;">${esc(titulo)}</p>
+      <p style="font-size:14px;line-height:1.6;color:#c2c6cf;margin:0;">${esc(msg)}</p>
+      <p style="font-size:12px;line-height:1.6;color:#9da2ad;margin:24px 0 0;">
+        ${en ? 'You received this e-mail because you asked for it on the IFPlenus portal.' : 'Você recebeu este e-mail porque pediu o relatório no portal do IFPlenus.'}
+      </p>
+    </div>
+    <p style="text-align:center;font-size:11px;color:#9da2ad;margin-top:16px;">${en ? 'Automatic e-mail — please do not reply.' : 'E-mail automático — não responda.'}</p>
+  </div>`;
+  await getTransporter().sendMail({
+    from: `"IFPlenus" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: `IFPlenus — ${titulo}`,
+    text: `${en ? 'Hi' : 'Olá'}, ${primeiroNome}!\n\n${msg}`,
+    html,
+    attachments: [{ filename: nomeArquivo, content: pdf, contentType: 'application/pdf' }],
+  });
+};
+
+module.exports = { enviarLinkSenha, enviarNotificacao, enviarRelatorio, urlDoSite };

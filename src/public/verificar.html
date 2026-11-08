@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verificar relatório — IFPlenus</title>
+  <meta name="description" content="Confira se um relatório de desempenho do IFPlenus é verdadeiro." />
+  <!-- Página de conferência: não deve aparecer em buscadores -->
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/svg+xml" href="/images/logo.svg" />
+  <link rel="icon" type="image/png" href="/images/favicon.png" />
+  <meta name="theme-color" content="#121214" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    (function () {
+      var d = document.documentElement, p = {};
+      try { p = JSON.parse(localStorage.getItem('ifplenus-acess') || '{}') || {}; } catch (e) {}
+      var temas = ['dark', 'light', 'hc-escuro', 'hc-claro', 'daltonico'];
+      d.setAttribute('data-theme', temas.indexOf(p.tema) > -1 ? p.tema : 'dark');
+      if (p.texto === 'grande' || p.texto === 'muito-grande') d.setAttribute('data-texto', p.texto);
+    })();
+  </script>
+  <link rel="stylesheet" href="/portal.css" />
+  <style>
+    body { display: block; min-height: 100vh; background: var(--bg); color: var(--texto); }
+    .vf-topo { background: var(--sidebar); border-bottom: 1px solid var(--borda-2, var(--borda)); }
+    .vf-topo .in { max-width: 860px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2rem); min-height: 64px; display: flex; align-items: center; gap: 1rem; }
+    .vf-marca { display: inline-flex; align-items: center; gap: 0.6rem; color: #fff; text-decoration: none; margin-right: auto; min-height: 44px; }
+    .vf-marca img { width: 30px; height: 30px; }
+    .vf-marca strong { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem; letter-spacing: -0.5px; }
+    .vf-marca strong span { color: #5fe39a; }
+    .vf-link { color: rgba(255,255,255,0.85); text-decoration: none; font-weight: 600; font-size: 0.9rem; min-height: 40px; display: inline-flex; align-items: center; padding: 0 0.6rem; border-radius: 8px; }
+    .vf-link:hover, .vf-link:focus-visible { background: rgba(255,255,255,0.08); color: #fff; }
+
+    main { max-width: 860px; margin: 0 auto; padding: clamp(1.5rem, 5vw, 3rem) clamp(1rem, 4vw, 2rem) 3rem; }
+    .vf-cab { margin-bottom: 1.4rem; }
+    .vf-cab .sobre { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: var(--verde); }
+    .vf-cab h1 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(1.6rem, 4.6vw, 2.3rem); letter-spacing: -0.8px; line-height: 1.12; margin: 0.4rem 0 0.5rem; }
+    .vf-cab p { color: var(--texto-2); line-height: 1.65; }
+
+    .vf-form { display: flex; gap: 0.6rem; flex-wrap: wrap; background: var(--card); border: 1px solid var(--borda); border-radius: 16px; padding: 1rem; margin-bottom: 1.2rem; }
+    .vf-form label { width: 100%; font-weight: 600; font-size: 0.9rem; }
+    .vf-form input {
+      flex: 1 1 220px; min-height: 48px; padding: 0.6rem 0.9rem; border-radius: 10px; border: 1px solid var(--borda);
+      background: var(--bg-2); color: var(--texto); font-size: 16px; font-family: 'DM Sans', monospace; letter-spacing: 1.5px; text-transform: uppercase;
+    }
+    .vf-form input:focus { outline: 2px solid var(--verde); outline-offset: 1px; }
+    .vf-form button { min-height: 48px; padding: 0 1.4rem; border-radius: 10px; border: 0; cursor: pointer; background: var(--verde-fill, var(--verde)); color: var(--sobre-verde); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; }
+    .vf-form small { width: 100%; color: var(--cinza); font-size: 0.82rem; }
+
+    .vf-res { border-radius: 18px; border: 1px solid var(--borda); background: var(--card); overflow: hidden; }
+    .vf-selo { display: flex; align-items: center; gap: 0.9rem; padding: 1.1rem 1.3rem; }
+    .vf-selo .ic { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; }
+    .vf-selo .ic svg { width: 26px; height: 26px; }
+    .vf-selo strong { display: block; font-family: 'Syne', sans-serif; font-size: 1.15rem; }
+    .vf-selo span { color: var(--texto-2); font-size: 0.9rem; }
+    .vf-res.ok .vf-selo { background: var(--verde-claro); }
+    .vf-res.ok .vf-selo .ic { background: var(--verde-fill, var(--verde)); color: var(--sobre-verde); }
+    .vf-res.ruim .vf-selo { background: color-mix(in srgb, var(--vermelho) 12%, transparent); }
+    .vf-res.ruim .vf-selo .ic { background: var(--vermelho); color: #fff; }
+    .vf-corpo { padding: 1.2rem 1.3rem 1.3rem; }
+    .vf-aluno { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(1.25rem, 3.6vw, 1.55rem); }
+    .vf-sub { color: var(--texto-2); margin-top: 0.2rem; font-size: 0.93rem; }
+    .vf-dados { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; margin: 1rem 0; }
+    .vf-dados div { background: var(--bg-2); border: 1px solid var(--borda); border-radius: 12px; padding: 0.7rem 0.85rem; }
+    .vf-dados dt { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.4px; color: var(--cinza); }
+    .vf-dados dd { font-weight: 600; margin-top: 0.15rem; }
+    .vf-nums { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.6rem; }
+    .vf-nums div { border: 1px solid var(--borda); border-radius: 12px; padding: 0.75rem 0.85rem; }
+    .vf-nums b { display: block; font-family: 'Syne', sans-serif; font-size: 1.35rem; color: var(--verde); }
+    .vf-nums span { font-size: 0.82rem; color: var(--texto-2); }
+    .vf-nota { margin-top: 1.1rem; font-size: 0.85rem; color: var(--cinza); line-height: 1.6; }
+    .vf-nota a { color: var(--verde); }
+    .vf-carregando { padding: 1.4rem; color: var(--texto-2); }
+    @media (max-width: 480px) { .vf-dados { grid-template-columns: 1fr; } .vf-form button { width: 100%; } }
+  </style>
+</head>
+<body>
+  <header class="vf-topo">
+    <div class="in">
+      <a class="vf-marca" href="/" aria-label="IFPlenus — página inicial"><img src="/images/logo.svg" alt="" width="30" height="30" /><strong>IF<span>Plenus</span></strong></a>
+      <a class="vf-link" href="/sobre">Conheça o IFPlenus</a>
+    </div>
+  </header>
+
+  <main id="conteudo">
+    <div class="vf-cab">
+      <span class="sobre">Verificação</span>
+      <h1>Conferir relatório de desempenho</h1>
+      <p>Os relatórios do IFPlenus têm um QR Code e um código. Aqui você confere se o relatório é verdadeiro e vê os números registrados quando ele foi emitido.</p>
+    </div>
+
+    <form class="vf-form" id="vfForm" novalidate>
+      <label for="vfCodigo">Código do relatório</label>
+      <input id="vfCodigo" name="codigo" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="14" placeholder="ABCD-EFGH-JKMN" aria-describedby="vfDica" />
+      <button type="submit">Verificar</button>
+      <small id="vfDica">O código fica no quadro de verificação e no rodapé do PDF.</small>
+    </form>
+
+    <div id="vfResultado" aria-live="polite"></div>
+  </main>
+
+  <script src="/lucide.min.js"></script>
+  <script>
+    (function () {
+      var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+      var icones = function () { try { lucide.createIcons(); } catch (e) {} };
+      var caixa = document.getElementById('vfResultado');
+      var campo = document.getElementById('vfCodigo');
+
+      // Formata enquanto digita: ABCD-EFGH-JKMN
+      var normalizar = function (v) {
+        var s = String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+        return s.replace(/(.{4})(?=.)/g, '$1-');
+      };
+      campo.addEventListener('input', function () { campo.value = normalizar(campo.value); });
+
+      var dataHora = function (d) {
+        var t = new Date(d);
+        if (isNaN(t)) return '—';
+        return t.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) + ' às ' +
+          t.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
+      };
+      var horas = function (h) { h = Number(h || 0); return (Number.isInteger(h) ? String(h) : h.toFixed(1).replace('.', ',')) + 'h'; };
+
+      var mostrarInvalido = function (codigo) {
+        caixa.innerHTML = '<div class="vf-res ruim">' +
+          '<div class="vf-selo"><div class="ic"><i data-lucide="x"></i></div><div><strong>Relatório não encontrado</strong>' +
+          '<span>O código ' + esc(codigo) + ' não corresponde a nenhum relatório do IFPlenus.</span></div></div>' +
+          '<div class="vf-corpo"><p class="vf-nota" style="margin-top:0">Confira se o código foi digitado certo. Se estiver certo, o relatório pode ter sido alterado, ou o estudante pode ter excluído a conta no IFPlenus.</p></div></div>';
+        icones();
+      };
+
+      var verificar = function (codigo) {
+        codigo = normalizar(codigo);
+        campo.value = codigo;
+        if (!/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(codigo)) {
+          caixa.innerHTML = '<p class="vf-nota">Digite o código completo, com 12 letras e números.</p>';
+          campo.focus();
+          return;
+        }
+        if (location.pathname !== '/verificar/' + codigo) history.replaceState(null, '', '/verificar/' + codigo);
+        caixa.innerHTML = '<div class="vf-res"><div class="vf-carregando">Verificando…</div></div>';
+        fetch('/api/publico/verificar/' + encodeURIComponent(codigo))
+          .then(function (r) {
+            if (r.status === 404) return { valido: false };
+            if (!r.ok) throw new Error('falha');
+            return r.json();
+          })
+          .then(function (d) {
+            if (!d.valido) return mostrarInvalido(codigo);
+            var r = d.resumo || {};
+            caixa.innerHTML = '<div class="vf-res ok">' +
+              '<div class="vf-selo"><div class="ic"><i data-lucide="check"></i></div><div><strong>Relatório verdadeiro</strong>' +
+              '<span>Emitido pelo IFPlenus · código ' + esc(d.codigo) + '</span></div></div>' +
+              '<div class="vf-corpo">' +
+                '<div class="vf-aluno">' + esc(d.nome || 'Estudante') + '</div>' +
+                (d.curso ? '<div class="vf-sub">' + esc(d.curso) + '</div>' : '') +
+                '<dl class="vf-dados">' +
+                  '<div><dt>Período do relatório</dt><dd>' + esc(d.periodoRotulo || '—') + '</dd></div>' +
+                  '<div><dt>Emitido em</dt><dd>' + esc(dataHora(d.emitidoEm)) + '</dd></div>' +
+                  '<div><dt>Nível na emissão</dt><dd>' + esc((r.nivel || 1) + ' · ' + (r.nivelNome || '')) + '</dd></div>' +
+                  '<div><dt>Idioma</dt><dd>' + (d.idioma === 'en' ? 'Inglês' : 'Português') + '</dd></div>' +
+                '</dl>' +
+                '<div class="vf-nums">' +
+                  '<div><b>' + Number(r.pontos || 0).toLocaleString('pt-BR') + '</b><span>pontos</span></div>' +
+                  '<div><b>' + Number(r.conquistas || 0) + '</b><span>conquistas</span></div>' +
+                  '<div><b>' + Number(r.eventos || 0) + '</b><span>eventos</span></div>' +
+                  '<div><b>' + horas(r.horas) + '</b><span>em eventos</span></div>' +
+                  '<div><b>' + Number(r.projetos || 0) + '</b><span>projetos</span></div>' +
+                '</div>' +
+                '<p class="vf-nota">Compare estes números com os do PDF. Se forem iguais, o relatório não foi alterado. O IFPlenus organiza a participação do estudante no IFPR — Campus Assis Chateaubriand e não substitui documentos oficiais do SUAP. <a href="/sobre">Saiba mais</a>.</p>' +
+              '</div></div>';
+            icones();
+          })
+          .catch(function () {
+            caixa.innerHTML = '<p class="vf-nota">Não foi possível verificar agora. Tente de novo em instantes.</p>';
+          });
+      };
+
+      document.getElementById('vfForm').addEventListener('submit', function (e) { e.preventDefault(); verificar(campo.value); });
+      var m = location.pathname.match(/^\/verificar\/([^/?#]+)/i);
+      if (m) verificar(decodeURIComponent(m[1]));
+      icones();
+    })();
+  </script>
+</body>
+</html>

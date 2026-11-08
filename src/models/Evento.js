@@ -17,6 +17,8 @@ const eventoSchema = new mongoose.Schema(
     campus: { type: String, default: '' },
     link_suap: { type: String, default: null },
 
+    // Carga horária (horas) — conta nas horas do relatório do aluno
+    cargaHoraria: { type: Number, default: null, min: 0, max: 500 },
     // Como o aluno valida a presença (mesmo formato do EventoSuap)
     validacao: { type: require('./validacaoEvento'), default: () => ({}) },
     // Conquista que o aluno ganha por ESTE evento (opcional, além das regras gerais)

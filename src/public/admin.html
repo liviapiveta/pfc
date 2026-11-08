@@ -1060,7 +1060,7 @@
       <span class="topbar-title" id="topbarTitle">Visão Geral</span>
     </div>
     <div class="topbar-dir">
-      <button type="button" class="topbar-busca" onclick="abrirBuscaAdmin()" aria-label="Buscar Ctrl K" title="Busca rápida (Ctrl+K)"><i data-lucide="search"></i><span>Buscar</span><kbd>Ctrl K</kbd></button>
+      <button type="button" class="topbar-busca" onclick="abrirBuscaAdmin()" title="Busca rápida (Ctrl+K)"><i data-lucide="search"></i><span>Buscar</span><kbd>Ctrl K</kbd></button>
       <span class="topbar-badge" id="topbarAdminBadge"><i data-lucide="lock"></i> Administrador</span>
     </div>
   </div>
@@ -2155,6 +2155,11 @@ const camposValidacao = (dados = {}) => {
           <span><strong>Conferir todo QR deste evento</strong><small>Nenhum QR valida sozinho: todos esperam um professor em Presenças.</small></span></label>
       </div>
     </fieldset>
+    <div class="field">
+      <label for="f_carga">Carga horária (horas)</label>
+      <input type="number" id="f_carga" min="0" max="500" step="0.5" inputmode="decimal" value="${dados.cargaHoraria ?? ''}" placeholder="Ex.: 4" />
+      <p class="ajuda">Entra no relatório do aluno como horas de atividades complementares. Deixe em branco se não houver.</p>
+    </div>
     <div class="field full">
       <label for="f_conquista_ev">Conquista ganha por este evento (além das regras gerais)</label>
       <select id="f_conquista_ev"><option value="">Carregando…</option></select>
@@ -2170,6 +2175,7 @@ const lerCamposValidacao = () => ({
     qrConferir: document.getElementById('f_qr_conferir').checked,
   },
   conquista: document.getElementById('f_conquista_ev').value || null,
+  cargaHoraria: document.getElementById('f_carga').value === '' ? null : document.getElementById('f_carga').value,
 });
 
 // Lê um QR de exemplo (print do e-mail de inscrição) e sugere o padrão

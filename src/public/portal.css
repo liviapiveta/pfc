@@ -376,6 +376,7 @@ nav { flex: 1; padding: 1rem 0.75rem; }
 .topbar-left { display: flex; align-items: center; min-width: 0; flex: 1; }
 
 .topbar-title {
+  margin: 0;
   font-family: 'Syne', sans-serif;
   font-weight: 700;
   font-size: 1.18rem;
@@ -1709,9 +1710,9 @@ button.rodape-link { font: inherit; background: none; border: none; border-top: 
 .evc-data .m { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase; }
 .evc-data .d { font-family: 'Syne', sans-serif; font-size: 1.35rem; font-weight: 800; }
 .evc-corpo { flex: 1; min-width: 0; }
-.evc-corpo h4 { font-size: 0.97rem; color: var(--texto); line-height: 1.35; overflow-wrap: anywhere; margin: 0.05rem 0 0.3rem; }
-.evc-corpo h4 a { color: inherit; text-decoration: none; }
-.evc-corpo h4 a:hover { color: var(--verde); text-decoration: underline; }
+.evc-corpo .evc-titulo { font-family: inherit; font-weight: 700;  font-size: 0.97rem; color: var(--texto); line-height: 1.35; overflow-wrap: anywhere; margin: 0.05rem 0 0.3rem; }
+.evc-corpo .evc-titulo a { color: inherit; text-decoration: none; }
+.evc-corpo .evc-titulo a:hover { color: var(--verde); text-decoration: underline; }
 .evc-meta { display: flex; flex-wrap: wrap; gap: 0.25rem 0.85rem; font-size: 0.8rem; color: var(--cinza); margin: 0; }
 .evc-meta span { display: inline-flex; align-items: center; gap: 0.3rem; min-width: 0; overflow-wrap: anywhere; }
 .evc-meta svg { width: 14px; height: 14px; flex-shrink: 0; }
@@ -1745,6 +1746,35 @@ button.rodape-link { font: inherit; background: none; border: none; border-top: 
 .tn.destaque svg, .tn.destaque strong { color: var(--pontos); }
 @media (max-width: 560px) { .traj-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 /* Relatório em PDF (card do Dashboard e botão da Trajetória) */
+.rel-overlay { z-index: 1050; }
+.rel-dialog { max-width: 520px; }
+.rel-campo { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; border: 0; padding: 0; min-width: 0; }
+.rel-campo > label, .rel-campo legend { font-weight: 600; font-size: 0.9rem; color: var(--texto); margin-bottom: 0.1rem; padding: 0; }
+.rel-campo select {
+  min-height: 46px; padding: 0.55rem 0.8rem; border-radius: 10px; border: 1px solid var(--borda);
+  background: var(--bg-2); color: var(--texto); font-family: 'DM Sans', sans-serif; font-size: 16px; width: 100%;
+}
+.rel-campo select:focus { outline: 2px solid var(--verde); outline-offset: 1px; }
+.rel-campo small { color: var(--cinza); font-size: 0.8rem; line-height: 1.5; }
+.rel-idioma { flex-direction: row; flex-wrap: wrap; gap: 0.5rem; }
+.rel-idioma legend { width: 100%; margin-bottom: 0.4rem; }
+.rel-idioma small { width: 100%; }
+.rel-idioma label {
+  flex: 1 1 140px; display: flex; align-items: center; gap: 0.55rem; min-height: 46px; padding: 0.5rem 0.85rem; cursor: pointer;
+  border: 1px solid var(--borda); border-radius: 10px; background: var(--bg-2); font-size: 0.92rem; color: var(--texto-2);
+}
+.rel-idioma label:has(input:checked) { border-color: var(--verde); color: var(--texto); background: var(--verde-claro); }
+.rel-idioma input { accent-color: var(--verde); width: 18px; height: 18px; margin: 0; }
+.rel-qr-nota { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.85rem; color: var(--texto-2); line-height: 1.55; background: var(--bg-2); border: 1px solid var(--borda); border-radius: 10px; padding: 0.7rem 0.85rem; }
+.rel-qr-nota svg { width: 18px; height: 18px; color: var(--verde); flex-shrink: 0; margin-top: 0.1rem; }
+.rel-modal-acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; margin-top: 1rem; }
+.rel-modal-acoes .btn-validar { min-height: 46px; font-size: 0.9rem; }
+.rel-modal-acoes [data-rel="baixar"] { grid-column: 1 / -1; }
+.rel-email-nota { font-size: 0.8rem; color: var(--cinza); margin-top: 0.6rem; overflow-wrap: anywhere; }
+.rel-email-nota strong { color: var(--texto-2); }
+#relErro:empty { display: none; }
+#relErro { margin-top: 0.8rem; }
+@media (max-width: 420px) { .rel-modal-acoes { grid-template-columns: 1fr; } }
 .rel-card {
   display: flex; align-items: center; gap: 1rem 1.2rem; flex-wrap: wrap;
   background: var(--card); border: 1px solid var(--borda); border-radius: 18px;

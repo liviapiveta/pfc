@@ -580,6 +580,7 @@ const fecharConfig = () => {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if (document.getElementById('excluirModal')?.classList.contains('open')) { fecharExcluirConta(); return; } // fecha só o aviso, não as Configurações
+    if (document.getElementById('relModal')?.classList.contains('open')) { fecharRelatorio(); return; }
     fecharComoValidei(); fecharValidacao(); fecharNiveis(); fecharConfig();
   }
 });
@@ -891,6 +892,7 @@ const cartaoEvento = (ev) => {
   const meta = [
     `<span><i data-lucide="calendar"></i> ${esc(_periodoEv(ev))}</span>`,
     (ev.local || ev.localizacao) ? `<span><i data-lucide="map-pin"></i> ${esc(ev.local || ev.localizacao)}</span>` : '',
+    ev.cargaHoraria ? `<span title="Carga horária"><i data-lucide="hourglass"></i> ${String(ev.cargaHoraria).replace('.', ',')}h</span>` : '',
   ].join('');
   const premio = ev.conquista
     ? `<span class="evc-premio" title="Ao validar: ${esc(ev.conquista.nome)}"><i data-lucide="star"></i> +${Number(ev.conquista.pontos) || 0} pts</span>` : '';
@@ -902,7 +904,7 @@ const cartaoEvento = (ev) => {
   return `<article class="${classes}" data-busca="${esc(busca)}" data-chave="${esc(ev.chave || '')}" tabindex="-1">
     <div class="evc-data" aria-hidden="true"><span class="m">${dt ? MESES[dt.getMonth()] : ''}</span><span class="d">${dt ? dt.getDate() : '—'}</span></div>
     <div class="evc-corpo">
-      <h4>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${nome}</a>` : nome}</h4>
+      <h3 class="evc-titulo">${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${nome}</a>` : nome}</h3>
       <p class="evc-meta">${meta}${ev.origem === 'suap' ? '<span class="evc-fonte">SUAP</span>' : ''}</p>
     </div>
     ${acao || premio ? `<div class="evc-acao">${premio}${acao}</div>` : ''}
@@ -1599,11 +1601,12 @@ const carregarDashboard = async () => {
         : (classe === 'passado' && ev.jaComecou && (ev.validacao?.certificado || ev.validacao?.qrcode)) ? 'participou? valide a presença' : '';
       const linha2 = [local, pres].filter(Boolean).join(' · ');
       return `
-        <button type="button" class="dash-tl-item ${classe}" onclick="abrirEventoDoDashboard('${esc(ev.chave || '')}')" aria-label="Ver o evento ${esc(ev.nome || 'Evento')} na aba Eventos">
+        <button type="button" class="dash-tl-item ${classe}" onclick="abrirEventoDoDashboard('${esc(ev.chave || '')}')" title="Ver na aba Eventos">
           <div class="dash-tl-data"><div class="dia">${dia}</div><div class="mes">${mes}</div></div>
           <div class="dash-tl-corpo">
             <div class="n">${esc(ev.nome || 'Evento')}</div>
             ${linha2 ? `<div class="s">${esc(linha2)}</div>` : ''}
+            <span class="sr-only"> — ver na aba Eventos</span>
           </div>
           <i data-lucide="chevron-right" class="dash-tl-seta" aria-hidden="true"></i>
         </button>`;
@@ -1657,11 +1660,10 @@ const carregarDashboard = async () => {
         <div class="rel-ic" aria-hidden="true"><i data-lucide="file-text"></i></div>
         <div class="rel-txt">
           <h2 id="relTitulo">Meu relatório de desempenho</h2>
-          <p>Pontos, nível, conquistas, eventos e projetos em um PDF para guardar ou mostrar em estágio, currículo e processos seletivos.</p>
+          <p>Pontos, nível, conquistas, eventos, horas e projetos em um PDF com QR Code de verificação. Escolha o período e o idioma (português ou inglês).</p>
         </div>
         <div class="rel-acoes">
-          <button type="button" class="btn-validar" data-rel="baixar" onclick="baixarRelatorio()"><i data-lucide="download"></i> Baixar PDF</button>
-          <button type="button" class="btn-validar secundario" data-rel="ver" onclick="baixarRelatorio(true)"><i data-lucide="eye"></i> Visualizar</button>
+          <button type="button" class="btn-validar" onclick="abrirRelatorio()" aria-haspopup="dialog"><i data-lucide="download"></i> Gerar relatório</button>
         </div>
       </section>
 
@@ -2162,24 +2164,119 @@ const filtrarTrajetoria = (t) => { state.trajFiltro = t; renderTrajetoria(); };
 
 /**
  * Relatório de desempenho em PDF (gerado no servidor).
- * Baixar: usa fetch (mostra "Gerando…" e erros claros) e entrega o arquivo.
- * Visualizar: abre o PDF numa aba nova (o navegador mostra com o leitor dele).
+ * A janela deixa escolher o período e o idioma, e então:
+ *  - Baixar: fetch (mostra "Gerando…" e erros claros) e entrega o arquivo;
+ *  - Visualizar: abre o PDF numa aba nova (o leitor do navegador);
+ *  - Enviar por e-mail: o servidor manda o PDF anexo para o e-mail do SUAP.
  */
-let _relGerando = false;
+let _relOcupado = false, _focoAntesRel = null;
+const REL_PREF = 'ifplenus-relatorio';
+
+const _opcoesPeriodo = () => {
+  const ano = new Date().getFullYear();
+  const sem = new Date().getMonth() < 6 ? 1 : 2;
+  const ops = [['tudo', 'Todo o período']];
+  for (let a = ano; a >= ano - 3; a--) {
+    ops.push([`ano-${a}`, `Ano de ${a}`]);
+    if (a < ano || sem === 2) ops.push([`${a}-2`, `${a} · 2º semestre`]);
+    ops.push([`${a}-1`, `${a} · 1º semestre`]);
+  }
+  return ops;
+};
+const _relLerPref = () => { try { return JSON.parse(localStorage.getItem(REL_PREF) || '{}') || {}; } catch (e) { return {}; } };
+const _relOpcoes = () => {
+  const periodo = document.getElementById('relPeriodo')?.value || 'tudo';
+  const idioma = document.querySelector('input[name="relIdioma"]:checked')?.value === 'en' ? 'en' : 'pt';
+  try { localStorage.setItem(REL_PREF, JSON.stringify({ periodo, idioma })); } catch (e) { /* sem armazenamento */ }
+  return { periodo, idioma };
+};
+const _relQuery = ({ periodo, idioma }, ver = false) =>
+  `/api/relatorio.pdf?periodo=${encodeURIComponent(periodo)}&idioma=${idioma}${ver ? '&ver=1' : ''}`;
+
+const abrirRelatorio = () => {
+  _focoAntesRel = document.activeElement;
+  let m = document.getElementById('relModal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'relModal';
+    m.className = 'niveis-overlay rel-overlay';
+    m.addEventListener('click', (e) => { if (e.target === m) fecharRelatorio(); });
+    document.body.appendChild(m);
+  }
+  const pref = _relLerPref();
+  const ops = _opcoesPeriodo();
+  const periodo = ops.some(o => o[0] === pref.periodo) ? pref.periodo : 'tudo';
+  const idioma = pref.idioma === 'en' ? 'en' : 'pt';
+  const email = state.usuario?.email || '';
+  m.innerHTML = `
+    <div class="niveis-dialog rel-dialog" role="dialog" aria-modal="true" aria-labelledby="relModalTitulo">
+      <div class="niveis-head">
+        <h2 id="relModalTitulo"><i data-lucide="file-text"></i> Relatório de desempenho</h2>
+        <button type="button" class="config-fechar" onclick="fecharRelatorio()" aria-label="Fechar"><i data-lucide="x"></i></button>
+      </div>
+      <div class="niveis-body">
+        <div class="rel-campo">
+          <label for="relPeriodo">Período</label>
+          <select id="relPeriodo">${ops.map(([v, r]) => `<option value="${v}" ${v === periodo ? 'selected' : ''}>${r}</option>`).join('')}</select>
+          <small>Nível e posição no ranking são sempre os atuais.</small>
+        </div>
+        <fieldset class="rel-campo rel-idioma">
+          <legend>Idioma</legend>
+          <label><input type="radio" name="relIdioma" value="pt" ${idioma === 'pt' ? 'checked' : ''} /><span>Português</span></label>
+          <label><input type="radio" name="relIdioma" value="en" ${idioma === 'en' ? 'checked' : ''} /><span>English</span></label>
+          <small>Em inglês para processos seletivos e faculdades no exterior. Nomes de eventos e projetos ficam como estão no cadastro.</small>
+        </fieldset>
+        <p class="rel-qr-nota"><i data-lucide="qr-code"></i><span>O PDF traz um QR Code e um código para quem recebê-lo conferir que ele é verdadeiro.</span></p>
+        <div class="erro-excluir" id="relErro" role="alert"></div>
+        <div class="rel-modal-acoes">
+          <button type="button" class="btn-validar" data-rel="baixar" onclick="baixarRelatorio()"><i data-lucide="download"></i> Baixar PDF</button>
+          <button type="button" class="btn-validar secundario" data-rel="ver" onclick="baixarRelatorio(true)"><i data-lucide="eye"></i> Visualizar</button>
+          <button type="button" class="btn-validar secundario" data-rel="email" onclick="enviarRelatorioEmail()" ${email ? '' : 'disabled title="Sem e-mail no cadastro do SUAP"'}><i data-lucide="mail"></i> Enviar para meu e-mail</button>
+        </div>
+        ${email ? `<p class="rel-email-nota">Vai para <strong>${esc(email)}</strong> (o e-mail do seu cadastro no SUAP).</p>` : ''}
+      </div>
+    </div>`;
+  m.classList.add('open');
+  document.body.classList.add('config-aberta');
+  if (window.lucide) lucide.createIcons();
+  document.getElementById('relPeriodo')?.focus();
+};
+
+const fecharRelatorio = () => {
+  const m = document.getElementById('relModal');
+  if (!m || !m.classList.contains('open')) return;
+  m.classList.remove('open');
+  if (!document.getElementById('configDrawer')?.classList.contains('open')) document.body.classList.remove('config-aberta');
+  _focoAntesRel?.focus?.();
+};
+
+const _relOcupar = (tipo, texto) => {
+  const botoes = [...document.querySelectorAll('#relModal [data-rel]')];
+  const antes = botoes.map(b => [b, b.innerHTML, b.disabled]);
+  botoes.forEach(b => { b.disabled = true; });
+  const alvo = document.querySelector(`#relModal [data-rel="${tipo}"]`);
+  if (alvo) { alvo.setAttribute('aria-busy', 'true'); alvo.innerHTML = `<i data-lucide="loader-circle" class="girando"></i> ${texto}`; }
+  if (window.lucide) lucide.createIcons();
+  return () => {
+    antes.forEach(([b, html, dis]) => { if (!b.isConnected) return; b.disabled = dis; b.removeAttribute('aria-busy'); b.innerHTML = html; });
+    if (window.lucide) lucide.createIcons();
+  };
+};
+const _relErro = (msg) => { const el = document.getElementById('relErro'); if (el) el.textContent = msg || ''; };
+
 const baixarRelatorio = async (ver = false) => {
+  const op = _relOpcoes();
+  _relErro('');
   if (ver) {
-    const aba = window.open('/api/relatorio.pdf?ver=1', '_blank');
-    if (aba) aba.opener = null; else location.href = '/api/relatorio.pdf?ver=1'; // pop-up bloqueado: abre aqui mesmo
+    const aba = window.open(_relQuery(op, true), '_blank');
+    if (aba) aba.opener = null; else location.href = _relQuery(op, true); // pop-up bloqueado: abre aqui mesmo
     return;
   }
-  if (_relGerando) return;
-  _relGerando = true;
-  const botoes = [...document.querySelectorAll('[data-rel="baixar"]')];
-  const antes = botoes.map(b => b.innerHTML);
-  botoes.forEach(b => { b.disabled = true; b.setAttribute('aria-busy', 'true'); b.innerHTML = '<i data-lucide="loader-circle" class="girando"></i> Gerando…'; });
-  if (window.lucide) lucide.createIcons();
+  if (_relOcupado) return;
+  _relOcupado = true;
+  const liberar = _relOcupar('baixar', 'Gerando…');
   try {
-    const r = await fetch('/api/relatorio.pdf', { credentials: 'same-origin' });
+    const r = await fetch(_relQuery(op), { credentials: 'same-origin' });
     if (r.status === 401) { location.href = '/login?volta=' + encodeURIComponent('/?secao=dashboard'); return; }
     if (!r.ok) {
       let msg = 'Não foi possível gerar o relatório agora. Tente de novo em instantes.';
@@ -2195,11 +2292,32 @@ const baixarRelatorio = async (ver = false) => {
     setTimeout(() => URL.revokeObjectURL(url), 60000);
     aviso('Relatório baixado! Confira a pasta de downloads.', 'ok');
   } catch (e) {
-    aviso(e.message || 'Não foi possível gerar o relatório.', 'erro');
+    _relErro(e.message || 'Não foi possível gerar o relatório.');
   } finally {
-    _relGerando = false;
-    botoes.forEach((b, i) => { if (!b.isConnected) return; b.disabled = false; b.removeAttribute('aria-busy'); b.innerHTML = antes[i]; });
-    if (window.lucide) lucide.createIcons();
+    _relOcupado = false;
+    liberar();
+  }
+};
+
+const enviarRelatorioEmail = async () => {
+  if (_relOcupado) return;
+  const op = _relOpcoes();
+  _relErro('');
+  _relOcupado = true;
+  const liberar = _relOcupar('email', 'Enviando…');
+  try {
+    const r = await fetch('/api/relatorio/email', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(op),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.status === 401) { location.href = '/login'; return; }
+    if (!r.ok) throw new Error(d.erro || 'Não foi possível enviar agora.');
+    aviso(`Relatório enviado para ${d.email || 'seu e-mail'}. Confira também o spam.`, 'ok');
+  } catch (e) {
+    _relErro(e.message);
+  } finally {
+    _relOcupado = false;
+    liberar();
   }
 };
 
@@ -2273,7 +2391,7 @@ const renderTrajetoria = () => {
       <div class="ev-filtros" role="tablist" aria-label="Filtrar trajetória">
         ${aba('', 'Tudo', itens.length)}${aba('conquista', 'Conquistas', r.conquistas)}${aba('projeto', 'Projetos', r.projetos)}${aba('evento', 'Eventos', r.eventos)}
       </div>
-      <button type="button" class="btn-validar secundario traj-pdf" data-rel="baixar" onclick="baixarRelatorio()"><i data-lucide="download"></i> Baixar relatório (PDF)</button>
+      <button type="button" class="btn-validar secundario traj-pdf" onclick="abrirRelatorio()" aria-haspopup="dialog"><i data-lucide="download"></i> Baixar relatório (PDF)</button>
     </div>
     ${lista.length ? grupos.map(g => `
       <section class="traj-mes">
@@ -2387,7 +2505,7 @@ const _itensBusca = () => [
     acao: () => irParaSecao(n.dataset.section),
   })),
   { titulo: 'Validar presença em um evento', grupo: 'Ações', icone: 'badge-check', termos: 'certificado qr code check-in', acao: () => { state.evFiltro = 'validar'; irParaSecao('eventos'); if (state.eventos) renderEventos(); } },
-  { titulo: 'Baixar meu relatório (PDF)', grupo: 'Ações', icone: 'file-down', termos: 'pdf curriculo desempenho imprimir historico exportar', acao: () => baixarRelatorio() },
+  { titulo: 'Baixar meu relatório (PDF)', grupo: 'Ações', icone: 'file-down', termos: 'pdf curriculo desempenho imprimir historico exportar', acao: () => abrirRelatorio() },
   { titulo: 'Ver níveis e como subir', grupo: 'Ações', icone: 'award', termos: 'pontos nivel', acao: () => state.dash ? abrirNiveis() : irParaSecao('dashboard') },
   { titulo: 'Minha posição no ranking', grupo: 'Ações', icone: 'trending-up', termos: 'onde estou', acao: () => irParaSecao('ranking') },
   { titulo: 'Configurações', grupo: 'Configurações', icone: 'settings', acao: () => abrirConfig() },
